@@ -1,0 +1,21 @@
+{
+  // C-Y-F Gaming: sito statico (cartella public) + server delle gare (src/worker.js)
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cyf-gaming",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "RACE", "class_name": "RaceRoom" },
+      { "name": "LEADERBOARD", "class_name": "Leaderboard" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["RaceRoom", "Leaderboard"] }
+  ],
+  "observability": { "enabled": true }
+}
