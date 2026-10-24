@@ -60,7 +60,7 @@
   .live { position: absolute; right: 10px; top: 10px; min-width: 190px; max-width: 46%; background: rgba(12,24,40,.68); color: #fff; border-radius: 10px; padding: 6px 8px 7px; font-size: 15px; font-variant-numeric: tabular-nums; pointer-events: none; }
   .live h4 { margin: 0 0 3px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
   .live ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-  .live li { display: grid; grid-template-columns: 1.5em 12px 1fr auto; gap: 6px; align-items: center; }
+  .live li { display: grid; grid-template-columns: 2.3em 12px 1fr auto; gap: 6px; align-items: center; }
   .live li.me { color: #ffb08a; font-weight: 700; }
   .live .dot { width: 10px; height: 10px; }
   .live .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -73,7 +73,7 @@
   .items button:disabled { opacity: .45; }
   .awards { display: grid; gap: 6px; border-top: 1px solid var(--snow-deep); padding-top: 10px; }
   .awards div { display: flex; align-items: center; gap: 8px; font-size: 17px; }
-  .awards .k { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); min-width: 9.5em; }
+  .awards .k { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); flex: 0 1 9.5em; min-width: 0; }
   .earned { font-weight: 700; color: var(--ok); font-size: 15px; }
   .mypts { font-size: 17px; font-weight: 700; color: var(--ink); }
   .mypts span { color: var(--flare); }
@@ -137,8 +137,14 @@
   .pill { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--snow-deep); color: var(--ink-soft); }
   .pill.ok { background: #d5f0df; color: var(--ok); }
   .pill.host { background: #ffe1d4; color: #b83a0c; }
-  .pos { width: 1.6em; font-family: var(--display); font-size: 16px; color: var(--ink-soft); }
+  .pos { min-width: 2.6em; flex: none; font-family: var(--display); font-size: 15px; color: var(--ink-soft); white-space: nowrap; }
   .time { font-weight: 700; }
+  /* risultati sul telefono: i pulsanti vanno a capo invece di tagliare le parole; "non arrivato" non schiaccia il nome */
+  #raceResults .row > button { flex: 1 1 auto; min-width: max-content; white-space: nowrap; }
+  #raceResults .players .name { min-width: 3.4em; }
+  .players .time.dnf { font-weight: 600; font-size: 14px; line-height: 1.1; color: var(--ink-soft); text-align: right; max-width: 6.5em; }
+  .awards span:not(.k):not(.dot) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .awards b { white-space: nowrap; }
 
   .board { border-top: 1px solid var(--snow-deep); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
   .board h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
@@ -227,14 +233,14 @@
         <label class="field" for="selJersey"><span data-i18n="jersey"></span>
           <select id="selJersey">
             <option value="" data-i18n="jerseyDefault"></option>
-            <option value="napoli">Napoli · azzurra</option>
-            <option value="roma">Roma · giallorossa</option>
-            <option value="milano-rossonera">Milano · rossonera</option>
-            <option value="milano-nerazzurra">Milano · nerazzurra</option>
-            <option value="torino-granata">Torino · granata</option>
-            <option value="torino-bianconera">Torino · bianconera</option>
-            <option value="palermo">Palermo · rosanero</option>
-            <option value="bologna">Bologna · rossoblù</option>
+            <option value="napoli" data-i18n="jNapoli">Napoli · azzurra</option>
+            <option value="roma" data-i18n="jRoma">Roma · giallorossa</option>
+            <option value="milano-rossonera" data-i18n="jMilanoRN">Milano · rossonera</option>
+            <option value="milano-nerazzurra" data-i18n="jMilanoNA">Milano · nerazzurra</option>
+            <option value="torino-granata" data-i18n="jTorinoG">Torino · granata</option>
+            <option value="torino-bianconera" data-i18n="jTorinoBN">Torino · bianconera</option>
+            <option value="palermo" data-i18n="jPalermo">Palermo · rosanero</option>
+            <option value="bologna" data-i18n="jBologna">Bologna · rossoblù</option>
           </select>
         </label>
         <button class="go" id="btnOnline" data-i18n="playOnline"></button>

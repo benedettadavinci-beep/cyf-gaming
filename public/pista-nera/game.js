@@ -47,6 +47,14 @@
     if (v) for (const n in v) s = s.split('{' + n + '}').join(v[n]);
     return s;
   }
+  // posizione in classifica nella lingua scelta: 1° · 1st · 1er · 1.º
+  const enOrd = (typeof Intl !== 'undefined' && Intl.PluralRules) ? new Intl.PluralRules('en', { type: 'ordinal' }) : null;
+  const ord = n => {
+    if (lang === 'en') return n + ({ one: 'st', two: 'nd', few: 'rd' }[enOrd ? enOrd.select(n) : 'other'] || 'th');
+    if (lang === 'fr') return n === 1 ? '1er' : n + 'e';
+    if (lang === 'es') return n + '.º';
+    return n + '°';
+  };
   const fmtLen = m => m >= 1000 ? (Math.round(m / 100) / 10).toLocaleString(lang) + ' km' : Math.round(m) + ' m';
   function mulberry32(a) {
     return function () {
@@ -2796,8 +2804,9 @@
     const i = net.results.findIndex(r => r.id === myId);
     const mine = i >= 0 ? net.results[i] : null;
     const link = location.origin + location.pathname;
-    const txt = tr('shareResult', {
-      p: mine && mine.ms != null ? (i + 1) + '°' : '…',
+    // sulla neve non c'è una città: "arrivato 1° a Neve" non ha senso
+    const txt = tr(theme === 'neve' ? 'shareResultSnow' : 'shareResult', {
+      p: mine && mine.ms != null ? ord(i + 1) : '…',
       city: tr(CITY_LABEL[theme] || 'snow'),
       t: mine && mine.ms != null ? fmtTime(mine.ms) : '—',
       link
@@ -2885,10 +2894,10 @@
     ul.innerHTML = '';
     net.results.forEach((r, i) => {
       const li = document.createElement('li');
-      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = r.ms != null ? (i === 0 ? '🏆' : (i + 1) + '°') : '–';
+      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = r.ms != null ? (i === 0 ? '🏆' : ord(i + 1)) : '–';
       const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(r.color || 0) % PALETTE.length];
       const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = r.name + (r.id === myId ? tr('you') : '');
-      const tm = document.createElement('span'); tm.className = 'time'; tm.textContent = r.ms != null ? fmtTime(r.ms) : tr('dnf');
+      const tm = document.createElement('span'); tm.className = r.ms != null ? 'time' : 'time dnf'; tm.textContent = r.ms != null ? fmtTime(r.ms) : tr('dnf');
       li.append(pos, dot, nm, tm);
       if (r.earned != null) { const e = document.createElement('span'); e.className = 'earned'; e.textContent = '+' + fmt(r.earned); li.append(e); }
       ul.append(li);
@@ -2912,7 +2921,7 @@
     aw.hidden = !aw.children.length;
     const mine = net.results.find(r => r.id === myId);
     $('resMine').hidden = !mine || mine.earned == null;
-    if (mine && mine.earned != null) $('resMine').innerHTML = tr('earnedLine', { e: '<span>+' + fmt(mine.earned) + '</span>', t: fmt(mine.total ?? myTotal) });
+    if (mine && mine.earned != null) $('resMine').innerHTML = tr('earnedLine', { e: '<span>' + fmt(mine.earned) + '</span>', t: fmt(mine.total ?? myTotal) });
     const isHost = !net.pub && net.hostId === myId;
     $('btnRematch').hidden = !isHost;
     renderResultsStatus();
@@ -3270,7 +3279,7 @@
     list.slice(0, 8).forEach((r, i) => {
       const li = document.createElement('li');
       if (r.id === myId) li.className = 'me';
-      const pos = document.createElement('span'); pos.textContent = (i + 1) + '°';
+      const pos = document.createElement('span'); pos.textContent = ord(i + 1);
       const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(r.color || 0) % PALETTE.length];
       const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.name + (r.id === myId ? tr('you') : '');
       const gap = document.createElement('span'); gap.className = 'gap';
@@ -3356,7 +3365,7 @@
       const el = mode === 'countdown' ? 0 : (net.finished.get(myId) ?? Math.max(0, serverNow() - net.startAt));
       $('v1').textContent = fmtTime(el);
       const pl = racePlace();
-      $('v2').textContent = tr('placeOf', { p: pl.place, n: pl.of });
+      $('v2').textContent = tr('placeOf', { p: ord(pl.place), n: pl.of });
       $('v4').textContent = fmtLen(Math.max(0, raceLen - distM()));
       $('v5').textContent = fmt(bonus);
       $('btnBanana').disabled = mode !== 'race' || bonus < COST.banana;

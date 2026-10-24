@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.8.1 · aggiornato al 24 ottobre 2026, ore 19:45"
+subtitle: "Versione 0.8.2 · aggiornato al 24 ottobre 2026, ore 20:40"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -117,6 +117,10 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-13 | Classifica dei migliori tempi separata per durata (5, 10, 15 min); nel menu si vede quella dei 5 minuti | 24/10/2026 | Da confermare |
 | S-14 | Nel menu del gioco la voce della maglia diventa "Colore assegnato" (Assigned colour, Couleur attribuée, Color asignado): la vecchia "Colore di gara (automatico)" era tagliata sul telefono in tutte le lingue | 24/10/2026 | Da confermare |
 | S-15 | Nella home in francese si dà del tu, come nel gioco; in spagnolo "desafío" come nel gioco; in inglese l'ortografia britannica del gioco (colour) | 24/10/2026 | Da confermare |
+| S-16 | Il pulsante per far partire la gara si chiama "Lancer" in francese ed "Empezar" in spagnolo: prima era "Partir" e "Salir", che vogliono dire anche "andarsene" ("Salir" era identico al pulsante Esci) | 24/10/2026 | Da confermare |
+| S-17 | Le posizioni si scrivono come si usa in ogni lingua: 1° · 1st · 1er · 1.º (prima c'era sempre "1°", in inglese "I finished 1° in…") | 24/10/2026 | Da confermare |
+| S-18 | Nomi delle maglie tradotti con i colori (es. "Naples · sky blue", "Rome · jaune et rouge"); in italiano restano i soprannomi (azzurra, giallorossa…) | 24/10/2026 | Da confermare |
+| S-19 | Revisione delle traduzioni: in francese "Feu rouge !" (prima "Feu !", cioè "Fuoco!"), "Le plus de figures" (prima "Plus de figures", che si legge anche "basta figure"), "Borne d'incendie", "double appui"; in inglese "Run complete" (prima "Run over", che vuol dire anche "investito"); in spagnolo "Reanudar" | 24/10/2026 | Da confermare |
 
 # 8. Idee per il futuro (da confermare)
 
@@ -144,7 +148,7 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | D-01 | Provare la v0.8.0 dai telefoni con qualche amico (microfono su iPhone, comandi touch, fluidità) e scrivere a Claude i numeri dei requisiti che vanno bene ("R-303 controllato") | Luigi |
 | D-02 | Leggere il rapporto del primo controllo notturno (parte stasera alle 21:33) | Luigi |
 | D-03 | Comprare il dominio (es. cyfgaming.it, ~10-15 €/anno) e collegarlo: Cloudflare → Workers & Pages → cyf-gaming → Domains. Claude guida se serve | Luigi, ~10 min |
-| D-04 | Decidere le scelte S-01…S-15: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
+| D-04 | Decidere le scelte S-01…S-19: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
 | D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione | Claude |
 | D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
 
@@ -159,3 +163,4 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | 0.7.0 | 24/10/2026 | Curve naturali, 10 nuove città dalla tabella di Luigi, stabilità sui salti di posizione, business plan e controllo notturno |
 | 0.8.0 | 24/10/2026 | Contatori d'uso (/api/stats), condivisione su WhatsApp/Telegram e del risultato, silenzia/segnala i vocali con blocco automatico dopo 2 segnalazioni |
 | 0.8.1 | 24/10/2026 | Home in quattro lingue con scelta IT/EN/FR/ES, lingua condivisa tra home e gioco, link ?lang=, voce della maglia non più tagliata sul telefono |
+| 0.8.2 | 24/10/2026 | Debug sul sito online: pulsante di partenza in francese e spagnolo, posizioni nella lingua giusta anche nel risultato condiviso, maglie tradotte, revisione delle traduzioni, schermata dei risultati sul telefono (pulsanti non più tagliati, nomi leggibili accanto a "non arrivato", premi su una riga) |
