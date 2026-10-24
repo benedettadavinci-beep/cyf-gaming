@@ -1,16 +1,19 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.5.0 · aggiornato al 24 ottobre 2026"
+subtitle: "Versione 0.5.0 · aggiornato al 24 ottobre 2026, ore 15:15"
 ---
 
 Questo documento raccoglie tutto quello che Luigi ha chiesto per il gioco, con lo stato di ogni richiesta. Viene aggiornato a ogni nuova richiesta.
 
-**Legenda dello stato**
+**Legenda dello stato** (in ordine di avanzamento)
 
-- **Fatto**: è nel gioco online.
-- **In corso**: ci stiamo lavorando.
-- **Da fare**: deciso, non ancora iniziato.
 - **Da confermare**: idea emersa nelle chat, non ancora approvata da Luigi.
+- **Da fare**: deciso, non ancora iniziato.
+- **In corso**: ci stiamo lavorando.
+- **Fatto**: è nel gioco online. Claude lo ha provato, ma Luigi non l'ha ancora controllato.
+- **Controllato**: Luigi l'ha provato nel gioco e va bene.
+
+Quando Luigi controlla un requisito, basta dirlo a Claude con il numero (per esempio "R-303 controllato"): lo stato passa a Controllato.
 
 Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-nera/`)
 
@@ -67,6 +70,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | ID | Requisito | Richiesto | Stato | Note |
 |---|---|---|---|---|
 | R-501 | File con tutti i requisiti del gioco, aggiornato a ogni richiesta, nella cartella "CYF gaming" sul Desktop | 24/10/2026 | Fatto | Questo documento; copia anche su GitHub (REQUISITI.md) |
+| R-502 | Nel file dei requisiti, oltre a fatto e da fare, lo stato "Controllato" | 24/10/2026 | Fatto | Vedi la legenda all'inizio |
 
 # 7. Scelte fatte da Claude (da confermare)
 
