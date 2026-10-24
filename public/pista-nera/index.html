@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pista Nera · C-Y-F Gaming</title>
+<meta name="description" content="Sfida i tuoi amici in una discesa di snowboard in 3D: stessa pista, stesso via, vince il tempo migliore sui 2.000 metri.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+  :root {
+    --snow: #eef4f8;
+    --snow-deep: #d3e2ed;
+    --ink: #13233a;
+    --ink-soft: #4a5d76;
+    --flare: #ff5a1f;
+    --ice: #2f7fd0;
+    --ok: #1f8a4c;
+    --frame: #0c1828;
+    --display: "Rubik Mono One", "Arial Black", Impact, sans-serif;
+    --body: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--frame); color: var(--ink); font-family: var(--body); font-size: 16px; overflow: hidden; padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px); box-sizing: border-box; }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  .app {
+    height: 100%;
+    display: flex; flex-direction: column; gap: 10px;
+    padding-block: 12px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    max-width: 1200px; margin: 0 auto;
+  }
+  .stage { position: relative; flex: 1; min-height: 0; border-radius: 14px; overflow: hidden; background: #d6e7f3; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 18px 40px rgba(0,0,0,.45); }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  .hud { position: absolute; inset: 0 0 auto 0; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; padding: 10px 14px 18px; background: linear-gradient(rgba(12,24,40,.55), rgba(12,24,40,0)); color: #fff; pointer-events: none; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+  .stat { display: flex; flex-direction: column; min-width: 0; }
+  .stat .k { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+  .stat .v { font-size: 24px; font-weight: 700; line-height: 1.05; }
+  .stat.hi .v { color: #ffb08a; }
+  .lives { margin-left: auto; display: flex; gap: 5px; align-self: center; }
+  .life { width: 26px; height: 9px; border-radius: 5px; background: #fff; box-shadow: inset 0 -3px 0 var(--flare); }
+  .life.lost { background: rgba(255,255,255,.25); box-shadow: none; }
+
+  .vignette { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 55%, rgba(10,22,38,.45) 100%); transition: opacity .3s linear; }
+  .sound { position: absolute; right: 10px; bottom: 10px; font-family: var(--body); font-weight: 700; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border-radius: 8px; border: 0; background: rgba(12,24,40,.55); color: #fff; cursor: pointer; }
+  .toasts { position: absolute; left: 0; right: 0; top: 46%; height: 0; pointer-events: none; }
+  .toast { position: absolute; left: 50%; top: 0; transform: translate(-50%, 0); font-weight: 700; font-size: 26px; white-space: nowrap; text-shadow: 0 0 6px #fff, 0 0 2px #fff, 0 2px 0 #fff; animation: rise 1.1s ease-out forwards; }
+  @keyframes rise { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.9); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); } 100% { opacity: 0; transform: translate(-50%, -70px) scale(1); } }
+
+  .count { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; font-family: var(--display); font-size: clamp(80px, 22vw, 200px); color: #fff; text-shadow: 0 6px 30px rgba(12,24,40,.5); }
+  .count span { animation: pop .9s ease-out; display: block; }
+  @keyframes pop { 0% { transform: scale(1.6); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 100% { opacity: .85; } }
+
+  .banner { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); background: rgba(12,24,40,.78); color: #fff; padding: 8px 14px; border-radius: 10px; font-size: 18px; font-weight: 600; text-align: center; max-width: calc(100% - 24px); }
+
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(12,24,40,.45); backdrop-filter: blur(2px); }
+  .panel { width: min(480px, 100%); max-height: 100%; overflow: auto; background: var(--snow); border-radius: 12px; padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+  .panel h1, .panel h2 { margin: 0; font-family: var(--display); font-weight: 400; letter-spacing: .02em; line-height: 1; text-wrap: balance; }
+  .panel h1 { font-size: clamp(30px, 8vw, 44px); }
+  .panel h1 span { color: var(--flare); }
+  .panel h2 { font-size: 24px; }
+  .brand { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--ice); text-decoration: none; }
+  .panel p { margin: 0; font-size: 18px; line-height: 1.35; max-width: 44ch; }
+  .muted { color: var(--ink-soft); font-size: 16px; }
+  label.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+  input[type=text] { font-family: var(--body); font-size: 20px; font-weight: 600; padding: 10px 12px; border-radius: 8px; border: 2px solid var(--snow-deep); background: #fff; color: var(--ink); width: 100%; }
+  input[type=text]:focus { outline: none; border-color: var(--ice); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row > * { min-width: 0; }
+  .grow { flex: 1; }
+
+  button { font-family: var(--body); cursor: pointer; }
+  .go { font-family: var(--display); font-size: 17px; letter-spacing: .04em; border: 0; border-radius: 10px; padding: 14px 18px; background: var(--flare); color: #fff; box-shadow: 0 4px 0 #b83a0c; transition: transform .08s ease; }
+  .go:active { transform: translateY(3px); box-shadow: 0 1px 0 #b83a0c; }
+  .go:disabled { opacity: .45; cursor: default; }
+  .alt { font-weight: 700; font-size: 18px; letter-spacing: .04em; border: 0; border-radius: 10px; padding: 12px 16px; background: var(--ink); color: var(--snow); }
+  .ghost { font-weight: 700; font-size: 17px; border: 2px solid var(--snow-deep); border-radius: 10px; padding: 10px 14px; background: transparent; color: var(--ink); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--ice); outline-offset: 2px; }
+  .err { font-size: 16px; color: #b3261e; }
+
+  .code { font-family: var(--display); font-size: 40px; letter-spacing: .12em; color: var(--ink); }
+  .players { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .players li { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 8px; padding: 8px 10px; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: inset 0 -2px 0 rgba(0,0,0,.2); }
+  .players .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pill { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--snow-deep); color: var(--ink-soft); }
+  .pill.ok { background: #d5f0df; color: var(--ok); }
+  .pill.host { background: #ffe1d4; color: #b83a0c; }
+  .pos { width: 1.6em; font-family: var(--display); font-size: 16px; color: var(--ink-soft); }
+  .time { font-weight: 700; }
+
+  .board { border-top: 1px solid var(--snow-deep); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .board h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+  .board ol { margin: 0; padding-left: 1.6em; font-size: 17px; font-variant-numeric: tabular-nums; display: grid; gap: 2px; }
+  .board li span { float: right; font-weight: 700; }
+  details { font-size: 16px; color: var(--ink-soft); }
+  summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin-top: 8px; align-items: center; }
+  kbd { font-family: var(--body); font-weight: 700; font-size: 14px; padding: 2px 8px; border-radius: 5px; background: var(--ink); color: var(--snow); white-space: nowrap; }
+  .results { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; font-variant-numeric: tabular-nums; }
+  .results div { display: flex; flex-direction: column; }
+  .results .k { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+  .results .v { font-size: 28px; font-weight: 700; }
+  .results .v.hi { color: var(--flare); }
+
+  .pad { display: none; gap: 10px; }
+  .pad button { flex: 1; font-weight: 700; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; padding: 16px 8px; border-radius: 10px; border: 0; background: #1d3352; color: var(--snow); touch-action: none; user-select: none; -webkit-user-select: none; }
+  .pad button.jump { background: var(--flare); color: #fff; flex: 1.3; }
+  .pad button.on { filter: brightness(1.35); }
+  @media (pointer: coarse) { .pad { display: flex; } .hide-touch { display: none; } }
+  @media (pointer: fine) { .hide-mouse { display: none; } }
+  @media (max-width: 480px) { .stat .v { font-size: 20px; } .hud { gap: 4px 12px; padding: 8px 10px 14px; } .stat.opt { display: none; } .code { font-size: 32px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="game" aria-label="Pista da snowboard in 3D"></canvas>
+    <div class="vignette" id="vignette"></div>
+    <div class="toasts" id="toasts"></div>
+    <div class="count" id="count" hidden></div>
+    <button class="sound" id="btnSound" aria-pressed="true">Audio: sì</button>
+    <div class="banner" id="banner" hidden></div>
+
+    <div class="hud">
+      <div class="stat hi"><span class="k" id="k1">Punti</span><span class="v" id="v1">0</span></div>
+      <div class="stat"><span class="k" id="k2">Distanza</span><span class="v" id="v2">0 m</span></div>
+      <div class="stat"><span class="k">Velocità</span><span class="v" id="vSpeed">0 km/h</span></div>
+      <div class="stat opt"><span class="k" id="k4">Quota</span><span class="v" id="v4">2.950 m</span></div>
+      <div class="lives" id="hLives"></div>
+    </div>
+
+    <!-- menu principale -->
+    <div class="overlay" id="menu">
+      <div class="panel">
+        <a class="brand" href="/">C-Y-F Gaming · Challenge Your Friends</a>
+        <h1>Pista <span>Nera</span></h1>
+        <p>Stessa pista, stesso via: sfida gli amici sui 2.000 metri. Vince il tempo migliore.</p>
+        <label class="field" for="inName">Il tuo nome
+          <input type="text" id="inName" maxlength="16" autocomplete="nickname" placeholder="Es. Luigi">
+        </label>
+        <button class="go" id="btnCreate">Crea una sfida</button>
+        <div class="row">
+          <input type="text" class="grow" id="inCode" maxlength="8" placeholder="Codice sfida" aria-label="Codice sfida" autocapitalize="characters">
+          <button class="alt" id="btnJoin">Entra</button>
+        </div>
+        <button class="ghost" id="btnSolo">Allenati da solo</button>
+        <span class="err" id="menuErr" hidden></span>
+        <details>
+          <summary>Comandi e regole</summary>
+          <div class="keys hide-touch">
+            <kbd>← →</kbd><span>curva (più curvi, più rallenti)</span>
+            <kbd>Spazio</kbd><span>salta: superi le rocce, non gli abeti</span>
+            <kbd>← → in aria</kbd><span>ruota; atterra dritto o al contrario</span>
+            <kbd>M</kbd><span>audio sì/no</span>
+          </div>
+          <div class="keys hide-mouse">
+            <kbd>◀ ▶</kbd><span>curva</span>
+            <kbd>Salta</kbd><span>supera le rocce</span>
+          </div>
+          <p class="muted" style="margin-top:8px">In sfida le cadute non eliminano: ti fanno solo perdere tempo. Il tempo lo misura il server, uguale per tutti.</p>
+        </details>
+        <div class="board" id="boardBox" hidden>
+          <h3>Migliori tempi · 2.000 m</h3>
+          <ol id="board"></ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- stanza della sfida -->
+    <div class="overlay" id="lobby" hidden>
+      <div class="panel">
+        <span class="brand">Sfida · Pista Nera</span>
+        <div>
+          <span class="muted">Codice da condividere</span>
+          <div class="code" id="lobbyCode">—</div>
+        </div>
+        <div class="row">
+          <button class="alt grow" id="btnCopy">Copia il link</button>
+        </div>
+        <span class="muted" id="linkText" style="word-break:break-all"></span>
+        <ul class="players" id="lobbyPlayers"></ul>
+        <span class="muted" id="lobbyStatus"></span>
+        <div class="row">
+          <button class="ghost grow" id="btnReady">Sono pronto</button>
+          <button class="go grow" id="btnGo" hidden>Parti</button>
+        </div>
+        <button class="ghost" id="btnLeave">Esci dalla sfida</button>
+      </div>
+    </div>
+
+    <!-- risultati della sfida -->
+    <div class="overlay" id="raceResults" hidden>
+      <div class="panel">
+        <span class="brand" id="resRound">Risultati</span>
+        <h2>Classifica</h2>
+        <ul class="players" id="resList"></ul>
+        <span class="muted" id="resStatus"></span>
+        <div class="row">
+          <button class="go grow" id="btnRematch" hidden>Rivincita</button>
+          <button class="ghost grow" id="btnResLeave">Esci</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- allenamento: fine discesa -->
+    <div class="overlay" id="over" hidden>
+      <div class="panel">
+        <span class="brand" id="overReason">Fine discesa</span>
+        <h2>Discesa finita</h2>
+        <div class="results">
+          <div><span class="k">Punti</span><span class="v hi" id="rScore">0</span></div>
+          <div><span class="k">Distanza</span><span class="v" id="rDist">0 m</span></div>
+          <div><span class="k">Velocità max</span><span class="v" id="rSpeed">0 km/h</span></div>
+          <div><span class="k">Rotazione migliore</span><span class="v" id="rSpin">—</span></div>
+        </div>
+        <span class="muted" id="rBest"></span>
+        <div class="row">
+          <button class="go grow" id="btnRetry">Riprova</button>
+          <button class="ghost grow" id="btnMenu">Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="pause" hidden>
+      <div class="panel">
+        <h2>Pausa</h2>
+        <p>Premi P o il pulsante per ripartire.</p>
+        <button class="go" id="btnResume">Riprendi</button>
+      </div>
+    </div>
+
+    <span class="err" id="glErr" hidden>Questo browser non supporta la grafica 3D (WebGL). Prova con Chrome, Edge o Firefox aggiornati.</span>
+  </div>
+
+  <div class="pad">
+    <button id="tLeft" aria-label="Curva a sinistra">◀</button>
+    <button id="tJump" class="jump">Salta</button>
+    <button id="tRight" aria-label="Curva a destra">▶</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
