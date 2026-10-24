@@ -49,6 +49,20 @@
 
   .vignette { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 55%, rgba(10,22,38,.45) 100%); transition: opacity .3s linear; }
   .sound { position: absolute; right: 10px; bottom: 10px; font-family: var(--body); font-weight: 700; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border-radius: 8px; border: 0; background: rgba(12,24,40,.55); color: #fff; cursor: pointer; }
+  .voice { position: absolute; left: 10px; bottom: 10px; font-family: var(--body); font-weight: 700; font-size: 15px; letter-spacing: .04em; padding: 8px 12px; border-radius: 10px; border: 0; background: rgba(12,24,40,.72); color: #fff; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .voice::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--flare); flex: none; }
+  .voice.rec { background: #b3261e; }
+  .voice.rec::before { background: #fff; animation: blink 1s steps(2) infinite; }
+  .voice:disabled { opacity: .65; cursor: default; }
+  .voice:disabled::before { background: rgba(255,255,255,.4); }
+  @keyframes blink { 50% { opacity: .2; } }
+  .voice-now { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(12,24,40,.78); color: #fff; padding: 6px 12px; border-radius: 999px; font-size: 16px; font-weight: 600; pointer-events: none; white-space: nowrap; }
+  .voice-now i { width: 10px; height: 10px; border-radius: 50%; display: block; animation: blink 0.8s steps(2) infinite; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--snow-deep); padding: 4px; border-radius: 10px; }
+  .seg button { font-weight: 700; font-size: 17px; border: 0; border-radius: 7px; padding: 9px 10px; background: transparent; color: var(--ink-soft); }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+  .donate { display: block; text-align: center; font-weight: 700; font-size: 16px; color: #b83a0c; text-decoration: none; padding: 8px; border-radius: 10px; border: 2px dashed #ffc2a8; }
+  .donate:hover { background: #fff3ee; }
   .toasts { position: absolute; left: 0; right: 0; top: 46%; height: 0; pointer-events: none; }
   .toast { position: absolute; left: 50%; top: 0; transform: translate(-50%, 0); font-weight: 700; font-size: 26px; white-space: nowrap; text-shadow: 0 0 6px #fff, 0 0 2px #fff, 0 2px 0 #fff; animation: rise 1.1s ease-out forwards; }
   @keyframes rise { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.9); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); } 100% { opacity: 0; transform: translate(-50%, -70px) scale(1); } }
@@ -126,6 +140,8 @@
     <div class="toasts" id="toasts"></div>
     <div class="count" id="count" hidden></div>
     <button class="sound" id="btnSound" aria-pressed="true">Audio: sì</button>
+    <button class="voice" id="btnVoice" hidden>Parla</button>
+    <div class="voice-now" id="voiceNow" hidden><i></i><span><b></b> sta parlando…</span></div>
     <div class="banner" id="banner" hidden></div>
 
     <div class="hud">
@@ -145,6 +161,13 @@
         <label class="field" for="inName">Il tuo nome
           <input type="text" id="inName" maxlength="16" autocomplete="nickname" placeholder="Es. Luigi">
         </label>
+        <div class="field" style="display:flex;flex-direction:column;gap:4px">
+          <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Scenario</span>
+          <div class="seg" role="group" aria-label="Scenario">
+            <button type="button" data-scena="neve" aria-pressed="true">Neve</button>
+            <button type="button" data-scena="napoli" aria-pressed="false">Napoli</button>
+          </div>
+        </div>
         <button class="go" id="btnCreate">Crea una sfida</button>
         <div class="row">
           <input type="text" class="grow" id="inCode" maxlength="8" placeholder="Codice sfida" aria-label="Codice sfida" autocapitalize="characters">
@@ -157,15 +180,20 @@
           <div class="keys hide-touch">
             <kbd>← →</kbd><span>curva (più curvi, più rallenti)</span>
             <kbd>Spazio</kbd><span>salta: superi le rocce, non gli abeti</span>
-            <kbd>← → in aria</kbd><span>ruota; atterra dritto o al contrario</span>
+            <kbd>← → in aria</kbd><span>avvitamento (180°, 360°…)</span>
+            <kbd>↑ ↓ in aria</kbd><span>salto mortale avanti / indietro</span>
+            <kbd>niente in aria</kbd><span>il rider afferra la tavola (grab)</span>
+            <kbd>V</kbd><span>in sfida: messaggio vocale (uno ogni 3 minuti)</span>
             <kbd>M</kbd><span>audio sì/no</span>
           </div>
           <div class="keys hide-mouse">
-            <kbd>◀ ▶</kbd><span>curva</span>
-            <kbd>Salta</kbd><span>supera le rocce</span>
+            <kbd>◀ ▶</kbd><span>curva; in aria avvitamento</span>
+            <kbd>Salta</kbd><span>supera le rocce; tenuto in aria: backflip</span>
+            <kbd>Parla</kbd><span>in sfida: messaggio vocale (uno ogni 3 minuti)</span>
           </div>
-          <p class="muted" style="margin-top:8px">In sfida le cadute non eliminano: ti fanno solo perdere tempo. Il tempo lo misura il server, uguale per tutti.</p>
+          <p class="muted" style="margin-top:8px">Atterraggio assistito: poco prima di toccare terra il rider si raddrizza. In sfida le cadute non eliminano: fanno solo perdere tempo. Il tempo lo misura il server, uguale per tutti.</p>
         </details>
+        <a class="donate" data-donate hidden target="_blank" rel="noopener">Ti piace il gioco? Sostienilo con una donazione</a>
         <div class="board" id="boardBox" hidden>
           <h3>Migliori tempi · 2.000 m</h3>
           <ol id="board"></ol>
@@ -206,6 +234,7 @@
           <button class="go grow" id="btnRematch" hidden>Rivincita</button>
           <button class="ghost grow" id="btnResLeave">Esci</button>
         </div>
+        <a class="donate" data-donate hidden target="_blank" rel="noopener">Sostieni C-Y-F Gaming con una donazione</a>
       </div>
     </div>
 
@@ -247,6 +276,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/config.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

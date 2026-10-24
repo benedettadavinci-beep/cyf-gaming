@@ -13,6 +13,9 @@ const MIN_RACE_MS = Math.floor((RACE_LENGTH_M / MAX_SPEED_MS) * 1000);
 const COUNTDOWN_MS = 5000;
 const RACE_TIMEOUT_MS = 4 * 60 * 1000;      // dopo 4 minuti chi non è arrivato è "non classificato"
 const CODE_RE = /^[A-Z0-9]{4,8}$/;
+const VOICE_COOLDOWN_MS = 3 * 60 * 1000;    // un messaggio vocale ogni 3 minuti per giocatore
+const VOICE_MAX_CHARS = 200000;             // circa 150 KB di audio (base64): bastano ~10 s
+const VOICE_MIME = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg', 'audio/mp4', 'audio/aac'];
 
 const json = (data, init = {}) =>
   new Response(JSON.stringify(data), {
@@ -103,7 +106,9 @@ export class RaceRoom extends DurableObject {
   }
 
   async webSocketMessage(ws, raw) {
-    if (typeof raw !== 'string' || raw.length > 2000) return;
+    if (typeof raw !== 'string') return;
+    // solo i messaggi vocali possono essere grandi
+    if (raw.length > 2000 && !(raw.length <= VOICE_MAX_CHARS + 500 && raw.startsWith('{"t":"voice"'))) return;
     let m;
     try { m = JSON.parse(raw); } catch (e) { return; }
     const st = await this.load();
@@ -129,7 +134,8 @@ export class RaceRoom extends DurableObject {
       await this.save();
       this.send(ws, {
         t: 'welcome', you: id, code: st.code, now, max: MAX_PLAYERS, length: RACE_LENGTH_M,
-        phase: st.phase, seed: st.seed, startAt: st.startAt, racers: st.racers, results: st.results
+        phase: st.phase, seed: st.seed, startAt: st.startAt, racers: st.racers, results: st.results,
+        voiceNext: ((st.voiceAt || {})[id] || 0) + VOICE_COOLDOWN_MS
       });
       this.broadcast(this.lobbyMsg());
       return;
@@ -165,8 +171,24 @@ export class RaceRoom extends DurableObject {
       this.broadcast({
         t: 'pos', id: me.id,
         x: num(m.x, -1e5, 1e5), z: num(m.z, -1e5, 1e5), y: num(m.y, -50, 50),
-        a: num(m.a, -4, 4), s: num(m.s, -100, 100), v: num(m.v, 0, 60), c: m.c ? 1 : 0
+        a: num(m.a, -4, 4), s: num(m.s, -100, 100), f: num(m.f, -100, 100), g: m.g ? 1 : 0,
+        v: num(m.v, 0, 60), c: m.c ? 1 : 0
       }, ws);
+      return;
+    }
+
+    if (m.t === 'voice') {
+      const data = typeof m.data === 'string' ? m.data : '';
+      const mime = VOICE_MIME.includes(m.mime) ? m.mime : null;
+      if (!mime || !data || data.length > VOICE_MAX_CHARS || !/^[A-Za-z0-9+/=]+$/.test(data)) return;
+      st.voiceAt = st.voiceAt || {};
+      const next = (st.voiceAt[me.id] || 0) + VOICE_COOLDOWN_MS;
+      if (now < next) { this.send(ws, { t: 'voiceWait', next, now }); return; }
+      for (const k of Object.keys(st.voiceAt)) if (st.voiceAt[k] + VOICE_COOLDOWN_MS < now) delete st.voiceAt[k];
+      st.voiceAt[me.id] = now;
+      await this.save();
+      this.send(ws, { t: 'voiceOk', next: now + VOICE_COOLDOWN_MS, now });
+      this.broadcast({ t: 'voice', id: me.id, name: me.name, color: me.color, mime, data, dur: num(m.dur, 0, 15) }, ws);
       return;
     }
 
