@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pista Nera · C-Y-F Gaming</title>
-<meta name="description" content="Sfida i tuoi amici in una discesa di snowboard in 3D: stessa pista, stesso via, vince il tempo migliore sui 2.000 metri.">
+<meta name="description" content="Sfida i tuoi amici in una discesa in 3D, in snowboard sulla neve o in skateboard per Napoli e Roma: stessa pista, stesso via, vince il tempo migliore sui 2.000 metri.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Barlow+Condensed:wght@500;600;700&display=swap">
@@ -58,7 +58,7 @@
   @keyframes blink { 50% { opacity: .2; } }
   .voice-now { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(12,24,40,.78); color: #fff; padding: 6px 12px; border-radius: 999px; font-size: 16px; font-weight: 600; pointer-events: none; white-space: nowrap; }
   .voice-now i { width: 10px; height: 10px; border-radius: 50%; display: block; animation: blink 0.8s steps(2) infinite; }
-  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--snow-deep); padding: 4px; border-radius: 10px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; background: var(--snow-deep); padding: 4px; border-radius: 10px; }
   .seg button { font-weight: 700; font-size: 17px; border: 0; border-radius: 7px; padding: 9px 10px; background: transparent; color: var(--ink-soft); }
   .seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
   .donate { display: block; text-align: center; font-weight: 700; font-size: 16px; color: #b83a0c; text-decoration: none; padding: 8px; border-radius: 10px; border: 2px dashed #ffc2a8; }
@@ -135,7 +135,7 @@
 <body>
 <div class="app">
   <div class="stage" id="stage">
-    <canvas id="game" aria-label="Pista da snowboard in 3D"></canvas>
+    <canvas id="game" aria-label="Pista in 3D: neve, Napoli o Roma"></canvas>
     <div class="vignette" id="vignette"></div>
     <div class="toasts" id="toasts"></div>
     <div class="count" id="count" hidden></div>
@@ -166,6 +166,7 @@
           <div class="seg" role="group" aria-label="Scenario">
             <button type="button" data-scena="neve" aria-pressed="true">Neve</button>
             <button type="button" data-scena="napoli" aria-pressed="false">Napoli</button>
+            <button type="button" data-scena="roma" aria-pressed="false">Roma</button>
           </div>
         </div>
         <button class="go" id="btnCreate">Crea una sfida</button>
@@ -179,7 +180,7 @@
           <summary>Comandi e regole</summary>
           <div class="keys hide-touch">
             <kbd>← →</kbd><span>curva (più curvi, più rallenti)</span>
-            <kbd>Spazio</kbd><span>salta: superi le rocce, non gli abeti</span>
+            <kbd>Spazio</kbd><span>salta: superi le rocce, non gli alberi</span>
             <kbd>← → in aria</kbd><span>avvitamento (180°, 360°…)</span>
             <kbd>↑ ↓ in aria</kbd><span>salto mortale avanti / indietro</span>
             <kbd>niente in aria</kbd><span>il rider afferra la tavola (grab)</span>

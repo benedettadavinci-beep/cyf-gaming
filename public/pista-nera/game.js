@@ -41,10 +41,12 @@
   let renderer;
   try { renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: true }); }
   catch (e) { $('glErr').hidden = false; return; }
-  renderer.setPixelRatio(Math.min(isPhone ? 1.75 : 2, window.devicePixelRatio || 1));
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const ANISO = renderer.capabilities.getMaxAnisotropy();
+  const TEX = isPhone ? 512 : 1024;   // risoluzione delle texture del terreno
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(lin(HORIZON), 60, 200);
@@ -102,27 +104,32 @@
                 + 0.32 * Math.sin(x * 0.31 + 1.7) * Math.sin(z * 0.23);
     return rough * waves + clamp((off - 19) / 12, 0, 1) * 1.6;
   }
-  function snowTexture() {
-    const c = document.createElement('canvas'); c.width = c.height = 512;
+  // texture del terreno: una piastrella di 8 m ripetuta (50 volte sui 400 m del terreno)
+  function groundCanvas(draw) {
+    const c = document.createElement('canvas'); c.width = c.height = TEX;
     const g = c.getContext('2d');
-    g.fillStyle = '#e6eef5'; g.fillRect(0, 0, 512, 512);
-    for (let y = 0; y < 512; y += 6) { g.fillStyle = (y / 6) % 2 ? 'rgba(105,140,180,0.12)' : 'rgba(255,255,255,0.45)'; g.fillRect(0, y, 512, 3); }
-    for (let i = 0; i < 2600; i++) {
-      const r = Math.random();
-      g.fillStyle = r < 0.45 ? 'rgba(80,120,170,0.14)' : 'rgba(255,255,255,0.85)';
-      g.fillRect(Math.random() * 512, Math.random() * 512, r > 0.97 ? 2 : 1.4, r > 0.97 ? 2 : 1.4);
-    }
+    g.scale(TEX / 512, TEX / 512);   // si disegna sempre in coordinate 512, la tela è più fine sul PC
+    draw(g);
     const tex = new THREE.CanvasTexture(c);
     tex.encoding = THREE.sRGBEncoding;
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(50, 50);
-    tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    tex.anisotropy = ANISO;
     return tex;
   }
+  const snowTexture = () => groundCanvas(g => {
+    const rr = mulberry32(5);
+    g.fillStyle = '#e6eef5'; g.fillRect(0, 0, 512, 512);
+    for (let y = 0; y < 512; y += 6) { g.fillStyle = (y / 6) % 2 ? 'rgba(105,140,180,0.12)' : 'rgba(255,255,255,0.45)'; g.fillRect(0, y, 512, 3); }
+    for (let i = 0; i < 5200; i++) {
+      const r = rr();
+      g.fillStyle = r < 0.45 ? 'rgba(80,120,170,0.13)' : 'rgba(255,255,255,0.85)';
+      const s = r > 0.97 ? 1.6 : 0.8;
+      g.fillRect(rr() * 512, rr() * 512, s, s);
+    }
+  });
   // basoli di pietra lavica (scenario Napoli)
-  function stoneTexture() {
-    const c = document.createElement('canvas'); c.width = c.height = 512;
-    const g = c.getContext('2d');
+  const stoneTexture = () => groundCanvas(g => {
     const rr = mulberry32(99);
     g.fillStyle = '#2a2725'; g.fillRect(0, 0, 512, 512);
     const H = 32;
@@ -132,22 +139,36 @@
         const w = 44 + rr() * 34;
         const v = 74 + Math.floor(rr() * 26);
         g.fillStyle = 'rgb(' + v + ',' + (v - 3) + ',' + (v - 6) + ')';
-        g.fillRect(x + 2, row * H + 2, w - 3, H - 3);
-        g.fillStyle = 'rgba(255,255,255,0.06)'; g.fillRect(x + 3, row * H + 3, w - 5, 3);
-        for (let k = 0; k < 14; k++) { g.fillStyle = rr() < 0.5 ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.05)'; g.fillRect(x + 3 + rr() * (w - 6), row * H + 4 + rr() * (H - 8), 2, 2); }
+        g.fillRect(x + 1.5, row * H + 1.5, w - 2.5, H - 2.5);
+        g.fillStyle = 'rgba(255,255,255,0.07)'; g.fillRect(x + 2.5, row * H + 2.5, w - 4.5, 2);
+        g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x + 2.5, row * H + H - 3, w - 4.5, 1.5);
+        for (let k = 0; k < 22; k++) { g.fillStyle = rr() < 0.5 ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.05)'; g.fillRect(x + 3 + rr() * (w - 6), row * H + 4 + rr() * (H - 8), 1.2, 1.2); }
         x += w;
       }
     }
-    const tex = new THREE.CanvasTexture(c);
-    tex.encoding = THREE.sRGBEncoding;
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(50, 50);
-    tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    return tex;
-  }
+  });
+  // sampietrini: cubetti di basalto posati a file (scenario Roma)
+  const sampietriniTexture = () => groundCanvas(g => {
+    const rr = mulberry32(42);
+    g.fillStyle = '#3b3633'; g.fillRect(0, 0, 512, 512);
+    const S = 12.8;   // 40 cubetti ogni 8 m: circa 20 cm l'uno
+    for (let row = 0; row < 512 / S; row++) {
+      const shift = row % 2 ? S / 2 : 0;
+      for (let x = -S; x < 512 + S; x += S) {
+        const v = 92 + Math.floor(rr() * 34), w = (rr() - 0.5) * 6;
+        g.fillStyle = 'rgb(' + (v + 4 + w) + ',' + (v + w) + ',' + (v - 5 + w) + ')';
+        const x0 = x + shift + 1.2 + rr() * 0.8, y0 = row * S + 1.2 + rr() * 0.8;
+        g.fillRect(x0, y0, S - 2.4, S - 2.4);
+        g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x0, y0, S - 2.4, 1.4);
+        g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(x0, y0 + S - 3.6, S - 2.4, 1.2);
+        if (rr() < 0.5) { g.fillStyle = 'rgba(0,0,0,0.08)'; g.fillRect(x0 + rr() * 8, y0 + rr() * 8, 1.6, 1.6); }
+      }
+    }
+  });
   const GS = 400, GSEG = isPhone ? 80 : 110, CELL = GS / GSEG;
-  const groundTex = snowTexture();
-  let stoneTex = null;
+  const GROUND_TEX = { neve: snowTexture(), napoli: null, roma: null };
+  const GROUND_MAKE = { napoli: stoneTexture, roma: sampietriniTexture };
+  const groundTex = GROUND_TEX.neve;
   const groundGeo = new THREE.PlaneGeometry(GS, GS, GSEG, GSEG);
   groundGeo.rotateX(-Math.PI / 2);
   const basePos = groundGeo.attributes.position.array.slice();
@@ -196,6 +217,9 @@
     }
   })();
 
+  // Gli sfondi delle città seguono la telecamera come il cielo e le montagne: sono sempre lontani
+  // e il rider non ci passa mai attraverso (prima, dopo ~400 m la telecamera entrava nelle case
+  // o finiva sotto il piano del mare, e lo schermo diventava di un solo colore).
   // sfondo di Napoli: mare, Vesuvio, costiera e città sul golfo
   const bay = new THREE.Group();
   bay.visible = false;
@@ -213,12 +237,14 @@
     bay.add(glare);
     // Vesuvio: cono principale tronco + monte Somma accanto
     const ves = new THREE.Group();
-    const vMat = mk('#6f6a73'), vTop = mk('#5c5560'), sMat = mk('#7f7c86');
-    const cone = new THREE.Mesh(new THREE.CylinderGeometry(34, 250, 205, 28, 1, true), vMat);
+    // Vesuvio con luce e ombra (non più a tinta unita) e un po' di foschia nel colore
+    const haze = c => new THREE.MeshLambertMaterial({ color: lin(c), emissive: lin('#4a4f5c'), fog: false });
+    const vMat = haze('#8a8590'), vTop = haze('#6c6570'), sMat = haze('#96939e');
+    const cone = new THREE.Mesh(lumpy(new THREE.CylinderGeometry(34, 250, 205, 40, 4, true), 0.035, mulberry32(3)), vMat);
     cone.position.y = 102;
     const crater = new THREE.Mesh(new THREE.CylinderGeometry(22, 34, 10, 28), vTop);
     crater.position.y = 200;
-    const somma = new THREE.Mesh(new THREE.CylinderGeometry(60, 230, 160, 24, 1, true), sMat);
+    const somma = new THREE.Mesh(lumpy(new THREE.CylinderGeometry(60, 230, 160, 32, 4, true), 0.04, mulberry32(4)), sMat);
     somma.position.set(-175, 80, 60);
     ves.add(somma, cone, crater);
     ves.position.set(Math.sin(0.42) * 640, -150, -Math.cos(0.42) * 640);
@@ -244,6 +270,149 @@
       b.position.set(Math.sin(ang) * R, -150 + h / 2, -Math.cos(ang) * R);
       b.rotation.y = rr();
       bay.add(b);
+    }
+  })();
+
+  // sfondo di Roma: tetti in coppi, cupole, pini, colli e il Colosseo davanti, in fondo alla discesa
+  const rome = new THREE.Group();
+  rome.visible = false;
+  scene.add(rome);
+  function colosseoTexture() {
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+    const g = c.getContext('2d');
+    const rr = mulberry32(17);
+    g.fillStyle = '#d6c29c'; g.fillRect(0, 0, 1024, 512);
+    // quattro ordini: attico (in alto) e tre piani di arcate
+    const levels = [[0, 140, 'attic'], [140, 262, 'arch'], [262, 386, 'arch'], [386, 512, 'arch']];
+    for (const [y0, y1, kind] of levels) {
+      const h = y1 - y0;
+      for (let b = 0; b < 4; b++) {
+        const x0 = b * 256;
+        // semicolonna tra le arcate
+        g.fillStyle = '#e4d3b0'; g.fillRect(x0 - 14, y0 + 12, 28, h - 12);
+        g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x0 + 10, y0 + 12, 6, h - 12);
+        if (kind === 'arch') {
+          const w = 150, ah = h * 0.74, cx = x0 + 128, top = y1 - ah;
+          const gr = g.createLinearGradient(0, top, 0, y1);
+          gr.addColorStop(0, '#3b2f27'); gr.addColorStop(1, '#6b5845');
+          g.fillStyle = gr;
+          g.beginPath();
+          g.moveTo(cx - w / 2, y1);
+          g.lineTo(cx - w / 2, top + w / 2);
+          g.arc(cx, top + w / 2, w / 2, Math.PI, 0);
+          g.lineTo(cx + w / 2, y1);
+          g.closePath(); g.fill();
+          g.strokeStyle = '#ecdcba'; g.lineWidth = 8; g.stroke();
+        } else if (b % 2 === 0) {
+          g.fillStyle = '#4a3c30'; g.fillRect(x0 + 98, y0 + 54, 60, 42);
+        }
+      }
+      // cornicione sopra ogni piano
+      g.fillStyle = '#efe2c4'; g.fillRect(0, y0, 1024, 12);
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(0, y0 + 12, 1024, 5);
+    }
+    // macchie e colature del tempo
+    for (let i = 0; i < 900; i++) { g.fillStyle = rr() < 0.6 ? 'rgba(70,55,40,0.10)' : 'rgba(255,250,235,0.10)'; g.fillRect(rr() * 1024, rr() * 512, 2 + rr() * 5, 2 + rr() * 5); }
+    for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(60,48,36,0.07)'; g.fillRect(rr() * 1024, rr() * 300, 3 + rr() * 6, 60 + rr() * 200); }
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.anisotropy = ANISO;
+    return tex;
+  }
+  (function buildRome() {
+    const rr = mulberry32(64);
+    const mk = c => new THREE.MeshBasicMaterial({ color: lin(c), fog: false });
+    const BASE = -150;
+    const plain = new THREE.Mesh(new THREE.CircleGeometry(1150, 64), mk('#bba58c'));
+    plain.rotation.x = -Math.PI / 2;
+    plain.position.y = BASE;
+    rome.add(plain);
+    // il Colosseo, leggermente a destra della discesa
+    const CA = 0.1, CR = 560, RX = 150, RZ = 124, H = 80;
+    const col = new THREE.Group();
+    const base = colosseoTexture();
+    const lit = { fog: false, side: THREE.DoubleSide };
+    function ring(t0, len, frac, r) {
+      const tex = base.clone();
+      tex.needsUpdate = true;
+      tex.repeat.set(Math.round(80 * len / TAU) / 4, frac);
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, frac, 72, 1, true, t0, len),
+        new THREE.MeshLambertMaterial(Object.assign({ map: tex, emissive: lin('#3a3226') }, lit)));
+      m.position.y = frac / 2;
+      col.add(m);
+    }
+    // anello esterno intero sul lato verso chi guarda, crollato sul lato destro (si vede l'anello interno più basso)
+    const t0 = -0.95 * Math.PI;
+    ring(t0, 1.28 * Math.PI, 1, 1);
+    ring(t0 + 1.28 * Math.PI, 0.08 * Math.PI, 0.86, 0.985);
+    ring(t0 + 1.36 * Math.PI, 0.64 * Math.PI, 0.727, 0.965);
+    // gradinate e arena
+    const seats = document.createElement('canvas'); seats.width = 16; seats.height = 128;
+    const sg = seats.getContext('2d');
+    for (let y = 0; y < 128; y += 8) { sg.fillStyle = '#bda783'; sg.fillRect(0, y, 16, 5); sg.fillStyle = '#8c7658'; sg.fillRect(0, y + 5, 16, 3); }
+    const seatTex = new THREE.CanvasTexture(seats); seatTex.encoding = THREE.sRGBEncoding;
+    const cavea = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.5, 0.62, 72, 1, true), new THREE.MeshLambertMaterial(Object.assign({ map: seatTex }, lit)));
+    cavea.position.y = 0.36;
+    const arena = new THREE.Mesh(new THREE.CircleGeometry(0.5, 48), new THREE.MeshLambertMaterial({ color: lin('#c7a877'), fog: false }));
+    arena.rotation.x = -Math.PI / 2; arena.position.y = 0.06;
+    col.add(cavea, arena);
+    col.scale.set(RX, H, RZ);
+    col.rotation.y = -CA * 0.6;
+    col.position.set(Math.sin(CA) * CR, BASE, -Math.cos(CA) * CR);
+    rome.add(col);
+    // città: palazzi con i tetti in coppi
+    const walls = ['#e2b878', '#d49660', '#c97a4f', '#ecd3a4', '#d8a878', '#b9674a', '#efe0bf'].map(mk);
+    const roofs = ['#b5603f', '#a8553a', '#c06d48', '#9c4f36'].map(mk);
+    for (let i = 0; i < 190; i++) {
+      const ang = -1.5 + rr() * 3.0, R = 300 + rr() * 560;
+      const nearCol = Math.abs(ang - CA) < 0.34 && R > 330 && R < 760;
+      if (nearCol && R > 440) continue;   // la piazza davanti e intorno al Colosseo resta libera
+      const w = 14 + rr() * 22, d = 14 + rr() * 22, h = (nearCol ? 6 : 10) + rr() * (nearCol ? 10 : 24);
+      const wall = walls[i % walls.length], roof = roofs[i % roofs.length];
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [wall, wall, roof, roof, wall, wall]);
+      b.position.set(Math.sin(ang) * R, BASE + h / 2, -Math.cos(ang) * R);
+      b.rotation.y = rr() * 1.2;
+      rome.add(b);
+    }
+    // cupole: San Pietro a sinistra, più piccole sparse
+    function dome(ang, R, s, color) {
+      const g = new THREE.Group();
+      const drum = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.9, 24), mk('#e3d5b8'));
+      drum.position.y = 0.45;
+      const cup = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12, 0, TAU, 0, Math.PI / 2), mk(color));
+      cup.scale.y = 1.25; cup.position.y = 0.9;
+      const lan = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.55, 10), mk('#e8dcc4'));
+      lan.position.y = 2.38;
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 10), mk(color));
+      tip.position.y = 2.82;
+      g.add(drum, cup, lan, tip);
+      g.scale.setScalar(s);
+      g.position.set(Math.sin(ang) * R, BASE + s * 0.6, -Math.cos(ang) * R);
+      rome.add(g);
+    }
+    dome(-0.72, 820, 30, '#93a7b2');
+    for (const [a, R, s] of [[-0.35, 520, 11], [0.55, 470, 9], [-1.05, 600, 10], [0.9, 640, 12], [-0.15, 700, 9]]) dome(a, R, s, '#a2b0b5');
+    // pini a ombrello
+    const pineM = mk('#405c37'), pineD = mk('#2f4a2b'), trunkM = mk('#6b5544');
+    for (let i = 0; i < 46; i++) {
+      const ang = -1.45 + rr() * 2.9, R = 280 + rr() * 520, s = 0.8 + rr() * 0.6;
+      if (Math.abs(ang - CA) < 0.2 && R > 420 && R < 720) continue;
+      const x = Math.sin(ang) * R, z = -Math.cos(ang) * R;
+      const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.9 * s, 1.2 * s, 22 * s, 6), trunkM);
+      tr.position.set(x, BASE + 11 * s, z);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(13 * s, 12, 8), i % 2 ? pineM : pineD);
+      cap.scale.y = 0.34; cap.position.set(x, BASE + 24 * s, z);
+      rome.add(tr, cap);
+    }
+    // colli lontani nella foschia
+    for (let i = 0; i < 14; i++) {
+      const ang = -1.55 + i * 0.24 + rr() * 0.1, R = 980 + rr() * 80;
+      const h = 40 + rr() * 70, r = 160 + rr() * 120;
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 8, 0, TAU, 0, Math.PI / 2), mk(i % 2 ? '#a9b2a6' : '#b3bab0'));
+      m.scale.y = h / r;
+      m.position.set(Math.sin(ang) * R, BASE, -Math.cos(ang) * R);
+      rome.add(m);
     }
   })();
 
@@ -278,7 +447,8 @@
     g.computeVertexNormals();
     return g;
   }
-  const vcMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+  // illuminazione calcolata per pixel (più morbida della vecchia per vertice)
+  const vcMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 });
   function spruce(slim) {
     const parts = [{ geo: new THREE.CylinderGeometry(0.12, 0.2, 1.4, 6), color: '#4a3020', y: 0.7 }];
     const tiers = 6;
@@ -286,8 +456,8 @@
       const f = i / (tiers - 1);
       const r = (1.75 - f * 1.35) * (slim ? 0.78 : 1), h = 1.5 - f * 0.55, y = 1.3 + f * 4.2;
       const green = ['#142f24', '#17372a', '#1a3e2f', '#1d4533', '#204c38', '#22533c'][i];
-      parts.push({ geo: new THREE.ConeGeometry(r, h, 8), color: green, y: y + h / 2, ry: i * 0.6 });
-      parts.push({ geo: new THREE.ConeGeometry(r * 0.78, h * 0.32, 8), color: '#f1f6fa', y: y + h * 0.62, ry: i * 0.6 + 0.3 });
+      parts.push({ geo: new THREE.ConeGeometry(r, h, 11), color: green, y: y + h / 2, ry: i * 0.6 });
+      parts.push({ geo: new THREE.ConeGeometry(r * 0.78, h * 0.32, 11), color: '#f1f6fa', y: y + h * 0.62, ry: i * 0.6 + 0.3 });
     }
     parts.push({ geo: new THREE.ConeGeometry(0.22, 0.6, 6), color: '#f1f6fa', y: 6.2 });
     parts.push({ geo: new THREE.SphereGeometry(1.1, 8, 4, 0, TAU, 0, Math.PI / 2), color: '#e9f1f7', sx: 1, sy: 0.25, sz: 1, y: -0.05 });
@@ -299,6 +469,11 @@
     rock: merge([
       { geo: lumpy(new THREE.IcosahedronGeometry(1, 1), 0.18, geoRng), color: '#5f6b7a', sx: 1.2, sy: 0.7, sz: 1.0, y: 0.3 },
       { geo: lumpy(new THREE.IcosahedronGeometry(0.85, 1), 0.12, geoRng), color: '#f2f6fa', sx: 1.15, sy: 0.3, sz: 0.9, y: 0.78, x: -0.12 }
+    ]),
+    // in città le rocce non hanno la neve sopra
+    rockCity: merge([
+      { geo: lumpy(new THREE.IcosahedronGeometry(1, 2), 0.16, mulberry32(12)), color: '#7d766d', sx: 1.2, sy: 0.75, sz: 1.0, y: 0.3 },
+      { geo: lumpy(new THREE.IcosahedronGeometry(0.55, 1), 0.2, mulberry32(13)), color: '#8e877c', sx: 1.0, sy: 0.7, sz: 0.9, y: 0.5, x: 0.55, z: 0.2 }
     ]),
     marker: merge([
       { geo: new THREE.CylinderGeometry(0.045, 0.045, 1.6, 6), color: '#0f1824', y: 0.8 },
@@ -380,26 +555,111 @@
     g.rotateY(Math.PI / 2);
     return merge([{ geo: g, color: '#b07a45' }, { geo: new THREE.BoxGeometry(3.3, 0.06, 0.14), color: '#f2c230', y: 1.18, z: -2 }]);
   })();
+  // --- scenario Roma ---
+  // pino domestico (a ombrello): tronco alto e inclinato, chioma larga e piatta
+  function umbrellaPine() {
+    const rr = mulberry32(23);
+    const parts = [];
+    let x = 0;
+    for (let i = 0; i < 6; i++) {
+      x += 0.06 + i * 0.02;
+      parts.push({ geo: new THREE.CylinderGeometry(0.15 - i * 0.012, 0.19 - i * 0.012, 0.9, 8), color: i % 2 ? '#6e5240' : '#7b5c47', x, y: 0.45 + i * 0.85 });
+    }
+    const top = 0.45 + 5 * 0.85 + 0.3;
+    parts.push({ geo: new THREE.CylinderGeometry(0.07, 0.1, 1.2, 6), color: '#6e5240', x: x - 0.5, y: top - 0.2, sx: 1, sy: 1, sz: 1 });
+    for (let i = 0; i < 9; i++) {
+      const a = i * TAU / 9 + rr() * 0.4, d = i ? 1.3 + rr() * 0.6 : 0;
+      const r = 1.15 + rr() * 0.35;
+      parts.push({ geo: new THREE.SphereGeometry(r, 12, 7), color: ['#36502f', '#3f5c35', '#2e4629'][i % 3], sx: 1, sy: 0.38, sz: 1, x: x + Math.cos(a) * d, y: top + 0.35 + rr() * 0.3, z: Math.sin(a) * d });
+    }
+    parts.push({ geo: new THREE.SphereGeometry(1.0, 12, 7), color: '#4a6a3e', sx: 1.6, sy: 0.32, sz: 1.6, x, y: top + 0.75 });
+    return merge(parts);
+  }
+  function carbonaraGeo() {
+    const rr = mulberry32(31);
+    const parts = [
+      { geo: new THREE.CylinderGeometry(0.46, 0.3, 0.06, 28), color: '#f6f4ef' },
+      { geo: new THREE.TorusGeometry(0.44, 0.03, 6, 28).rotateX(Math.PI / 2), color: '#e9e5dc', y: 0.03 },
+      { geo: new THREE.SphereGeometry(0.3, 18, 10, 0, TAU, 0, Math.PI / 2), color: '#efd27c', sx: 1, sy: 0.55, sz: 1, y: 0.03 }
+    ];
+    // spaghetti: anelli sopra il nido
+    for (let i = 0; i < 7; i++) parts.push({ geo: new THREE.TorusGeometry(0.1 + rr() * 0.14, 0.014, 5, 20).rotateX(Math.PI / 2 + (rr() - 0.5) * 0.6), color: i % 2 ? '#f4dc8c' : '#e9c46a', x: (rr() - 0.5) * 0.12, y: 0.1 + rr() * 0.08, z: (rr() - 0.5) * 0.12 });
+    // guanciale, pepe e pecorino
+    for (let i = 0; i < 9; i++) parts.push({ geo: new THREE.BoxGeometry(0.07, 0.04, 0.05), color: i % 3 ? '#b4543c' : '#ecd2bf', x: (rr() - 0.5) * 0.4, y: 0.15 + rr() * 0.05, z: (rr() - 0.5) * 0.4, ry: rr() * 3 });
+    for (let i = 0; i < 14; i++) parts.push({ geo: new THREE.BoxGeometry(0.018, 0.018, 0.018), color: i % 2 ? '#1d1a17' : '#fbf6e8', x: (rr() - 0.5) * 0.42, y: 0.19, z: (rr() - 0.5) * 0.42 });
+    const g = merge(parts);
+    g.rotateX(0.75);
+    g.scale(1.45, 1.45, 1.45);
+    return g;
+  }
+  function carciofoGeo() {
+    const parts = [{ geo: new THREE.CylinderGeometry(0.05, 0.07, 0.4, 8), color: '#8aa25a', y: -0.2 }];
+    const rows = 5;
+    for (let r = 0; r < rows; r++) {
+      const n = 8, rad = 0.2 - r * 0.028, y = r * 0.085, tilt = 0.55 - r * 0.09;
+      for (let i = 0; i < n; i++) {
+        const a = i * TAU / n + r * 0.4;
+        const petal = new THREE.SphereGeometry(0.11, 8, 6).scale(0.75, 1.35, 0.42).translate(0, 0.1, 0).rotateX(tilt);
+        parts.push({ geo: petal, color: r === 4 ? '#7a6a7e' : r === 3 ? '#6c7d4c' : (i % 2 ? '#5f8237' : '#6d9140'), ry: a, x: Math.sin(a) * rad * 0.6, y, z: Math.cos(a) * rad * 0.6 });
+      }
+    }
+    parts.push({ geo: new THREE.SphereGeometry(0.08, 8, 6), color: '#6b5675', y: 0.45 });
+    const g = merge(parts);
+    g.scale(1.55, 1.55, 1.55);
+    g.translate(0, 0.25, 0);
+    return g;
+  }
+  GEO.pines = [umbrellaPine()];
+  GEO.carbonara = carbonaraGeo();
+  GEO.carciofo = carciofoGeo();
+  GEO.travertino = merge([
+    { geo: new THREE.CylinderGeometry(0.13, 0.15, 0.8, 10), color: '#ddd2bc', y: 0.4 },
+    { geo: new THREE.SphereGeometry(0.135, 10, 6, 0, TAU, 0, Math.PI / 2), color: '#e6dcc8', y: 0.8 },
+    { geo: new THREE.CylinderGeometry(0.18, 0.18, 0.06, 10), color: '#cfc3ab', y: 0.03 }
+  ]);
   // facciate: una texture per colore, finestre con persiane verdi e balconcini
-  const FACADES = ['#e7b65c', '#dd8a5c', '#c9573f', '#f1d999', '#e9a98a', '#d8c7a6', '#b85a43', '#f3e6cf'];
-  const facadeMats = FACADES.map(col => {
-    const c = document.createElement('canvas'); c.width = c.height = 128;
+  // Napoli: persiane verdi e balconcini in ferro. Roma: finestre con cornici di travertino e timpani.
+  function facadeMat(col, style, seed) {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
     const g = c.getContext('2d');
+    const rr = mulberry32(seed);
+    g.scale(2, 2);
     g.fillStyle = col; g.fillRect(0, 0, 128, 128);
-    g.fillStyle = 'rgba(0,0,0,0.06)'; for (let i = 0; i < 60; i++) g.fillRect(Math.random() * 128, Math.random() * 128, 3, 3);
-    g.fillStyle = '#2b2f36'; g.fillRect(44, 26, 40, 66);
-    g.fillStyle = '#3f6f4c'; g.fillRect(26, 26, 17, 66); g.fillRect(85, 26, 17, 66);
-    g.fillStyle = 'rgba(0,0,0,0.25)'; for (let y = 30; y < 92; y += 6) { g.fillRect(28, y, 13, 2); g.fillRect(87, y, 13, 2); }
-    g.fillStyle = '#e9e4da'; g.fillRect(40, 22, 48, 4);
-    g.fillStyle = '#26282c'; g.fillRect(36, 94, 56, 4);
-    for (let x = 38; x < 92; x += 6) g.fillRect(x, 98, 2, 14);
-    g.fillRect(36, 110, 56, 3);
+    for (let i = 0; i < 140; i++) { g.fillStyle = rr() < 0.6 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'; g.fillRect(rr() * 128, rr() * 128, 1 + rr() * 3, 1 + rr() * 3); }
+    if (style === 'roma') {
+      g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 118, 128, 2);
+      g.fillStyle = '#eee4cf'; g.fillRect(0, 114, 128, 4);                     // marcapiano
+      g.fillStyle = '#efe6d3'; g.fillRect(40, 24, 48, 74);                     // cornice di travertino
+      g.beginPath(); g.moveTo(36, 22); g.lineTo(64, 10); g.lineTo(92, 22); g.closePath(); g.fill();   // timpano
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(36, 22, 56, 2);
+      g.fillStyle = '#2e2a28'; g.fillRect(46, 30, 36, 62);
+      g.fillStyle = '#6d4a2e'; g.fillRect(30, 30, 15, 62); g.fillRect(83, 30, 15, 62);   // persiane di legno
+      g.fillStyle = 'rgba(0,0,0,0.25)'; for (let y = 34; y < 92; y += 5) { g.fillRect(32, y, 11, 1.5); g.fillRect(85, y, 11, 1.5); }
+      g.fillStyle = '#e8dfcc'; g.fillRect(38, 96, 52, 5);
+    } else {
+      g.fillStyle = '#2b2f36'; g.fillRect(44, 26, 40, 66);
+      g.fillStyle = '#3f6f4c'; g.fillRect(26, 26, 17, 66); g.fillRect(85, 26, 17, 66);
+      g.fillStyle = 'rgba(0,0,0,0.25)'; for (let y = 30; y < 92; y += 6) { g.fillRect(28, y, 13, 2); g.fillRect(87, y, 13, 2); }
+      g.fillStyle = '#e9e4da'; g.fillRect(40, 22, 48, 4);
+      g.fillStyle = '#26282c'; g.fillRect(36, 94, 56, 4);
+      for (let x = 38; x < 92; x += 6) g.fillRect(x, 98, 2, 14);
+      g.fillRect(36, 110, 56, 3);
+    }
     const tex = new THREE.CanvasTexture(c);
     tex.encoding = THREE.sRGBEncoding;
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    return new THREE.MeshLambertMaterial({ map: tex });
-  });
-  const roofMat = new THREE.MeshLambertMaterial({ color: lin('#a89a88') });
+    tex.anisotropy = Math.min(8, ANISO);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, metalness: 0 });
+  }
+  const FACADES = {
+    napoli: ['#e7b65c', '#dd8a5c', '#c9573f', '#f1d999', '#e9a98a', '#d8c7a6', '#b85a43', '#f3e6cf'],
+    roma: ['#d9a35a', '#c8703f', '#b24f33', '#e6c184', '#edd7a8', '#cf8e5c', '#a9503c', '#e9c99a']
+  };
+  const facadeMats = {}, roofMats = {
+    napoli: new THREE.MeshStandardMaterial({ color: lin('#a89a88'), roughness: 0.95 }),
+    roma: new THREE.MeshStandardMaterial({ color: lin('#a9583b'), roughness: 0.95 })
+  };
+  const facadesFor = name => facadeMats[name] || (facadeMats[name] = FACADES[name].map((c, i) => facadeMat(c, name, i + 1)));
   function buildingGeo(w, h, d) {
     const g = new THREE.BoxGeometry(w, h, d);
     g.translate(0, h / 2 - 3, 0);
@@ -471,6 +731,7 @@
   // ---------- riders (local and remote share the same model) ----------
   const RM = c => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.7, metalness: 0 });
   const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), helmet: RM('#eef2f6'), boot: RM('#1b1b1b'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
+  const SKATE = { deck: RM('#b9783f'), grip: RM('#1c1c1e'), truck: new THREE.MeshStandardMaterial({ color: lin('#9aa3ad'), roughness: 0.35, metalness: 0.7 }), wheel: RM('#f1e4c4'), wheelGeo: new THREE.CylinderGeometry(0.028, 0.028, 0.032, 14) };
   const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
   const PIVOT = new THREE.Vector3();
   // ruota il corpo attorno al baricentro (circa 0,6 m sopra la tavola), non attorno ai piedi
@@ -522,15 +783,32 @@
     group.add(body);
     const jacket = RM(jacketHex), jacketDark = RM(jacketHex);
     jacketDark.color.multiplyScalar(0.7);
-    const mesh = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; body.add(m); return m; };
-    mesh(new THREE.BoxGeometry(0.3, 0.035, 1.3), SHARED.board).position.y = 0.05;
+    const mesh = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; (parent || body).add(m); return m; };
+    // snowboard (neve) e skateboard con le rotelle (città senza neve): se ne vede uno alla volta
+    const snowG = new THREE.Group(), skateG = new THREE.Group();
+    body.add(snowG, skateG);
+    mesh(new THREE.BoxGeometry(0.3, 0.035, 1.3), SHARED.board, snowG).position.y = 0.05;
     for (const s of [-1, 1]) {
-      const tip = mesh(new THREE.BoxGeometry(0.3, 0.035, 0.22), SHARED.board);
+      const tip = mesh(new THREE.BoxGeometry(0.3, 0.035, 0.22), SHARED.board, snowG);
       tip.position.set(0, 0.08, s * 0.74); tip.rotation.x = s * 0.35;
       mesh(new THREE.BoxGeometry(0.2, 0.12, 0.14), SHARED.boot).position.set(0.02, 0.13, s * 0.26);
     }
-    mesh(new THREE.BoxGeometry(0.06, 0.038, 1.1), SHARED.stripe).position.y = 0.055;
-    const limb = (r, mat) => mesh(new THREE.CylinderGeometry(r, r * 0.9, 1, 7), mat);
+    mesh(new THREE.BoxGeometry(0.06, 0.038, 1.1), SHARED.stripe, snowG).position.y = 0.055;
+    mesh(new THREE.BoxGeometry(0.22, 0.02, 0.62), SKATE.deck, skateG).position.y = 0.056;
+    mesh(new THREE.BoxGeometry(0.215, 0.005, 0.6), SKATE.grip, skateG).position.y = 0.068;
+    for (const s of [-1, 1]) {
+      const tail = mesh(new THREE.BoxGeometry(0.22, 0.02, 0.15), SKATE.deck, skateG);
+      tail.position.set(0, 0.075, s * 0.37); tail.rotation.x = -s * 0.38;
+      mesh(new THREE.BoxGeometry(0.15, 0.028, 0.05), SKATE.truck, skateG).position.set(0, 0.034, s * 0.2);
+      for (const w of [-1, 1]) {
+        const wheel = mesh(SKATE.wheelGeo, SKATE.wheel, skateG);
+        wheel.position.set(w * 0.095, 0.028, s * 0.2);
+        wheel.rotation.z = Math.PI / 2;
+      }
+    }
+    skateG.visible = false;
+    function setBoard(kind) { snowG.visible = kind !== 'skate'; skateG.visible = kind === 'skate'; }
+    const limb = (r, mat) => mesh(new THREE.CylinderGeometry(r, r * 0.9, 1, 10), mat);
     const L = {
       thighL: limb(0.085, SHARED.pants), thighR: limb(0.085, SHARED.pants), shinL: limb(0.07, SHARED.pants), shinR: limb(0.07, SHARED.pants),
       uarmL: limb(0.06, jacket), uarmR: limb(0.06, jacket), farmL: limb(0.05, jacket), farmR: limb(0.05, jacket)
@@ -546,10 +824,10 @@
     wingsCam.scale.setScalar(0.66);
     torso.add(wingsBack, wingsCam);
     const band = mesh(new THREE.BoxGeometry(0.29, 0.1, 0.43), jacketDark);
-    const head = mesh(new THREE.SphereGeometry(0.15, 14, 10), SHARED.helmet);
+    const head = mesh(new THREE.SphereGeometry(0.15, 20, 14), SHARED.helmet);
     const goggle = mesh(new THREE.BoxGeometry(0.06, 0.08, 0.22), SHARED.goggle);
-    const gloveL = mesh(new THREE.SphereGeometry(0.06, 8, 6), SHARED.glove);
-    const gloveR = mesh(new THREE.SphereGeometry(0.06, 8, 6), SHARED.glove);
+    const gloveL = mesh(new THREE.SphereGeometry(0.06, 10, 8), SHARED.glove);
+    const gloveR = mesh(new THREE.SphereGeometry(0.06, 10, 8), SHARED.glove);
     const J = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => J[k] = new THREE.Vector3());
     function setLimb(m, a, b) {
       tmpV.subVectors(b, a);
@@ -588,7 +866,7 @@
     }
     function setColor(hex) { jacket.color.copy(lin(hex)); jacketDark.color.copy(lin(hex)).multiplyScalar(0.7); }
     pose(0.3, 0.2, 0);
-    return { group, body, pose, setColor };
+    return { group, body, pose, setColor, setBoard };
   }
   const me = makeRider(PALETTE[0]);
   world.add(me.group);
@@ -733,7 +1011,8 @@
       src.connect(windF); windF.connect(windG); windG.connect(master);
       src.connect(carveF); carveF.connect(carveG); carveG.connect(master);
       src.start();
-      audio = { ac, master, windG, carveG, windF };
+      if (THEMES[theme] && THEMES[theme].city) carveF.frequency.value = 900;
+      audio = { ac, master, windG, carveG, windF, carveF };
     } catch (e) { audio = null; }
   }
   function tone(type, f0, f1, dur, vol) {
@@ -764,11 +1043,13 @@
 
   // ---------- scenari ----------
   const THEMES = {
-    neve: { sky: ['#3f7fc4', '#9cc5e6', '#d6e7f3'], fog: '#d6e7f3', hemi: ['#cfe4f7', '#aebfd0'], sun: '#fff0d6', spray: '#ffffff', sprayOp: 0.9, trail: '#9db4ca', trailOp: 0.42, alt: 'Quota' },
-    napoli: { sky: ['#2a7fd6', '#86c2ee', '#e6edf1'], fog: '#e1e8ec', hemi: ['#f6ecdc', '#b3a493'], sun: '#fff0cf', spray: '#c7beb3', sprayOp: 0.55, trail: '#262321', trailOp: 0.22, alt: 'Quota' }
+    neve: { sky: ['#3f7fc4', '#9cc5e6', '#d6e7f3'], fog: '#d6e7f3', hemi: ['#cfe4f7', '#aebfd0'], sun: '#fff0d6', spray: '#ffffff', sprayOp: 0.9, trail: '#9db4ca', trailOp: 0.42, rough: 0.82 },
+    napoli: { sky: ['#2a7fd6', '#86c2ee', '#e6edf1'], fog: '#e1e8ec', hemi: ['#f6ecdc', '#b3a493'], sun: '#fff0cf', spray: '#c7beb3', sprayOp: 0.55, trail: '#262321', trailOp: 0.2, rough: 0.9, city: true },
+    roma: { sky: ['#2f7cc8', '#92c1e6', '#efe5d6'], fog: '#e8e0d2', hemi: ['#f7ead8', '#b49b82'], sun: '#fff0cc', spray: '#c9bfb2', sprayOp: 0.5, trail: '#2a2623', trailOp: 0.18, rough: 0.92, city: true }
   };
+  const isCity = () => !!THEMES[theme].city;   // città: niente neve, si va in skateboard
   const urlScena = new URLSearchParams(location.search).get('scena');
-  let theme = urlScena === 'napoli' || urlScena === 'neve' ? urlScena : (store.get('cyf.scena') === 'napoli' ? 'napoli' : 'neve');
+  let theme = THEMES[urlScena] ? urlScena : (THEMES[store.get('cyf.scena')] ? store.get('cyf.scena') : 'neve');
   function applyTheme(name) {
     theme = THEMES[name] ? name : 'neve';
     store.set('cyf.scena', theme);
@@ -778,16 +1059,21 @@
     scene.fog.color.copy(lin(T.fog));
     hemi.color.copy(lin(T.hemi[0])); hemi.groundColor.copy(lin(T.hemi[1]));
     sun.color.copy(lin(T.sun));
-    if (theme === 'napoli' && !stoneTex) stoneTex = stoneTexture();
-    groundMat.map = theme === 'napoli' ? stoneTex : groundTex;
-    groundMat.roughness = theme === 'napoli' ? 0.9 : 0.82;
+    if (!GROUND_TEX[theme]) GROUND_TEX[theme] = GROUND_MAKE[theme]();
+    groundMat.map = GROUND_TEX[theme];
+    groundMat.roughness = T.rough;
     groundMat.needsUpdate = true;
     gx0 = NaN;
     ranges.visible = theme === 'neve';
     bay.visible = theme === 'napoli';
+    rome.visible = theme === 'roma';
     flakes.visible = theme === 'neve';
     sprayPts.material.color.copy(lin(T.spray)); sprayPts.material.opacity = T.sprayOp;
     trailMesh.material.color.copy(lin(T.trail)); trailMesh.material.opacity = T.trailOp;
+    const board = T.city ? 'skate' : 'snow';
+    me.setBoard(board);
+    for (const [, r] of remotes) r.model.setBoard(board);
+    if (audio) audio.carveF.frequency.value = T.city ? 900 : 2600;   // rotelle sulla pietra: rumore più basso della lamina
     stage.style.background = T.fog;
     document.querySelectorAll('[data-scena]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scena === theme)));
   }
@@ -801,7 +1087,7 @@
   // mode: menu | solo | pause | over | lobby | countdown | race | finished | results
   let mode = 'menu';
   let best = parseInt(store.get('pistaNera.best') || '0', 10) || 0;
-  let P, objs = [], bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, rowZ, forestZ, markerZ, camYaw, lean, camY, squash, armsUp;
+  let wallT = 0, P, objs = [], bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, rowZ, forestZ, markerZ, camYaw, lean, camY, squash, armsUp;
   let rowRng = Math.random, forestRng = Math.random, buildRng = Math.random, buildZ = 0, finishObj = null, raceLen = 2000;
   const racing = () => mode === 'countdown' || mode === 'race' || mode === 'finished';
   const distM = () => Math.max(0, -P.z);
@@ -837,8 +1123,11 @@
     const geo = GEO.trees[rng() < 0.3 ? 1 : 0];
     const sy = 0.9 + rng() * 0.25, ry = rng() * TAU;   // stessi numeri casuali in ogni scenario: la pista resta identica
     if (theme === 'napoli') return { type: 'tree', x, z, s, mesh: addMesh(GEO.palms[0], vcMat, x, z, { s: s * 1.05, sy, ry, tilt, shadow }) };
+    if (theme === 'roma') return { type: 'tree', x, z, s, mesh: addMesh(GEO.pines[0], vcMat, x, z, { s: s * 1.05, sy, ry, tilt, shadow }) };
     return { type: 'tree', x, z, s, mesh: addMesh(geo, vcMat, x, z, { s, sy, ry, tilt, shadow }) };
   }
+  const FOOD_NAME = new Map([[GEO.pizza, 'Pizza'], [GEO.coffee, 'Caffè'], [GEO.carbonara, 'Carbonara'], [GEO.carciofo, 'Carciofo']]);
+  const MARKER = { neve: GEO.marker, napoli: GEO.bollard, roma: GEO.travertino };
   function spawnRow(z) {
     const r = rowRng, rr = (a, b) => a + r() * (b - a);
     const d = -z, c = center(z);
@@ -850,16 +1139,17 @@
       if (xs.some(v => Math.abs(v - x) < 4.5)) continue;
       xs.push(x);
       if (kind < 0.38) objs.push(addTree(r, x, z, rr(0.75, 1.05), true));
-      else if (kind < 0.58) { const s = rr(0.8, 1.25); objs.push({ type: 'rock', x, z, s, mesh: addMesh(GEO.rock, vcMat, x, z, { s, ry: r() * TAU }) }); }
+      else if (kind < 0.58) { const s = rr(0.8, 1.25); objs.push({ type: 'rock', x, z, s, mesh: addMesh(isCity() ? GEO.rockCity : GEO.rock, vcMat, x, z, { s, ry: r() * TAU }) }); }
       else if (kind < 0.71) {
         const k = 3 + Math.floor(r() * 3);
         for (let j = 0; j < k; j++) {
           const gx = x + Math.sin(j * 0.9) * 0.8, gz = z - j * 2.2;
-          const food = theme === 'napoli' ? ((Math.round(z) + j) % 2 ? GEO.pizza : GEO.coffee) : null;
-          objs.push({ type: 'gem', x: gx, z: gz, mesh: food ? addMesh(food, vcMat, gx, gz, { y: 0.9 }) : addMesh(gemGeo, gemMat, gx, gz, { y: 0.9 }), phase: j, food: food === GEO.pizza ? 'Pizza' : food ? 'Caffè' : null });
+          const alt = (Math.round(z) + j) % 2;
+          const food = theme === 'napoli' ? (alt ? GEO.pizza : GEO.coffee) : theme === 'roma' ? (alt ? GEO.carbonara : GEO.carciofo) : null;
+          objs.push({ type: 'gem', x: gx, z: gz, mesh: food ? addMesh(food, vcMat, gx, gz, { y: 0.9 }) : addMesh(gemGeo, gemMat, gx, gz, { y: 0.9 }), phase: j, food: FOOD_NAME.get(food) || null });
         }
       }
-      else if (kind < 0.83) objs.push({ type: 'ramp', x, z, used: false, mesh: addMesh(theme === 'napoli' ? GEO.rampWood : GEO.ramp, vcMat, x, z, { recv: true }) });
+      else if (kind < 0.83) objs.push({ type: 'ramp', x, z, used: false, mesh: addMesh(isCity() ? GEO.rampWood : GEO.ramp, vcMat, x, z, { recv: true }) });
       else {
         const gx = c + rr(-9, 9), red = r() < 0.5;
         objs.push({ type: 'gate', x: gx, z, half: 2.4, done: false, mesh: addMesh(red ? GEO.gateRed : GEO.gateBlue, vcMat, gx, z), name: red ? 'rossa' : 'blu' });
@@ -874,8 +1164,10 @@
     for (const side of [-1, 1]) {
       const w = 9 + r() * 6, d = 9 + r() * 5, h = 10 + r() * 14;
       const x = c + side * (23.5 + d / 2 + r() * 2);
-      const mat = facadeMats[Math.floor(r() * facadeMats.length)];
-      const m = new THREE.Mesh(buildingGeo(d, h, w), [mat, mat, roofMat, roofMat, mat, mat]);
+      const mats = facadesFor(theme), roof = roofMats[theme];
+      const mat = mats[Math.floor(r() * mats.length)];
+      const m = new THREE.Mesh(buildingGeo(d, h, w), [mat, mat, roof, roof, mat, mat]);
+      m.receiveShadow = true;
       m.position.set(x, hgt(x, z), z);
       m.rotation.y = (r() - 0.5) * 0.06;
       world.add(m);
@@ -906,14 +1198,14 @@
       if (soloWorld || (racing() && -rowZ < raceLen - 25)) spawnRow(rowZ);
       rowZ -= (6 + rowRng() * 4) * Math.max(0.5, 1 - (-rowZ) / 3200);
     }
-    if (theme === 'napoli') {
+    if (isCity()) {
       while (buildZ > horizon) spawnBuildings();
     } else {
       while (forestZ > horizon) { spawnForest(forestZ); forestZ -= 2.4 + forestRng() * 1.6; }
     }
     while (markerZ > horizon) {
       const c = center(markerZ);
-      for (const s of [-1, 1]) objs.push({ type: 'marker', x: c + s * 19.5, z: markerZ, mesh: addMesh(theme === 'napoli' ? GEO.bollard : GEO.marker, vcMat, c + s * 19.5, markerZ) });
+      for (const s of [-1, 1]) objs.push({ type: 'marker', x: c + s * 19.5, z: markerZ, mesh: addMesh(MARKER[theme], vcMat, c + s * 19.5, markerZ) });
       markerZ -= 22;
     }
     const behind = P.z + 16;
@@ -1117,6 +1409,23 @@
     if (!P.air && !P.onRamp && P.crash <= 0) {
       if ((g0 - g1) / Math.max(dt, 1e-4) > 3.2 && P.speed > 16) { P.air = true; P.vy = 0; P.y = g0 - g1; P.ramp = false; startAir(); }
     } else if (P.air) P.y += g0 - g1;
+    // in città la strada è chiusa dai palazzi: chi va contro il muro rimbalza verso il centro e rallenta
+    if (wallT > 0) wallT -= dt;
+    if (isCity()) {
+      const c = center(P.z), off = P.x - c, lim = 21.6;
+      if (Math.abs(off) > lim) {
+        P.x = c + Math.sign(off) * lim;
+        if (Math.sign(P.ang) === Math.sign(off)) P.ang = -P.ang * 0.4;
+        if (wallT <= 0 && !auto) {
+          wallT = 0.6;
+          P.speed *= 0.55; combo = 0;
+          shake = reduceMotion ? 0 : 0.25;
+          thump(0.9);
+          spray(P.x, 0.3, P.z, 18, 2.5, 2);
+          say('Muro!', '#d8302a');
+        }
+      }
+    }
     maxSpeed = Math.max(maxSpeed, P.speed);
 
     if (P.onRamp && !P.air) {
@@ -1158,7 +1467,7 @@
       const dz = o.z - P.z;
       if (dz < -6 || dz > 6) continue;
       const dx = o.x - P.x, d2 = dx * dx + dz * dz;
-      if (o.type === 'tree') { if (P.y < 5.5 * o.s && d2 < (0.8 * o.s) ** 2) crash('Abete!'); }
+      if (o.type === 'tree') { if (P.y < 5.5 * o.s && d2 < (0.8 * o.s) ** 2) crash('Albero!'); }
       else if (o.type === 'rock') { if (P.y < 0.75 * o.s && d2 < (1.1 * o.s) ** 2) crash('Roccia!'); }
       else if (o.type === 'marker') { if (P.y < 1.5 && d2 < 0.35 * 0.35) crash('Palina!'); }
       else if (o.type === 'ramp') {
@@ -1581,6 +1890,7 @@
     if (!r) {
       const color = PALETTE[(info.color || 0) % PALETTE.length];
       const model = makeRider(color);
+      model.setBoard(isCity() ? 'skate' : 'snow');
       const label = nameSprite(info.name || 'Rider', color);
       label.position.y = 2.3;
       model.group.add(label);
@@ -1662,7 +1972,16 @@
     camYaw += (P.ang * 0.5 - camYaw) * Math.min(1, 3 * dt);
     airCam += ((P.air && P.y > 0.6 ? 1 : 0) - airCam) * Math.min(1, 3 * dt);
     const back = 6.6 + airCam * 1.6;
-    const cx = P.x - Math.sin(camYaw) * back, cz = P.z + Math.cos(camYaw) * back;
+    let cx = P.x - Math.sin(camYaw) * back;
+    const cz = P.z + Math.cos(camYaw) * back;
+    if (isCity()) { const cc = center(cz); cx = clamp(cx, cc - 22.4, cc + 22.4); }   // la telecamera non entra nei palazzi
+    // gli alberi troppo vicini alla telecamera spariscono, così non si finisce dentro le chiome
+    const hideR = theme === 'neve' ? 2.5 : 0.9;
+    for (const o of objs) {
+      if (o.type !== 'tree') continue;
+      const dx = o.x - cx, dz = o.z - cz, r = hideR * o.s + 0.3;
+      o.mesh.visible = dx * dx + dz * dz > r * r;
+    }
     const targetY = Math.max(hgt(cx, cz), gH) + 2.3 + P.y * 0.45;
     camY = isNaN(camY) ? targetY : camY + (targetY - camY) * Math.min(1, 6 * dt);
     v1.set(cx, camY - squash * 0.25, cz);
@@ -1682,6 +2001,8 @@
     sun.position.copy(v3).add(SUN_OFFSET);
     sky.position.copy(camera.position);
     ranges.position.copy(camera.position);
+    bay.position.copy(camera.position);
+    rome.position.copy(camera.position);
     updateTrail();
   }
 
