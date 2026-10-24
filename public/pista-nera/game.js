@@ -32,10 +32,15 @@
   const DICT = window.CYF_I18N || { it: {} };
   const LANGS = ['it', 'en', 'fr', 'es'];
   let lang = (() => {
+    // ?lang= dall'indirizzo (arriva dalla home), poi la lingua salvata, poi quelle del dispositivo
+    let asked = null;
+    try { asked = new URLSearchParams(location.search).get('lang'); } catch (e) {}
+    if (LANGS.includes(asked)) return asked;
     const saved = store.get('cyf.lang');
     if (LANGS.includes(saved)) return saved;
-    const nav = (navigator.language || 'it').slice(0, 2).toLowerCase();
-    return LANGS.includes(nav) ? nav : 'it';
+    const navs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'it'];
+    for (const n of navs) { const c = String(n).slice(0, 2).toLowerCase(); if (LANGS.includes(c)) return c; }
+    return 'it';
   })();
   function tr(k, v) {
     let s = (DICT[lang] && DICT[lang][k]) ?? (DICT.it && DICT.it[k]) ?? k;
@@ -3440,6 +3445,11 @@
   resize();
   applyTheme(theme);
   applyLang(lang);
+  // ?lang= serve solo all'arrivo: lo togliamo dall'indirizzo, così una scelta fatta nel menu vale anche dopo un ricaricamento
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.has('lang')) { q.delete('lang'); const r = q.toString(); history.replaceState(null, '', location.pathname + (r ? '?' + r : '') + location.hash); }
+  } catch (e) {}
   me.setColor(PALETTE[0], myJersey());
   loadMe();
   reset((Math.random() * 2 ** 31) | 0, null, false);

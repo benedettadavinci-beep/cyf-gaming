@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.8.0 · aggiornato al 24 ottobre 2026, ore 17:25"
+subtitle: "Versione 0.8.1 · aggiornato al 24 ottobre 2026, ore 19:45"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -31,6 +31,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-006 | Pulsante per fare una donazione | 24/10/2026 | Fatto | PayPal: paypal.me/Limper17, nella home e nei menu |
 | R-007 | Nella schermata iniziale si sceglie la lingua: italiano, inglese, francese, spagnolo | 24/10/2026 | Fatto | Quattro pulsanti in cima al menu; la scelta resta salvata e parte nella lingua del browser |
 | R-008 | Contatori d'uso per capire quanto viene giocato | 24/10/2026 | Fatto | Il server conta per giorno: gare avviate e finite, corridori, giocatori unici, segnalazioni. Si leggono su /api/stats (ultimi 14 giorni). Niente cookie né dati personali |
+| R-009 | Tutto il sito in quattro lingue, compresa la home: italiano, inglese, francese, spagnolo | 24/10/2026 | Fatto | Pulsanti IT · EN · FR · ES in alto nella home. Parte nella lingua del telefono o del browser (se non è tra le quattro, in italiano). La scelta vale anche nel gioco e viceversa, anche in navigazione privata. Un link con ?lang=en apre il sito in inglese. Provato su telefono e PC nelle quattro lingue |
 
 # 2. Sfida online
 
@@ -114,6 +115,8 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-11 | Maglie con i soli colori delle città, senza nomi o stemmi delle squadre (marchi registrati) | 24/10/2026 | Da confermare |
 | S-12 | Dalla tabella delle città: porte di Zagabria in tinta unita invece che a scacchi, niente vapore dai tombini a New York; Roma tiene carbonara e carciofi (chiesti da Luigi) invece di supplì e maritozzo | 24/10/2026 | Da confermare |
 | S-13 | Classifica dei migliori tempi separata per durata (5, 10, 15 min); nel menu si vede quella dei 5 minuti | 24/10/2026 | Da confermare |
+| S-14 | Nel menu del gioco la voce della maglia diventa "Colore assegnato" (Assigned colour, Couleur attribuée, Color asignado): la vecchia "Colore di gara (automatico)" era tagliata sul telefono in tutte le lingue | 24/10/2026 | Da confermare |
+| S-15 | Nella home in francese si dà del tu, come nel gioco; in spagnolo "desafío" come nel gioco; in inglese l'ortografia britannica del gioco (colour) | 24/10/2026 | Da confermare |
 
 # 8. Idee per il futuro (da confermare)
 
@@ -141,7 +144,7 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | D-01 | Provare la v0.8.0 dai telefoni con qualche amico (microfono su iPhone, comandi touch, fluidità) e scrivere a Claude i numeri dei requisiti che vanno bene ("R-303 controllato") | Luigi |
 | D-02 | Leggere il rapporto del primo controllo notturno (parte stasera alle 21:33) | Luigi |
 | D-03 | Comprare il dominio (es. cyfgaming.it, ~10-15 €/anno) e collegarlo: Cloudflare → Workers & Pages → cyf-gaming → Domains. Claude guida se serve | Luigi, ~10 min |
-| D-04 | Decidere le scelte S-01…S-13: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
+| D-04 | Decidere le scelte S-01…S-15: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
 | D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione | Claude |
 | D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
 
@@ -155,3 +158,4 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | 0.6.0 | 24/10/2026 | Rider modellato, accelerazione +30%, freccia giù/su, gare a traguardo 5/10/15 min, classifica live, premi, modalità online, punti collezionati, banane e bombe, microfono, 4 lingue, maglie delle città |
 | 0.7.0 | 24/10/2026 | Curve naturali, 10 nuove città dalla tabella di Luigi, stabilità sui salti di posizione, business plan e controllo notturno |
 | 0.8.0 | 24/10/2026 | Contatori d'uso (/api/stats), condivisione su WhatsApp/Telegram e del risultato, silenzia/segnala i vocali con blocco automatico dopo 2 segnalazioni |
+| 0.8.1 | 24/10/2026 | Home in quattro lingue con scelta IT/EN/FR/ES, lingua condivisa tra home e gioco, link ?lang=, voce della maglia non più tagliata sul telefono |

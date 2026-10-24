@@ -2,6 +2,20 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
+<script>
+  // Lingua scelta: ?lang= nell'indirizzo, poi quella salvata (condivisa con il gioco), poi quella del dispositivo.
+  (function () {
+    var L = ['it', 'en', 'fr', 'es'], l = null;
+    try { l = new URLSearchParams(location.search).get('lang'); } catch (e) {}
+    if (L.indexOf(l) < 0) { try { l = localStorage.getItem('cyf.lang'); } catch (e) {} }
+    if (L.indexOf(l) < 0) {
+      var n = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'it']);
+      for (var i = 0; i < n.length && L.indexOf(l) < 0; i++) l = String(n[i]).slice(0, 2).toLowerCase();
+    }
+    if (L.indexOf(l) < 0) l = 'it';
+    document.documentElement.lang = l;
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>C-Y-F Gaming · Challenge Your Friends</title>
 <meta name="description" content="Giochi nel browser per sfidare gli amici in tempo reale. Crea una sfida, condividi il link, vince il migliore.">
@@ -24,6 +38,12 @@
   }
   main { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
   header { display: flex; flex-direction: column; gap: 14px; padding-top: 4vh; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .langs { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
+  .langs button { font: 700 14px/1 var(--body); letter-spacing: .12em; color: var(--soft); background: transparent; border: 0; border-radius: 999px; padding: 9px 12px; min-width: 44px; min-height: 36px; cursor: pointer; }
+  .langs button:hover { color: var(--fg); }
+  .langs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+  .langs button:focus-visible { outline: 3px solid var(--ice); outline-offset: 2px; }
   .logo { font-family: var(--display); font-size: clamp(40px, 11vw, 96px); line-height: .95; letter-spacing: .01em; margin: 0; }
   .logo span { color: var(--flare); }
   .tag { font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--ice); font-size: 15px; }
@@ -57,28 +77,36 @@
 <body>
 <main>
   <header>
-    <span class="tag">Challenge Your Friends</span>
+    <div class="top">
+      <span class="tag">Challenge Your Friends</span>
+      <nav class="langs" aria-label="Lingua" data-i18n-aria="langNav">
+        <button type="button" data-lang="it" lang="it" aria-label="Italiano" title="Italiano" aria-pressed="true">IT</button>
+        <button type="button" data-lang="en" lang="en" aria-label="English" title="English" aria-pressed="false">EN</button>
+        <button type="button" data-lang="fr" lang="fr" aria-label="Français" title="Français" aria-pressed="false">FR</button>
+        <button type="button" data-lang="es" lang="es" aria-label="Español" title="Español" aria-pressed="false">ES</button>
+      </nav>
+    </div>
     <h1 class="logo">C-Y-F<br><span>Gaming</span></h1>
-    <p>Giochi nel browser per sfidare gli amici in tempo reale. Niente da installare: crei una sfida, mandi il link, vince il migliore.</p>
+    <p data-i18n="intro">Giochi nel browser per sfidare gli amici in tempo reale. Niente da installare: crei una sfida, mandi il link, vince il migliore.</p>
   </header>
 
   <ol class="how">
-    <li>Scrivi il tuo nome e crea una sfida</li>
-    <li>Manda il link o il codice agli amici</li>
-    <li>Stessa pista, stesso via: conta solo il tempo</li>
+    <li data-i18n="step1">Scrivi il tuo nome e crea una sfida</li>
+    <li data-i18n="step2">Manda il link o il codice agli amici</li>
+    <li data-i18n="step3">Stessa pista, stesso via: conta solo il tempo</li>
   </ol>
 
-  <a class="game" href="/pista-nera/">
+  <a class="game" href="/pista-nera/" data-game>
     <div class="art" aria-hidden="true"></div>
     <div class="info">
       <h2>Pista Nera</h2>
-      <p>Discesa in 3D fino al traguardo: in snowboard sulla neve o in skateboard per 12 città, da Napoli (pizze, caffè e Vesuvio) a Roma con il Colosseo, fino a Parigi, Londra, New York e altre. Acrobazie, banane e bombe, sfide online, classifica dal vivo e messaggi vocali, in 4 lingue.</p>
-      <div class="meta"><span>2–8 giocatori</span><span>13 scenari</span><span>Gare da 5, 10 o 15 minuti</span><span>PC e telefono</span></div>
-      <span class="play">Gioca →</span>
+      <p data-i18n="gameDesc">Discesa in 3D fino al traguardo: in snowboard sulla neve o in skateboard per 12 città, da Napoli (pizze, caffè e Vesuvio) a Roma con il Colosseo, fino a Parigi, Londra, New York e altre. Acrobazie, banane e bombe, sfide online, classifica dal vivo e messaggi vocali, in 4 lingue.</p>
+      <div class="meta"><span data-i18n="chipPlayers">2–8 giocatori</span><span data-i18n="chipScenes">13 scenari</span><span data-i18n="chipRaces">Gare da 5, 10 o 15 minuti</span><span data-i18n="chipDevices">PC e telefono</span></div>
+      <span class="play" data-i18n="play">Gioca →</span>
     </div>
   </a>
 
-  <a class="donate" data-donate hidden target="_blank" rel="noopener">Sostieni C-Y-F Gaming con una donazione</a>
+  <a class="donate" data-donate hidden target="_blank" rel="noopener" data-i18n="donate">Sostieni C-Y-F Gaming con una donazione</a>
 
   <footer>C-Y-F Gaming · Challenge Your Friends</footer>
 </main>
@@ -88,6 +116,82 @@
     var u = window.CYF && window.CYF.donateUrl;
     if (!u) return;
     document.querySelectorAll('[data-donate]').forEach(function (a) { a.href = u; a.hidden = false; });
+  })();
+
+  // Testi della home in italiano, inglese, francese e spagnolo (stessa lingua del gioco: chiave cyf.lang).
+  (function () {
+    var T = {
+      it: {
+        desc: 'Giochi nel browser per sfidare gli amici in tempo reale. Crea una sfida, condividi il link, vince il migliore.',
+        langNav: 'Lingua',
+        intro: 'Giochi nel browser per sfidare gli amici in tempo reale. Niente da installare: crei una sfida, mandi il link, vince il migliore.',
+        step1: 'Scrivi il tuo nome e crea una sfida',
+        step2: 'Manda il link o il codice agli amici',
+        step3: 'Stessa pista, stesso via: conta solo il tempo',
+        gameDesc: 'Discesa in 3D fino al traguardo: in snowboard sulla neve o in skateboard per 12 città, da Napoli (pizze, caffè e Vesuvio) a Roma con il Colosseo, fino a Parigi, Londra, New York e altre. Acrobazie, banane e bombe, sfide online, classifica dal vivo e messaggi vocali, in 4 lingue.',
+        chipPlayers: '2–8 giocatori', chipScenes: '13 scenari', chipRaces: 'Gare da 5, 10 o 15 minuti', chipDevices: 'PC e telefono',
+        play: 'Gioca →',
+        donate: 'Sostieni C-Y-F Gaming con una donazione'
+      },
+      en: {
+        desc: 'Browser games to challenge your friends in real time. Create a challenge, share the link, and may the best player win.',
+        langNav: 'Language',
+        intro: 'Browser games to challenge your friends in real time. Nothing to install: create a challenge, send the link, and may the best player win.',
+        step1: 'Enter your name and create a challenge',
+        step2: 'Send the link or the code to your friends',
+        step3: 'Same slope, same start: only the time counts',
+        gameDesc: 'A 3D descent to the finish line: snowboarding on snow or skateboarding through 12 cities, from Naples (pizza, espresso and Vesuvius) to Rome and the Colosseum, all the way to Paris, London, New York and more. Tricks, bananas and bombs, online races, a live leaderboard and voice messages, in 4 languages.',
+        chipPlayers: '2–8 players', chipScenes: '13 locations', chipRaces: '5, 10 or 15-minute races', chipDevices: 'PC and mobile',
+        play: 'Play →',
+        donate: 'Support C-Y-F Gaming with a donation'
+      },
+      fr: {
+        desc: 'Des jeux dans le navigateur pour défier tes amis en temps réel. Crée un défi, partage le lien, et que le meilleur gagne.',
+        langNav: 'Langue',
+        intro: 'Des jeux dans le navigateur pour défier tes amis en temps réel. Rien à installer\u00a0: tu crées un défi, tu envoies le lien, et que le meilleur gagne\u00a0!',
+        step1: 'Saisis ton nom et crée un défi',
+        step2: 'Envoie le lien ou le code à tes amis',
+        step3: 'Même piste, même départ\u00a0: seul le temps compte',
+        gameDesc: 'Une descente en 3D jusqu\u2019à l\u2019arrivée\u00a0: en snowboard sur la neige ou en skateboard dans 12 villes, de Naples (pizzas, café et Vésuve) à Rome et son Colisée, jusqu\u2019à Paris, Londres, New York et bien d\u2019autres. Figures, bananes et bombes, défis en ligne, classement en direct et messages vocaux, en 4 langues.',
+        chipPlayers: '2 à 8 joueurs', chipScenes: '13 décors', chipRaces: 'Courses de 5, 10 ou 15 minutes', chipDevices: 'PC et mobile',
+        play: 'Jouer →',
+        donate: 'Soutiens C-Y-F Gaming avec un don'
+      },
+      es: {
+        desc: 'Juegos en el navegador para desafiar a tus amigos en tiempo real. Crea un desafío, comparte el enlace y que gane el mejor.',
+        langNav: 'Idioma',
+        intro: 'Juegos en el navegador para desafiar a tus amigos en tiempo real. Sin instalar nada: creas un desafío, envías el enlace y gana el mejor.',
+        step1: 'Escribe tu nombre y crea un desafío',
+        step2: 'Envía el enlace o el código a tus amigos',
+        step3: 'Misma pista, misma salida: solo cuenta el tiempo',
+        gameDesc: 'Un descenso en 3D hasta la meta: en snowboard sobre la nieve o en monopatín por 12 ciudades, de Nápoles (pizza, café y el Vesubio) a Roma con el Coliseo, hasta París, Londres, Nueva York y muchas más. Acrobacias, plátanos y bombas, desafíos en línea, clasificación en directo y mensajes de voz, en 4 idiomas.',
+        chipPlayers: '2–8 jugadores', chipScenes: '13 escenarios', chipRaces: 'Carreras de 5, 10 o 15 minutos', chipDevices: 'PC y móvil',
+        play: 'Jugar →',
+        donate: 'Apoya C-Y-F Gaming con una donación'
+      }
+    };
+    var meta = document.querySelector('meta[name="description"]');
+    var game = document.querySelector('[data-game]');
+    function apply(l) {
+      if (!T[l]) l = 'it';
+      var d = T[l];
+      document.documentElement.lang = l;
+      try { localStorage.setItem('cyf.lang', l); } catch (e) {}
+      document.querySelectorAll('[data-i18n]').forEach(function (el) { if (d[el.dataset.i18n]) el.textContent = d[el.dataset.i18n]; });
+      document.querySelectorAll('[data-i18n-aria]').forEach(function (el) { el.setAttribute('aria-label', d[el.dataset.i18nAria]); });
+      document.querySelectorAll('[data-lang]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.lang === l)); });
+      if (meta) meta.content = d.desc;
+      // il gioco riceve la lingua anche quando il browser non salva nulla (navigazione privata)
+      if (game) game.href = '/pista-nera/?lang=' + l;
+    }
+    document.querySelectorAll('[data-lang]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        apply(b.dataset.lang);
+      });
+    });
+    apply(document.documentElement.lang);
+    // ?lang= serve solo all'arrivo (link condivisi in una lingua): poi vale la scelta salvata
+    try { if (new URLSearchParams(location.search).has('lang')) history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
   })();
 </script>
 </body>
