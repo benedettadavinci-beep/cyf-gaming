@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.9.0 · aggiornato al 24 ottobre 2026, ore 23:45"
+subtitle: "Versione 0.9.1 · aggiornato al 25 ottobre 2026, ore 01:30 · verifica completa dei requisiti (sezione 10)"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -27,7 +27,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-002 | Primo gioco: discesa in snowboard 3D superando ostacoli ("Pista Nera") | ott 2026 | Fatto | |
 | R-003 | Pubblicazione su Cloudflare, aggiornata in automatico a ogni modifica su GitHub | 24/10/2026 | Fatto | Repository benedettadavinci-beep/cyf-gaming |
 | R-004 | Modifiche veloci: Claude carica direttamente il codice su GitHub | 24/10/2026 | Fatto | 1-2 minuti per modifica |
-| R-005 | Giocabile su PC e su telefono | ott 2026 | Fatto | Sul telefono pulsanti ◀, Salta, ▶ |
+| R-005 | Giocabile su PC e su telefono | ott 2026 | Fatto | PC: frecce, Spazio, V/B/N/M. Telefono: rotellina, Salta e microfono (R-210, R-211, R-212) |
 | R-006 | Pulsante per fare una donazione | 24/10/2026 | Fatto | PayPal: paypal.me/Limper17, nella home e nei menu |
 | R-007 | Nella schermata iniziale si sceglie la lingua: italiano, inglese, francese, spagnolo | 24/10/2026 | Fatto | Quattro pulsanti in cima al menu; la scelta resta salvata e parte nella lingua del browser |
 | R-008 | Contatori d'uso per capire quanto viene giocato | 24/10/2026 | Fatto | Il server conta per giorno: gare avviate e finite, corridori, giocatori unici, segnalazioni. Si leggono su /api/stats (ultimi 14 giorni). Niente cookie né dati personali |
@@ -39,11 +39,11 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 |---|---|---|---|---|
 | R-101 | Sfida con codice o link da mandare agli amici | ott 2026 | Fatto | Da 1 a 8 giocatori |
 | R-102 | Chi crea la sfida la fa partire; rivincita con gli stessi giocatori | ott 2026 | Fatto | |
-| R-103 | Stessa pista e stessa partenza per tutti; vince il tempo migliore sui 2.000 m | ott 2026 | Fatto | Il tempo lo misura il server |
+| R-103 | Stessa pista e stessa partenza per tutti; vince il tempo migliore sui 2.000 m | ott 2026 | Fatto | Il tempo lo misura il server. Dalla 0.6.0 la distanza non è più fissa a 2.000 m: è quella della durata scelta (R-108) |
 | R-104 | Si vedono gli avversari in pista, ognuno con il proprio colore e il nome sopra la testa | ott 2026 | Fatto | 8 colori di giacca |
-| R-105 | Classifica dei migliori tempi | ott 2026 | Fatto | Primi 20 tempi |
+| R-105 | Classifica dei migliori tempi | ott 2026 | Fatto | Il server tiene i primi 20 tempi per ogni durata (5, 10, 15 min); il menu mostra i primi 10 della gara da 5 minuti |
 | R-106 | Messaggi vocali: si preme un pulsante, si registra, tutti gli altri lo sentono; al massimo uno ogni 3 minuti | 24/10/2026 | Fatto | Durata massima circa 8 s; limite controllato dal server |
-| R-107 | Pulsante del microfono ben visibile durante la gara, per mandare i vocali agli altri concorrenti (uno ogni 3 minuti a testa) | 24/10/2026 | Fatto | Pulsante tondo arancione con il microfono, a destra; mostra il conto alla rovescia dei 3 minuti |
+| R-107 | Pulsante del microfono ben visibile durante la gara, per mandare i vocali agli altri concorrenti (uno ogni 3 minuti a testa) | 24/10/2026 | Fatto | Pulsante tondo arancione con il microfono, dalla 0.9.0 in alto a sinistra (R-212); mostra il conto alla rovescia dei 3 minuti |
 | R-108 | La gara finisce al traguardo. Durata di circa 5 minuti, che si può cambiare all'inizio in 10 o 15 minuti | 24/10/2026 | Fatto | La sceglie chi crea la sfida (5/10/15 min); lunghezza = minuti × 40 m/s (12, 24 o 36 km); striscione ARRIVO, striscia a scacchi e avviso a 500 m |
 | R-109 | Durante la gara, in alto a destra, classifica dal vivo degli altri concorrenti | 24/10/2026 | Fatto | Posizioni, colori, nomi e distacco dal primo; chi è arrivato mostra il tempo |
 | R-110 | A fine gara: classifica con il vincitore e, in basso, chi ha fatto la velocità massima e chi più acrobazie | 24/10/2026 | Fatto | Coppa al vincitore; premi ⚡ velocità massima e 🤸 più acrobazie |
@@ -61,7 +61,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-202 | Atterraggio assistito: il gioco aiuta ad atterrare, si cade meno facilmente | 24/10/2026 | Fatto | Si cade solo atterrando molto storti |
 | R-203 | Acrobazie più belle con le frecce destra, sinistra, alto e basso | 24/10/2026 | Fatto | Avvitamenti, salti mortali, presa della tavola; nomi e punti a schermo |
 | R-204 | Ali stampate sulla giacca del giocatore | 24/10/2026 | Fatto | Sul fianco visto dalla telecamera e sulla schiena |
-| R-205 | Nelle città senza neve si va in skateboard con le rotelle al posto dello snowboard | 24/10/2026 | Fatto | Napoli e Roma; vale anche per gli avversari |
+| R-205 | Nelle città senza neve si va in skateboard con le rotelle al posto dello snowboard | 24/10/2026 | Fatto | In tutte le 12 città; vale anche per gli avversari |
 | R-206 | Freccia giù: si va più veloci e il rider si abbassa sulle ginocchia | 24/10/2026 | Fatto | +12% di velocità in posizione raccolta |
 | R-207 | Freccia su: il rider si sposta un po' in avanti e la velocità diminuisce | 24/10/2026 | Fatto | Peso in avanti e frenata; a terra non fa più saltare (si salta con Spazio) |
 | R-208 | Accelerazione più alta del 30%: oggi si arriva alla velocità massima troppo lentamente | 24/10/2026 | Fatto | |
@@ -74,12 +74,12 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 
 | ID | Richiesta | Data | Stato | Come funziona oggi |
 |---|---|---|---|---|
-| R-301 | Scelta dello scenario o della città nel menu | 24/10/2026 | Fatto | Neve, Napoli, Roma |
+| R-301 | Scelta dello scenario o della città nel menu | 24/10/2026 | Fatto | Menu a tendina con 13 scenari: Neve e le 12 città |
 | R-302 | Napoli: strade al posto della neve, mare, Vesuvio sullo sfondo; rocce lasciate; pizze e caffè al posto dei cristalli | 24/10/2026 | Fatto | |
 | R-303 | Roma: in fondo allo scenario si vede il Colosseo; piatti di carbonara e carciofi al posto di pizza e caffè | 24/10/2026 | Fatto | Strada in sampietrini, palazzi romani, cupole e pini sullo sfondo |
 | R-304 | In tutti gli scenari i testi dicono "albero" (non "abete") | 24/10/2026 | Fatto | A Napoli sono palme, a Roma pini; gli ostacoli che non sono alberi dicono il loro nome (Lampione!, Fioriera!…) |
 | R-305 | La pista è troppo rettilinea: servono curve naturali, non troppo complicate | 24/10/2026 | Fatto | Tre onde sovrapposte danno curve ampie e dolci; la pista resta uguale per tutti nella stessa gara |
-| R-306 | Tutte le altre città della tabella "CYF-elementi-per-citta.xlsx" (cartella sul Desktop) | 24/10/2026 | Fatto | Milano, Parigi, Londra, Francoforte, Madrid, Lisbona, Zagabria, Berlino, Zurigo, New York: ostacoli, bonus, rampe, porte, paletti, strada, palazzi e monumenti come da tabella; scenari in un menu a tendina |
+| R-306 | Tutte le altre città della tabella "CYF-elementi-per-citta.xlsx" (cartella sul Desktop) | 24/10/2026 | Fatto | Milano, Parigi, Londra, Francoforte, Madrid, Lisbona, Zagabria, Berlino, Zurigo, New York: ostacoli, bonus, rampe, porte, paletti, strada, palazzi, monumenti e, dalla 0.9.1, anche gli oggetti ai lati della tabella (tram arancione a Milano, cabine rosse e bus a due piani a Londra, tram giallo a Lisbona, ombrelloni rossi a Zagabria, tratti del Muro a Berlino, tram blu e bianco a Zurigo, taxi a New York), doppie linee gialle al marciapiede a Londra, marciapiedi a mosaico a Berlino, fiume Meno a Francoforte. Tabella verificata riga per riga il 25/10 (sezione 10) |
 
 # 5. Grafica e qualità
 
@@ -117,7 +117,7 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-09 | Punti di fine gara: 100/70/50 ai primi tre, 30 agli altri arrivati. Costi: banana 50, bomba 150, pagati con i punti della gara in corso | 24/10/2026 | Da confermare |
 | S-10 | Nella sala online la gara parte da sola 30 secondi dopo il secondo giocatore; se tutti premono "Sono pronto" parte dopo 3 secondi | 24/10/2026 | Da confermare |
 | S-11 | Maglie con i soli colori delle città, senza nomi o stemmi delle squadre (marchi registrati) | 24/10/2026 | Da confermare |
-| S-12 | Dalla tabella delle città: porte di Zagabria in tinta unita invece che a scacchi, niente vapore dai tombini a New York; Roma tiene carbonara e carciofi (chiesti da Luigi) invece di supplì e maritozzo | 24/10/2026 | Da confermare |
+| S-12 | Dalla tabella delle città: niente vapore dai tombini a New York; Roma tiene carbonara e carciofi (chiesti da Luigi) invece di supplì e maritozzo; il semaforo di Berlino è senza l'omino (Ampelmännchen) disegnato. (Le porte a scacchi di Zagabria, che mancavano, ci sono dalla 0.9.1) | 24/10/2026 | Da confermare |
 | S-13 | Classifica dei migliori tempi separata per durata (5, 10, 15 min); nel menu si vede quella dei 5 minuti | 24/10/2026 | Da confermare |
 | S-14 | Nel menu del gioco la voce della maglia diventa "Colore assegnato" (Assigned colour, Couleur attribuée, Color asignado): la vecchia "Colore di gara (automatico)" era tagliata sul telefono in tutte le lingue | 24/10/2026 | Da confermare |
 | S-15 | Nella home in francese si dà del tu, come nel gioco; in spagnolo "desafío" come nel gioco; in inglese l'ortografia britannica del gioco (colour) | 24/10/2026 | Da confermare |
@@ -151,12 +151,61 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 
 | ID | Cosa | Chi |
 |---|---|---|
-| D-01 | Provare la v0.8.0 dai telefoni con qualche amico (microfono su iPhone, comandi touch, fluidità) e scrivere a Claude i numeri dei requisiti che vanno bene ("R-303 controllato") | Luigi |
+| D-01 | Provare la v0.9.1 dai telefoni con qualche amico (microfono su iPhone, comandi touch, fluidità) e scrivere a Claude i numeri dei requisiti che vanno bene ("R-303 controllato") | Luigi |
 | D-02 | Leggere il rapporto del primo controllo notturno (parte stasera alle 21:33) | Luigi |
 | D-03 | Comprare il dominio (es. cyfgaming.it, ~10-15 €/anno) e collegarlo: Cloudflare → Workers & Pages → cyf-gaming → Domains. Claude guida se serve | Luigi, ~10 min |
 | D-04 | Decidere le scelte S-01…S-21: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
 | D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione | Claude |
 | D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
+| D-07 | Ricopiare sul Desktop i file Word aggiornati (requisiti 0.9.1): il PC era spento quando sono stati generati | Claude, appena il PC è collegato |
+
+# 10. Verifica completa del 25 ottobre 2026
+
+Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel software, leggendo tutto il codice e con prove automatiche: 62 controlli sul server delle gare (client simulati: stanze, durate, tempi, punti, vocali, segnalazioni, sale online, contatori), 135 controlli nel gioco (13 scenari, guida, acrobazie, gara a due), le prove delle 4 lingue, dei risultati e dei comandi touch, e il confronto riga per riga con la tabella Excel delle città. Esito per ogni requisito:
+
+| ID | Esito | Come è stato verificato |
+|---|---|---|
+| R-001, R-002, R-003, R-004 | ✓ | Sito e gioco online; ogni modifica pubblicata da Cloudflare (5 pubblicazioni il 24/10, tutte riuscite) |
+| R-005 | ✓ | PC con tastiera; telefono simulato in verticale e in orizzontale con rotellina, Salta e microfono |
+| R-006 | ✓ | Link PayPal in `config.js`; pulsanti nella home, nel menu e nei risultati |
+| R-007, R-009 | ✓ | Prova automatica: home e gioco nelle 4 lingue, scelta salvata, lingua del telefono, link `?lang=` |
+| R-008 | ✓ | Dopo una gara di prova i contatori segnano gara avviata e finita, 2 corridori, 2 giocatori unici, segnalazioni |
+| R-101 | ✓ | Codici da 4 a 8 caratteri; 8 giocatori entrano, il 9° viene rifiutato |
+| R-102 | ✓ | Solo l'organizzatore avvia e rilancia; se esce, il ruolo passa al giocatore rimasto |
+| R-103 | ✓ | Stesso seed e stesso istante di partenza per tutti; tempo misurato dal server |
+| R-104 | ✓ | Avversario in pista con nome; 8 colori diversi; maglia trasmessa agli altri |
+| R-105 | ✓ | Un tempo valido entra nella classifica della sua durata e non in quelle delle altre |
+| R-106 | ✓ | Vocale inoltrato con nome e colore; secondo vocale entro 3 minuti rifiutato; formati sconosciuti scartati |
+| R-107, R-212 | ✓ | Pulsante visibile in gara e in allenamento (foto); conto alla rovescia nel codice |
+| R-108 | ✓ | Traguardo a 12.000 m in gara; avviso a 500 m; 10 min → 24.000 m; durate non ammesse ignorate |
+| R-109 | ✓ | Classifica dal vivo con i 2 nomi durante la gara |
+| R-110 | ✓ | Premi velocità massima e acrobazie assegnati a chi li ha fatti; schermata finale nelle 4 lingue |
+| R-111 | ✓ | `/api/quick` indica una sala ONLINE; con 2 giocatori parte in 30 s, con tutti pronti in 3 s; "Parti" e durata non esistono |
+| R-112 | ✓ | Vincitore: 100 + punti rimasti, salvati sul server e letti da `/api/me`; non arrivato: 0 + punti rimasti |
+| R-113 | ✓ | Banana lanciata col doppio clic (50 punti), vista dall'avversario; limite di una ogni 0,9 s; chi scivola lo dice a tutti |
+| R-115 | ✓ | Link WhatsApp e Telegram nella stanza (provato sul sito online); risultato condiviso nelle 4 lingue |
+| R-116 | ✓ | Due segnalazioni da persone diverse bloccano i vocali; dalla stessa persona no; silenzio salvato sul dispositivo |
+| R-201 | ✓ | La roccia fa cadere a terra ma si supera saltando; l'albero e la palina fanno cadere sempre; porte e rampe in pista |
+| R-202 | ✓ | Da 0,9 m con 34° di errore il rider si raddrizza e atterra pulito con i punti pieni |
+| R-203 | ✓ | 180° = 60 punti, salto mortale = 150, due acrobazie +50%, atterraggio storto dimezza, molto storto fa cadere |
+| R-204 | ✓ | Ali bianche sul fianco e sulla schiena della giacca (lettura della texture e foto) |
+| R-205 | ✓ | Skateboard in tutte le 12 città, snowboard sulla neve |
+| R-206, R-207, R-208 | ✓ | Raccolto 20,5 m/s, normale 18, frenata 9,5 (stessi valori con rotellina e tastiera) |
+| R-209 | ✓ | 8 maglie + colore assegnato; scelta salvata; arriva agli avversari |
+| R-210, R-211 | ✓ | Rotellina: destra/sinistra, su/giù, mezzo spostamento = mezza curva, rilascio a zero; Salta decolla |
+| R-301 | ✓ | 13 scenari nel menu, ognuno si apre senza errori |
+| R-302, R-303 | ✓ | Napoli: palme, pizza e caffè, basoli, golfo e Vesuvio; Roma: pini, carbonara e carciofo, sampietrini, Colosseo |
+| R-304 | ✓ | Messaggi di caduta di ogni città, mai "Abete" |
+| R-305 | ✓ | Curve ampie (48 m di escursione) e dolci (pendenza laterale massima 0,27) |
+| R-306 | ✓ dopo correzione | Tabella Excel (15 righe × 12 città) confrontata riga per riga: le 7 righe di gioco erano tutte conformi; nelle righe di scena mancavano gli oggetti ai lati (tram, cabine, bus, taxi, ombrelloni, Muro), le linee gialle di Londra, i marciapiedi di Berlino, il fiume Meno, le porte a scacchi di Zagabria e i dettagli delle rampe di Madrid e Berlino: aggiunti nella 0.9.1. La pista resta identica in ogni città (stesso seed, stessi ostacoli) |
+| R-401 | ✓ | Gli sfondi seguono la telecamera; 12 foto a 120 m senza schermate a tinta unita |
+| R-402, R-403, R-404 | ✓ | Foto del rider da 6 angolazioni |
+| R-501, R-502, R-504 | ✓ | Questo file e il Word; legenda; nota D-07 per la copia sul Desktop |
+| R-503 | ✓ | Attività pianificata attiva: primo giro 24/10 dalle 21:33 alle 22:12, riuscito (ha pubblicato la 0.8.3); prossimo 25/10 alle 21:33 |
+| R-505 | ✓ | `BUSINESS-PLAN.md` nel repo e Word sul Desktop |
+| S-01 … S-21 | ✓ | Ogni scelta corrisponde al codice (S-12 aggiornata: le porte di Zagabria ora sono a scacchi) |
+
+Difetto trovato e corretto nella 0.9.1: una banana o bomba lasciata mentre un telefono lento era ancora al conto alla rovescia veniva ignorata da quel telefono.
 
 # Storico delle versioni
 
@@ -172,3 +221,4 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | 0.8.2 | 24/10/2026 | Debug sul sito online: pulsante di partenza in francese e spagnolo, posizioni nella lingua giusta anche nel risultato condiviso, maglie tradotte, revisione delle traduzioni, schermata dei risultati sul telefono (pulsanti non più tagliati, nomi leggibili accanto a "non arrivato", premi su una riga) |
 | 0.8.3 | 24/10/2026 | Controllo notturno: descrizioni rimaste alla versione dei 2.000 m aggiornate (anteprima dei link condivisi di Pista Nera, che diceva ancora "2.000 metri" e "Napoli e Roma", e README con regole e limiti attuali); nessun baco trovato nel codice: sintassi, chiavi delle 4 lingue, server locale, 13 scenari e una gara a due giocatori provati e a posto |
 | 0.9.0 | 24/10/2026 | Rotellina sul telefono (curva, accelera, frena), Salta a sinistra, microfono in alto sempre visibile, omino più umano, messaggi a schermo che vanno a capo, riga dei risultati più compatta |
+| 0.9.1 | 25/10/2026 | Verifica completa dei requisiti (sezione 10). Città completate come da tabella: oggetti ai lati (tram, cabine, bus, taxi, ombrelloni, Muro), linee gialle a Londra, marciapiedi a Berlino, fiume Meno, porte e rampa a scacchi a Zagabria, rampe di Madrid e Berlino; banane accettate anche durante il conto alla rovescia |

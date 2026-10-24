@@ -484,6 +484,8 @@
       cyl(gr, r1, r2, h, col, x = 0, y0 = 0, z = 0, seg = 14) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, seg), mk(col)); m.position.set(x, y0 + h / 2, z); gr.add(m); return m; },
       cone(gr, r, h, col, x = 0, y0 = 0, z = 0, seg = 10) { const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, seg), mk(col)); m.position.set(x, y0 + h / 2, z); gr.add(m); return m; },
       sph(gr, r, col, x = 0, y = 0, z = 0, half = false) { const m = new THREE.Mesh(half ? new THREE.SphereGeometry(r, 16, 9, 0, TAU, 0, Math.PI / 2) : new THREE.SphereGeometry(r, 16, 10), mk(col)); m.position.set(x, y, z); gr.add(m); return m; },
+      // fascia piatta (un fiume) tra i raggi r0 e r1, dall'angolo a0 per "span" radianti
+      band(r0, r1, a0, span, col) { const m = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 48, 1, Math.PI / 2 - a0 - span, span), mk(col)); m.rotation.x = -Math.PI / 2; m.position.y = B + 0.4; g.add(m); return m; },
       mk, rr
     };
     fn(g, H, B, rr);
@@ -564,6 +566,8 @@
     }),
     francoforte: () => skyBase((g, H) => {
       H.plain('#9aa08e');
+      H.band(270, 318, -1.1, 2.2, '#5b7f98');   // il Meno, con le rive
+      H.band(262, 270, -1.1, 2.2, '#b9b4a4'); H.band(318, 326, -1.1, 2.2, '#b9b4a4');
       H.ring({ n: 110, r0: 330, rs: 420, h0: 9, hs: 10, walls: ['#efe8da', '#e8dcc8', '#e2d4ba'], roofs: ['#6a4a3a'], avoid: [0.05, 0.35, 360] });
       const sky = H.grp();   // lo skyline dei grattacieli
       const tints = ['#6a8296', '#7a93a8', '#90a8ba', '#86a0b2'];
@@ -812,12 +816,15 @@
       return merge([{ geo: g, color: '#dfeaf3' }, { geo: new THREE.BoxGeometry(3.3, 0.06, 0.12), color: '#2f7fd0', y: 1.18, z: -2 }]);
     })()
   };
+  // bandierina di un colore solo, oppure a scacchi (due colori: Zagabria)
   function gateGeo(color) {
     const parts = [];
     for (const s of [-1, 1]) {
       const px = s * 2.4;
       parts.push({ geo: new THREE.CylinderGeometry(0.03, 0.03, 1.9, 6), color: '#f4f6f8', x: px, y: 0.95 });
-      parts.push({ geo: new THREE.BoxGeometry(0.85, 0.6, 0.02), color, x: px - s * 0.45, y: 1.45 });
+      if (Array.isArray(color)) {
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) parts.push({ geo: new THREE.BoxGeometry(0.2125, 0.2, 0.02), color: color[(i + j) % 2], x: px - s * 0.45 - 0.31875 + i * 0.2125, y: 1.65 - j * 0.2, z: 0 });
+      } else parts.push({ geo: new THREE.BoxGeometry(0.85, 0.6, 0.02), color, x: px - s * 0.45, y: 1.45 });
     }
     return merge(parts);
   }
@@ -1380,13 +1387,148 @@
     { geo: new THREE.CylinderGeometry(0.1, 0.13, 0.92, 10), color: '#26282c', y: 0.46 },
     { geo: new THREE.SphereGeometry(0.1, 8, 6, 0, TAU, 0, Math.PI / 2), color: '#26282c', y: 0.92 }
   ]);
-  function rampCity(body, edge) {
+  // rampa della città: bordo di un colore, a scacchi/strisce (array di colori) e, se richiesto, graffiti sui fianchi (Berlino)
+  function rampCity(body, edge, graffiti) {
     const shape = new THREE.Shape();
     shape.moveTo(-0.6, 0); shape.lineTo(4, 0); shape.lineTo(4, 1.1); shape.quadraticCurveTo(1.6, 0.55, -0.6, 0);
     const g = new THREE.ExtrudeGeometry(shape, { depth: 3, bevelEnabled: true, bevelSize: 0.2, bevelThickness: 0.2, bevelSegments: 1, curveSegments: 6 });
     g.translate(-2, 0, -1.5);
     g.rotateY(Math.PI / 2);
-    return merge([{ geo: g, color: body }, { geo: new THREE.BoxGeometry(3.3, 0.06, 0.14), color: edge, y: 1.18, z: -2 }]);
+    const parts = [{ geo: g, color: body }];
+    if (Array.isArray(edge)) {
+      const n = 10, w = 3.3 / n;
+      for (let i = 0; i < n; i++) parts.push({ geo: new THREE.BoxGeometry(w, 0.06, 0.14), color: edge[i % edge.length], x: -1.65 + w / 2 + i * w, y: 1.18, z: -2 });
+    } else parts.push({ geo: new THREE.BoxGeometry(3.3, 0.06, 0.14), color: edge, y: 1.18, z: -2 });
+    if (graffiti) {
+      const rr = mulberry32(27);
+      const cols = ['#d8403a', '#2f8fd0', '#e8c33c', '#7fb043', '#b05ad0'];
+      for (const sx of [-1, 1]) for (let i = 0; i < 5; i++) {
+        const z = -1.7 + i * 0.75, h = 0.95 - (z + 2) * 0.19;   // il fianco si abbassa verso la base
+        parts.push({ geo: new THREE.BoxGeometry(0.02, h * (0.25 + rr() * 0.3), 0.35 + rr() * 0.4), color: cols[(i + (sx > 0 ? 2 : 0)) % 5], x: sx * 1.52, y: h * (0.3 + rr() * 0.35), z });
+      }
+    }
+    return merge(parts);
+  }
+
+  // --- oggetti ai lati della strada (riga "Elementi ai lati" della tabella): tram, cabine, bus, taxi, ombrelloni, Muro ---
+  // Sono solo decorazione: stanno sul marciapiede, fuori dalla pista (oltre 22,4 m dal centro), dove la telecamera non entra.
+  function tramGeo(cfg) {
+    const L = cfg.len || 11, parts = [];
+    parts.push({ geo: new THREE.BoxGeometry(2.3, 1.1, L), color: cfg.body, y: 0.95 });                 // cassa, parte bassa
+    parts.push({ geo: new THREE.BoxGeometry(2.3, 1.05, L), color: cfg.top || cfg.body, y: 2.05 });     // parte alta
+    parts.push({ geo: new THREE.BoxGeometry(2.25, 0.3, L - 0.2), color: cfg.roof || '#d8d8d4', y: 2.75 });
+    for (const sx of [-1, 1]) for (let i = 0; i < Math.floor(L / 1.6); i++) parts.push({ geo: new THREE.BoxGeometry(0.02, 0.7, 1.1), color: '#1f2a36', x: sx * 1.16, y: 2.05, z: -L / 2 + 1.0 + i * 1.6 });   // finestrini
+    for (const sz of [-1, 1]) parts.push({ geo: new THREE.BoxGeometry(1.4, 0.8, 0.02), color: '#1f2a36', y: 2.05, z: sz * (L / 2 + 0.005) });   // parabrezza
+    for (const sz of [-1, 1]) { parts.push({ geo: new THREE.BoxGeometry(2.0, 0.6, 1.2), color: '#2a2d31', y: 0.3, z: sz * (L / 2 - 2) }); for (const sx of [-1, 1]) parts.push({ geo: new THREE.CylinderGeometry(0.35, 0.35, 0.2, 12).rotateZ(Math.PI / 2), color: '#17191c', x: sx * 1.0, y: 0.35, z: sz * (L / 2 - 2) }); }   // carrelli e ruote
+    parts.push({ geo: new THREE.BoxGeometry(0.06, 0.9, 0.06), color: '#3a3d42', x: 0, y: 3.35, z: 0.6 });
+    parts.push({ geo: new THREE.BoxGeometry(0.06, 0.9, 0.06), color: '#3a3d42', x: 0, y: 3.35, z: -0.6 });
+    parts.push({ geo: new THREE.BoxGeometry(1.2, 0.05, 0.08), color: '#3a3d42', y: 3.8, z: 0 });   // pantografo
+    if (cfg.stripe) parts.push({ geo: new THREE.BoxGeometry(2.32, 0.12, L), color: cfg.stripe, y: 1.52 });
+    for (const sz of [-1, 1]) for (const sx of [-1, 1]) parts.push({ geo: new THREE.BoxGeometry(0.22, 0.22, 0.03), color: '#fff2b0', x: sx * 0.8, y: 1.0, z: sz * (L / 2 + 0.01) });   // fari
+    return merge(parts);
+  }
+  const propGeos = {
+    tramMilano: () => tramGeo({ body: '#e8842a', top: '#f6e9c8', roof: '#c9bfa8', stripe: '#e8842a', len: 11 }),          // "Carrelli" arancione e crema
+    tramLisbona: () => tramGeo({ body: '#f2c230', top: '#f2c230', roof: '#eeeeea', len: 8.5 }),                           // Remodelado giallo
+    tramZurigo: () => tramGeo({ body: '#2a5db0', top: '#f4f6f8', roof: '#d8dde2', len: 12 }),                             // VBZ blu e bianco
+    phoneBox: () => merge([
+      { geo: new THREE.BoxGeometry(1.0, 2.3, 1.0), color: '#c4372b', y: 1.15 },
+      { geo: new THREE.BoxGeometry(1.06, 0.1, 1.06), color: '#a52a22', y: 2.35 },
+      { geo: new THREE.SphereGeometry(0.62, 12, 6, 0, TAU, 0, Math.PI / 2), color: '#c4372b', sx: 1, sy: 0.35, sz: 1, y: 2.4 },
+      ...[-1, 1].flatMap(s => [
+        { geo: new THREE.BoxGeometry(0.02, 1.5, 0.7), color: '#2b3340', x: s * 0.505, y: 1.1 },
+        { geo: new THREE.BoxGeometry(0.7, 1.5, 0.02), color: '#2b3340', z: s * 0.505, y: 1.1 },
+        { geo: new THREE.BoxGeometry(0.02, 0.22, 0.8), color: '#f4ecd8', x: s * 0.51, y: 2.05 },
+        { geo: new THREE.BoxGeometry(0.8, 0.22, 0.02), color: '#f4ecd8', z: s * 0.51, y: 2.05 }
+      ])
+    ]),
+    busLondra: () => {
+      const L = 10.5, parts = [
+        { geo: new THREE.BoxGeometry(2.5, 3.9, L), color: '#c4372b', y: 2.35 },
+        { geo: new THREE.BoxGeometry(2.45, 0.2, L - 0.3), color: '#d8d2c8', y: 4.4 }
+      ];
+      for (const sx of [-1, 1]) for (const y of [1.6, 3.5]) for (let i = 0; i < 6; i++) parts.push({ geo: new THREE.BoxGeometry(0.02, 0.9, 1.2), color: '#1f2a36', x: sx * 1.26, y, z: -L / 2 + 1.0 + i * 1.65 });
+      for (const y of [1.6, 3.5]) parts.push({ geo: new THREE.BoxGeometry(2.0, 1.0, 0.02), color: '#1f2a36', y, z: -L / 2 - 0.005 });
+      for (const sz of [-1, 1]) for (const sx of [-1, 1]) parts.push({ geo: new THREE.CylinderGeometry(0.5, 0.5, 0.35, 14).rotateZ(Math.PI / 2), color: '#17191c', x: sx * 1.1, y: 0.5, z: sz * 3.3 });
+      parts.push({ geo: new THREE.BoxGeometry(2.3, 0.5, 0.04), color: '#f4ecd8', y: 2.7, z: -L / 2 - 0.02 });   // tabella del percorso
+      return merge(parts);
+    },
+    umbrellaDolac: () => {
+      const parts = [
+        { geo: new THREE.CylinderGeometry(0.04, 0.05, 2.3, 8), color: '#5a4a3a', y: 1.15 },
+        { geo: new THREE.ConeGeometry(1.35, 0.5, 12, 1, true), color: '#d8302a', y: 2.45 },
+        { geo: new THREE.TorusGeometry(1.33, 0.03, 6, 24).rotateX(Math.PI / 2), color: '#f4f4f4', y: 2.21 },
+        { geo: new THREE.SphereGeometry(0.06, 8, 6), color: '#f4f4f4', y: 2.72 },
+        { geo: new THREE.BoxGeometry(1.6, 0.08, 0.9), color: '#b08954', y: 0.85 },                   // banco del mercato
+        { geo: new THREE.BoxGeometry(1.5, 0.75, 0.8), color: '#8a6638', y: 0.42 }
+      ];
+      for (let i = 0; i < 12; i++) parts.push({ geo: new THREE.SphereGeometry(0.09, 8, 6), color: ['#d8403a', '#e8902c', '#7fb043', '#e8c33c'][i % 4], x: -0.6 + (i % 4) * 0.4, y: 0.98, z: -0.25 + Math.floor(i / 4) * 0.25 });
+      for (let i = 0; i < 12; i++) parts.push({ geo: new THREE.BoxGeometry(0.02, 0.05, 0.9), color: '#f4f4f4', y: 2.33, ry: i * TAU / 12, x: Math.cos(i * TAU / 12) * 0.7, z: Math.sin(i * TAU / 12) * 0.7 });
+      return merge(parts);
+    },
+    wallBerlino: () => {
+      const rr = mulberry32(33), parts = [], cols = ['#d8403a', '#2f8fd0', '#e8c33c', '#7fb043', '#b05ad0', '#f28c28'];
+      for (let i = 0; i < 5; i++) {
+        const z = -2.4 + i * 1.2;
+        parts.push({ geo: new THREE.BoxGeometry(0.22, 3.4, 1.18), color: i % 2 ? '#c9c6c0' : '#d2cfc8', y: 1.7, z });
+        parts.push({ geo: new THREE.BoxGeometry(0.8, 0.5, 1.18), color: '#bdbab4', y: 0.25, z });                  // base a L
+        parts.push({ geo: new THREE.CylinderGeometry(0.2, 0.2, 1.18, 10).rotateX(Math.PI / 2), color: '#c2bfb8', y: 3.4, z });   // tubo in cima
+        for (let k = 0; k < 4; k++) parts.push({ geo: new THREE.BoxGeometry(0.02, 0.3 + rr() * 0.7, 0.3 + rr() * 0.6), color: cols[Math.floor(rr() * cols.length)], x: -0.12, y: 0.9 + rr() * 1.9, z: z + (rr() - 0.5) * 0.6 });
+      }
+      return merge(parts);
+    },
+    taxiNY: () => {
+      const parts = [
+        { geo: new THREE.BoxGeometry(1.85, 0.55, 4.7), color: '#f2c230', y: 0.6 },
+        { geo: new THREE.BoxGeometry(1.7, 0.6, 2.5), color: '#f2c230', y: 1.17, z: 0.1 },
+        { geo: new THREE.BoxGeometry(1.72, 0.45, 2.3), color: '#1f2a36', y: 1.2, z: 0.1 },                           // vetri
+        { geo: new THREE.BoxGeometry(0.5, 0.18, 0.18), color: '#f4f4f4', y: 1.56, z: 0.1 },                           // insegna sul tetto
+        { geo: new THREE.BoxGeometry(1.86, 0.1, 4.6), color: '#111111', y: 0.9 }
+      ];
+      for (const sz of [-1, 1]) for (const sx of [-1, 1]) parts.push({ geo: new THREE.CylinderGeometry(0.32, 0.32, 0.22, 12).rotateZ(Math.PI / 2), color: '#17191c', x: sx * 0.85, y: 0.32, z: sz * 1.5 });
+      for (const sx of [-1, 1]) for (let i = 0; i < 8; i++) parts.push({ geo: new THREE.BoxGeometry(0.02, 0.16, 0.3), color: i % 2 ? '#111111' : '#f4f4f4', x: sx * 0.93, y: 0.78, z: -1.9 + i * 0.55 });   // scacchiera
+    for (const sz of [-1, 1]) for (const sx of [-1, 1]) parts.push({ geo: new THREE.BoxGeometry(0.3, 0.14, 0.04), color: sz < 0 ? '#fff2b0' : '#d8302a', x: sx * 0.6, y: 0.7, z: sz * 2.36 });
+      return merge(parts);
+    }
+  };
+
+  // --- bordi della strada (riga "Fondo stradale"): doppia linea gialla al marciapiede (Londra), marciapiede a mosaico (Berlino) ---
+  function mosaicTexture() {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 256;
+    const g = c.getContext('2d'); const rr = mulberry32(52);
+    g.fillStyle = '#8d8a84'; g.fillRect(0, 0, 64, 256);
+    for (let y = 0; y < 256; y += 8) for (let x = 0; x < 64; x += 8) { const v = 150 + Math.floor(rr() * 50); g.fillStyle = 'rgb(' + v + ',' + (v - 3) + ',' + (v - 8) + ')'; g.fillRect(x + 1, y + 1, 6.4, 6.4); }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = Math.min(8, ANISO);
+    return t;
+  }
+  const EDGE_MATS = {
+    lines: () => new THREE.MeshBasicMaterial({ color: lin('#e8c026'), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 }),
+    walk: () => new THREE.MeshStandardMaterial({ map: mosaicTexture(), roughness: 0.95, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 })
+  };
+  const edgeMats = {};
+  // striscia che segue la curva della strada da z a z-len, a "off" metri dal centro, larga w
+  function edgeStrip(z0, len, off, w, mat, uvScale) {
+    const n = Math.round(len), pos = [], uv = [], idx = [];
+    for (let i = 0; i <= n; i++) {
+      const z = z0 - i, c = center(z);
+      for (const k of [-1, 1]) { const x = c + off + k * w / 2; pos.push(x, hgt(x, z) + 0.04, z); uv.push(k > 0 ? 1 : 0, i * uvScale); }
+      if (i) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }   // facce rivolte in alto
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, mat); m.receiveShadow = true; world.add(m);
+    return m;
+  }
+  function spawnEdge(z, len) {
+    const E = CITY_CFG[theme].edge;
+    if (!E) return;
+    const mat = edgeMats[E] || (edgeMats[E] = EDGE_MATS[E]());
+    for (const s of [-1, 1]) {
+      if (E === 'lines') { for (const d of [20.25, 20.75]) objs.push({ type: 'edge', x: center(z) + s * d, z: z - len / 2, mesh: edgeStrip(z, len, s * d, 0.3, mat, 0.1) }); }
+      else objs.push({ type: 'edge', x: center(z) + s * 23.3, z: z - len / 2, mesh: edgeStrip(z, len, s * 23.3, 3.2, mat, 0.25) });
+    }
   }
 
   // --- la scheda di ogni città: ostacoli, bonus, rampa, porte, paletti, palazzi, strada, luce ---
@@ -1415,6 +1557,7 @@
       ramp: ['#8a9299', '#c4372b'], gate: ['#e8e8e8', '#c4372b'], marker: markerGeos.ghisa,
       tallCrash: 'crashLamp', lowCrash: 'crashBollard', markerCrash: 'crashBollard',
       walls: ['#e8dcc8', '#d8c8ac', '#e2d0b4', '#cfc0a8', '#e8e2d2', '#d2bfa0'],
+      props: [['tramMilano', 11]], setback: 2.6,
       style: 'altbau', roof: '#7d8287', bldH: [12, 16], ground: () => paveTexture({ seed: 41, size: 14, joint: '#2e2c2a', tones: [[96, 90, 86], [108, 100, 94], [88, 84, 82]], rails: true }),
       theme: { sky: ['#5a84b0', '#9fb6cc', '#e0e3e4'], fog: '#dcdfe0', fogN: 40, fogF: 150, hemi: ['#e8ecf0', '#a8adb4'], sun: '#f2ead8', spray: '#b8bcc0', sprayOp: 0.5, trail: '#2a2a2c', trailOp: 0.18, rough: 0.9 }
     },
@@ -1433,6 +1576,7 @@
       ramp: ['#b07a45', '#c4372b'], gate: ['#d8352a', '#2753b8'], marker: markerGeos.ukBollard,
       tallCrash: 'crashTree', lowCrash: 'crashPlanter', markerCrash: 'crashBollard',
       walls: ['#9a6a4e', '#8a5a40', '#b08060', '#7a4a34', '#a06a4a', '#8f5f44'],
+      props: [['phoneBox', 1], ['phoneBox', 1], ['busLondra', 10.5]], setback: 2.6, edge: 'lines',
       style: 'brick', roof: '#55585c', bldH: [9, 10], ground: () => asphaltTexture({ seed: 47, base: '#3a3d40', wet: true }),
       theme: { sky: ['#6a7585', '#9aa4ae', '#d4d7d9'], fog: '#d2d5d8', hemi: ['#dde2e8', '#9aa0a8'], sun: '#e8e8e4', spray: '#bcd4e2', sprayOp: 0.65, trail: '#3a4248', trailOp: 0.3, rough: 0.6, part: { col: '#a8c2d4', size: 0.05, fall: 9, sway: 0, op: 0.45 } }
     },
@@ -1448,7 +1592,7 @@
     madrid: {
       tall: () => genTree({ trunk: '#7a4a34', cols: ['#3f6b35', '#4a7a3e', '#35602c'], r: 1.3, h: 3.7, dots: '#d8403a', seed: 9 }), low: lowGeos.geraniumPot,
       fa: 'churro', faG: foodGeos.churro, fb: 'bocadillo', fbG: foodGeos.bocadillo,
-      ramp: ['#a86a3a', '#e0b818'], gate: ['#d8352a', '#e8c026'], marker: markerGeos.bolard,
+      ramp: ['#a86a3a', ['#d8352a', '#e8c026']], gate: ['#d8352a', '#e8c026'], marker: markerGeos.bolard,
       tallCrash: 'crashTree', lowCrash: 'crashPot', markerCrash: 'crashBollard',
       walls: ['#c87f5a', '#d8a878', '#b86a48', '#e2c8a4', '#c08a5c', '#d2b490'],
       style: 'haussmann', roof: '#8a5a3c', bldH: [12, 14], ground: () => slabTexture({ seed: 59, v0: 142 }),
@@ -1460,24 +1604,27 @@
       ramp: ['#b07a45', '#e8c33c'], gate: ['#3f7a3a', '#d8352a'], marker: markerGeos.stonePill,
       tallCrash: 'crashTree', lowCrash: 'crashCrate', markerCrash: 'crashBollard',
       walls: ['#d8e2e4', '#c2d4dc', '#e8d2b4', '#efe4ce', '#b8d0d8', '#e2c0a4'],
+      props: [['tramLisbona', 8.5]], setback: 2.6,
       style: 'azulejos', style2: 'altbau', roof: '#b4603f', bldH: [9, 10], ground: calcadaTexture,
       theme: { sky: ['#2f86d8', '#8fc4ea', '#eef0ea'], fog: '#eaece6', hemi: ['#f6f0e2', '#aab0ac'], sun: '#fff4d4', spray: '#c8c4b8', sprayOp: 0.5, trail: '#2a2a28', trailOp: 0.18, rough: 0.9 }
     },
     zagabria: {
       tall: () => genLamp({ pole: '#3a3d42', lamp: '#f5e3a0', kind: 'gas' }), low: lowGeos.crateStack,
       fa: 'licitar', faG: foodGeos.licitar, fb: 'strukli', fbG: foodGeos.strukli,
-      ramp: ['#b07a45', '#c4372b'], gate: ['#d8352a', '#e8e8e8'], marker: markerGeos.ghisa,
+      ramp: ['#b07a45', ['#d8352a', '#f4f4f4']], gate: [['#d8352a', '#f4f4f4'], ['#f4f4f4', '#d8352a']], marker: markerGeos.ghisa,
       tallCrash: 'crashLamp', lowCrash: 'crashCrate', markerCrash: 'crashBollard',
       walls: ['#e8dcc8', '#e2d0b4', '#d8c8ac', '#e8e0d0', '#dfd4bc', '#e5d8c0'],
+      props: [['umbrellaDolac', 2.8], ['umbrellaDolac', 2.8]], setback: 2.6,
       style: 'altbau', roof: '#8a4a3a', bldH: [10, 12], ground: () => paveTexture({ seed: 61, size: 13, joint: '#3a3632', tones: [[118, 110, 100], [132, 122, 110], [106, 100, 92]] }),
       theme: { sky: ['#5b83b8', '#a2bcd4', '#e6e8e6'], fog: '#e2e4e2', hemi: ['#eef0ec', '#a8aca4'], sun: '#f6f0dc', spray: '#bcb8b0', sprayOp: 0.5, trail: '#2a2a28', trailOp: 0.18, rough: 0.9 }
     },
     berlino: {
       tall: () => genTree({ trunk: '#6a5a46', cols: ['#5a8a3e', '#6a9a48', '#4f7a36'], r: 1.5, seed: 17 }), low: lowGeos.graffitiBlock,
       fa: 'currywurst', faG: foodGeos.currywurst, fb: 'berliner', fbG: foodGeos.berliner,
-      ramp: ['#9aa0a6', '#b05ad0'], gate: ['#d8352a', '#d4a017'], marker: markerGeos.ampel,
+      ramp: ['#9aa0a6', '#b05ad0', true], gate: ['#d8352a', '#d4a017'], marker: markerGeos.ampel,
       tallCrash: 'crashTree', lowCrash: 'crashBlock', markerCrash: 'crashLight',
       walls: ['#c8c2b4', '#b8ac9c', '#cfc8ba', '#a8a096', '#bfb8a8', '#c2bcae'],
+      props: [['wallBerlino', 6]], setback: 2.6, edge: 'walk',
       style: 'altbau', roof: '#6d7276', bldH: [13, 12], ground: () => asphaltTexture({ seed: 67, base: '#4a4d50' }),
       theme: { sky: ['#5d7792', '#9fb0bf', '#dfe2e4'], fog: '#dcdfe1', hemi: ['#e6e9ec', '#9ea4a8'], sun: '#eeeee6', spray: '#b4b8bc', sprayOp: 0.5, trail: '#2c2e30', trailOp: 0.18, rough: 0.9 }
     },
@@ -1487,6 +1634,7 @@
       ramp: ['#b07a45', '#5aa0d8'], gate: ['#e8e8e8', '#5aa0d8'], marker: markerGeos.zhPole,
       tallCrash: 'crashTree', lowCrash: 'crashCheese', markerCrash: 'crashPole',
       walls: ['#e2d8c4', '#d8c8b0', '#e8e0d0', '#cfc0a8', '#e5dcc8', '#d2c4ac'],
+      props: [['tramZurigo', 12]], setback: 2.6,
       style: 'napoli', roof: '#7a4a3a', bldH: [9, 10], ground: () => paveTexture({ seed: 71, size: 15, joint: '#3a3835', tones: [[130, 124, 116], [144, 138, 128], [120, 116, 108]], rails: true }),
       theme: { sky: ['#2e7ac8', '#93c0e6', '#ecf2f6'], fog: '#e8eef2', hemi: ['#f2f6fa', '#a8b2b8'], sun: '#fcf6e4', spray: '#c4c8cc', sprayOp: 0.5, trail: '#2a2c2e', trailOp: 0.18, rough: 0.9 }
     },
@@ -1496,6 +1644,7 @@
       ramp: ['#8a9299', '#e8c33c'], gate: ['#e8842a', '#2753b8'], marker: markerGeos.hydrant,
       tallCrash: 'crashLamp', lowCrash: 'crashTrash', markerCrash: 'crashHydrant',
       walls: ['#7a4a34', '#8a5a40', '#6a3f2c', '#9a6a4e', '#5f3a2a', '#845640'],
+      props: [['taxiNY', 4.7], ['taxiNY', 4.7]], setback: 2.6,
       style: 'brickfe', roof: '#4a4d52', bldH: [16, 26], ground: () => asphaltTexture({ seed: 73, base: '#3f4144', lines: '#d8b02c', manholes: true }),
       theme: { sky: ['#4a7bb8', '#95b4d0', '#e2e3de'], fog: '#dedfda', hemi: ['#eceee8', '#a0a4a0'], sun: '#f6eeda', spray: '#b0b4b8', sprayOp: 0.5, trail: '#28292b', trailOp: 0.18, rough: 0.9 }
     }
@@ -1508,9 +1657,10 @@
       const C = CITY_CFG[theme];
       a = CITY_ASSETS[theme] = {
         tall: C.tall(), low: C.low(), fa: C.faG(), fb: C.fbG(),
-        ramp: rampCity(C.ramp[0], C.ramp[1]),
+        ramp: rampCity(C.ramp[0], C.ramp[1], C.ramp[2]),
         gates: [gateGeo(C.gate[0]), gateGeo(C.gate[1])],
-        marker: C.marker()
+        marker: C.marker(),
+        props: (C.props || []).map(([name, len]) => ({ geo: propGeos[name](), len }))
       };
     }
     return a;
@@ -2168,7 +2318,7 @@
   let mode = 'menu';
   let best = parseInt(store.get('pistaNera.best') || '0', 10) || 0;
   let wallT = 0, tricksN = 0, near500 = false, P, objs = [], bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, rowZ, forestZ, markerZ, camYaw, lean, camY, squash, armsUp;
-  let rowRng = Math.random, forestRng = Math.random, buildRng = Math.random, buildZ = 0, finishObj = null, raceLen = 2000;
+  let rowRng = Math.random, forestRng = Math.random, buildRng = Math.random, propRng = Math.random, buildZ = 0, propZ = 0, finishObj = null, raceLen = 2000;
   const racing = () => mode === 'countdown' || mode === 'race' || mode === 'finished';
   const distM = () => Math.max(0, -P.z);
   const score = () => Math.floor(distM()) + bonus;
@@ -2184,7 +2334,8 @@
     rowRng = mulberry32(seed);
     forestRng = mulberry32(seed ^ 0x5bd1e995);
     buildRng = mulberry32(seed ^ 0x2c1b3c6d);
-    buildZ = 30;
+    propRng = mulberry32(seed ^ 0x6a09e667);
+    buildZ = 30; propZ = 10;
     P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: 9, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
@@ -2245,7 +2396,7 @@
     for (const side of [-1, 1]) {
       const bh = CITY_CFG[theme].bldH;
       const w = 9 + r() * 6, d = 9 + r() * 5, h = bh[0] + r() * bh[1];
-      const x = c + side * (23.5 + d / 2 + r() * 2);
+      const x = c + side * (23.5 + (CITY_CFG[theme].setback || 0) + d / 2 + r() * 2);
       const matI = Math.floor(r() * 8);
       const rot = (r() - 0.5) * 0.06;
       if (!ghost) {
@@ -2262,9 +2413,21 @@
     }
     buildZ -= len + 0.6 + r() * 1.2;
   }
+  // un oggetto sul marciapiede (tram, cabina, bus, taxi, ombrellone, Muro), allineato alla strada
+  function spawnProp(z, ghost) {
+    const r = propRng, list = assets().props;
+    const side = r() < 0.5 ? -1 : 1, pick = list[Math.floor(r() * list.length)], jitter = r();
+    if (!pick) return 0;
+    if (!ghost) {
+      const c = center(z), x = c + side * (23.8 + jitter * 0.4);
+      const ry = -(center(z - 1) - center(z)) + (side < 0 ? Math.PI : 0);
+      objs.push({ type: 'prop', x, z, mesh: addMesh(pick.geo, vcMat, x, z, { ry }) });
+    }
+    return pick.len;
+  }
   function removeObj(o) {
     world.remove(o.mesh);
-    if (o.type === 'bldg') o.mesh.geometry.dispose();
+    if (o.type === 'bldg' || o.type === 'edge') o.mesh.geometry.dispose();
   }
   function spawnForest(z, ghost) {
     const r = forestRng, c = center(z);
@@ -2288,12 +2451,16 @@
     }
     if (isCity()) {
       while (buildZ > horizon) spawnBuildings(buildZ > bLine);
+      if (assets().props.length) while (propZ > horizon) { const len = propRng() < 0.6 ? spawnProp(propZ, propZ > bLine) : 0; propZ -= 14 + len + propRng() * 30; }
     } else {
       while (forestZ > horizon) { spawnForest(forestZ, forestZ > bLine); forestZ -= 2.4 + forestRng() * 1.6; }
     }
     while (markerZ > horizon) {
       const c = center(markerZ);
-      if (markerZ <= bLine) for (const s of [-1, 1]) objs.push({ type: 'marker', x: c + s * 19.5, z: markerZ, mesh: addMesh(isCity() ? assets().marker : GEO.marker, vcMat, c + s * 19.5, markerZ) });
+      if (markerZ <= bLine) {
+        for (const s of [-1, 1]) objs.push({ type: 'marker', x: c + s * 19.5, z: markerZ, mesh: addMesh(isCity() ? assets().marker : GEO.marker, vcMat, c + s * 19.5, markerZ) });
+        if (isCity()) spawnEdge(markerZ, 22);
+      }
       markerZ -= 22;
     }
     const behind = P.z + 16;
@@ -2808,7 +2975,8 @@
     } else if (m.t === 'voiceBlocked') {
       say(tr('voiceBlocked'), '#d8302a');
     } else if (m.t === 'drop') {
-      if (mode === 'race' || mode === 'finished') addHazard({ hid: m.hid, owner: m.id, kind: m.kind, x: m.x, z: m.z });
+      // anche se questo dispositivo è ancora al conto alla rovescia (telefoni lenti): la gara è già partita sul server
+      if (racing()) addHazard({ hid: m.hid, owner: m.id, kind: m.kind, x: m.x, z: m.z });
     } else if (m.t === 'hit') {
       removeHazard(m.hid);
       if (m.owner === myId) say(tr(m.kind === 'bomb' ? 'hitYourBomb' : 'hitYourBanana', { n: m.name || tr('someone') }), '#ff5a1f');
