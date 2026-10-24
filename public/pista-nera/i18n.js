@@ -2,6 +2,10 @@
 // Chiave → testo; {n}, {t}, {s}… sono valori inseriti dal gioco. Se manca una traduzione si usa l'italiano.
 window.CYF_I18N = {
   it: {
+    voiceOnlyChallenge: 'I vocali si mandano agli altri giocatori in sfida o online',
+    tStick: 'appoggia il dito a destra: ◀ ▶ curva, ▲ accelera, ▼ frena; in aria avvitamento e salto mortale',
+    tStickKey: 'Rotellina',
+    stickAria: 'Rotellina: destra e sinistra per curvare, su per accelerare, giù per frenare',
     jBologna: 'Bologna · rossoblù',
     jPalermo: 'Palermo · rosanero',
     jTorinoBN: 'Torino · bianconera',
@@ -75,7 +79,7 @@ window.CYF_I18N = {
     crashBanana: 'Banana!', crashBomb: 'Bomba!', hitYourBanana: '{n} è scivolato sulla tua banana!', hitYourBomb: '{n} è saltato sulla tua bomba!',
     crashTree: 'Albero!', crashRock: 'Roccia!', crashPole: 'Palina!', crashGate: 'Paletto!', crashLanding: 'Atterraggio storto',
     sloppyLanding: 'Atterraggio sporco', wall: 'Muro!', gate: 'Porta',
-    rampKeys: 'Rampa! ← → ruota, ↑ ↓ salto mortale', rampPhone: 'Rampa! ◀ ▶ ruota, tieni Salta per il backflip',
+    rampKeys: 'Rampa! ← → ruota, ↑ ↓ salto mortale', rampPhone: 'Rampa! Rotellina ◀ ▶ avvitamento, ▲ ▼ salto mortale',
     food_pizza: 'Pizza', food_coffee: 'Caffè', food_carbonara: 'Carbonara', food_artichoke: 'Carciofo',
     lastCrash: 'Ultima caduta: {r}', newRecord: 'Nuovo record personale!', yourRecord: 'Il tuo record: {p}',
     runOver: 'Discesa finita', maxSpeed: 'Velocità max', bestSpin: 'Rotazione migliore', retry: 'Riprova', menu: 'Menu',
@@ -83,6 +87,10 @@ window.CYF_I18N = {
     audioOn: 'Audio: sì', audioOff: 'Audio: no', turnLeft: 'Curva a sinistra', turnRight: 'Curva a destra'
   },
   en: {
+    voiceOnlyChallenge: 'Voice messages go to other players in a challenge or online',
+    tStick: 'put your finger on the right: ◀ ▶ turn, ▲ speed up, ▼ brake; in the air spin and flip',
+    tStickKey: 'Wheel',
+    stickAria: 'Control wheel: left and right to turn, up to speed up, down to brake',
     jBologna: 'Bologna · red and blue',
     jPalermo: 'Palermo · pink and black',
     jTorinoBN: 'Turin · black and white',
@@ -156,7 +164,7 @@ window.CYF_I18N = {
     crashBanana: 'Banana!', crashBomb: 'Bomb!', hitYourBanana: '{n} slipped on your banana!', hitYourBomb: '{n} hit your bomb!',
     crashTree: 'Tree!', crashRock: 'Rock!', crashPole: 'Pole!', crashGate: 'Gate pole!', crashLanding: 'Bad landing',
     sloppyLanding: 'Sloppy landing', wall: 'Wall!', gate: 'Gate',
-    rampKeys: 'Ramp! ← → spin, ↑ ↓ flip', rampPhone: 'Ramp! ◀ ▶ spin, hold Jump for a backflip',
+    rampKeys: 'Ramp! ← → spin, ↑ ↓ flip', rampPhone: 'Ramp! Wheel ◀ ▶ spin, ▲ ▼ flip',
     food_pizza: 'Pizza', food_coffee: 'Coffee', food_carbonara: 'Carbonara', food_artichoke: 'Artichoke',
     lastCrash: 'Last fall: {r}', newRecord: 'New personal best!', yourRecord: 'Your best: {p}',
     runOver: 'Run complete', maxSpeed: 'Top speed', bestSpin: 'Best spin', retry: 'Try again', menu: 'Menu',
@@ -164,6 +172,10 @@ window.CYF_I18N = {
     audioOn: 'Sound: on', audioOff: 'Sound: off', turnLeft: 'Turn left', turnRight: 'Turn right'
   },
   fr: {
+    voiceOnlyChallenge: 'Les messages vocaux s’envoient aux autres joueurs en défi ou en ligne',
+    tStick: 'pose le doigt à droite : ◀ ▶ tourner, ▲ accélérer, ▼ freiner ; en l’air vrille et salto',
+    tStickKey: 'Molette',
+    stickAria: 'Molette : droite et gauche pour tourner, haut pour accélérer, bas pour freiner',
     jBologna: 'Bologne · rouge et bleu',
     jPalermo: 'Palerme · rose et noir',
     jTorinoBN: 'Turin · noir et blanc',
@@ -237,7 +249,7 @@ window.CYF_I18N = {
     crashBanana: 'Banane !', crashBomb: 'Bombe !', hitYourBanana: '{n} a glissé sur ta banane !', hitYourBomb: '{n} a sauté sur ta bombe !',
     crashTree: 'Arbre !', crashRock: 'Rocher !', crashPole: 'Piquet !', crashGate: 'Porte !', crashLanding: 'Mauvaise réception',
     sloppyLanding: 'Réception approximative', wall: 'Mur !', gate: 'Porte',
-    rampKeys: 'Tremplin ! ← → vrille, ↑ ↓ salto', rampPhone: 'Tremplin ! ◀ ▶ vrille, maintiens Saut pour le backflip',
+    rampKeys: 'Tremplin ! ← → vrille, ↑ ↓ salto', rampPhone: 'Tremplin ! Molette ◀ ▶ vrille, ▲ ▼ salto',
     food_pizza: 'Pizza', food_coffee: 'Café', food_carbonara: 'Carbonara', food_artichoke: 'Artichaut',
     lastCrash: 'Dernière chute : {r}', newRecord: 'Nouveau record personnel !', yourRecord: 'Ton record : {p}',
     runOver: 'Descente terminée', maxSpeed: 'Vitesse max', bestSpin: 'Meilleure rotation', retry: 'Rejouer', menu: 'Menu',
@@ -245,6 +257,10 @@ window.CYF_I18N = {
     audioOn: 'Son : oui', audioOff: 'Son : non', turnLeft: 'Tourner à gauche', turnRight: 'Tourner à droite'
   },
   es: {
+    voiceOnlyChallenge: 'Los mensajes de voz se envían a los demás jugadores en un desafío o en línea',
+    tStick: 'apoya el dedo a la derecha: ◀ ▶ girar, ▲ acelerar, ▼ frenar; en el aire giro y mortal',
+    tStickKey: 'Rueda',
+    stickAria: 'Rueda de control: derecha e izquierda para girar, arriba para acelerar, abajo para frenar',
     jBologna: 'Bolonia · rojo y azul',
     jPalermo: 'Palermo · rosa y negro',
     jTorinoBN: 'Turín · blanco y negro',
@@ -318,7 +334,7 @@ window.CYF_I18N = {
     crashBanana: '¡Plátano!', crashBomb: '¡Bomba!', hitYourBanana: '¡{n} ha resbalado con tu plátano!', hitYourBomb: '¡{n} ha pisado tu bomba!',
     crashTree: '¡Árbol!', crashRock: '¡Roca!', crashPole: '¡Baliza!', crashGate: '¡Palo!', crashLanding: 'Mal aterrizaje',
     sloppyLanding: 'Aterrizaje sucio', wall: '¡Muro!', gate: 'Puerta',
-    rampKeys: '¡Rampa! ← → gira, ↑ ↓ mortal', rampPhone: '¡Rampa! ◀ ▶ gira, mantén Saltar para el backflip',
+    rampKeys: '¡Rampa! ← → gira, ↑ ↓ mortal', rampPhone: '¡Rampa! Rueda ◀ ▶ giro, ▲ ▼ mortal',
     food_pizza: 'Pizza', food_coffee: 'Café', food_carbonara: 'Carbonara', food_artichoke: 'Alcachofa',
     lastCrash: 'Última caída: {r}', newRecord: '¡Nuevo récord personal!', yourRecord: 'Tu récord: {p}',
     runOver: 'Bajada terminada', maxSpeed: 'Velocidad máx.', bestSpin: 'Mejor giro', retry: 'Reintentar', menu: 'Menú',

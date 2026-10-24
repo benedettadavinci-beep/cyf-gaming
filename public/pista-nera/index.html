@@ -50,11 +50,12 @@
   .vignette { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 55%, rgba(10,22,38,.45) 100%); transition: opacity .3s linear; }
   .sound { position: absolute; right: 10px; bottom: 10px; font-family: var(--body); font-weight: 700; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border-radius: 8px; border: 0; background: rgba(12,24,40,.55); color: #fff; cursor: pointer; }
   /* pulsante del microfono: tondo e ben visibile sul lato destro */
-  .voice { position: absolute; right: 12px; bottom: 56px; width: 76px; height: 76px; border-radius: 50%; border: 3px solid #fff; background: var(--flare); color: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; box-shadow: 0 6px 18px rgba(0,0,0,.35); font-family: var(--body); padding: 0; }
+  .voice { position: absolute; left: 12px; top: 72px; width: 72px; height: 72px; z-index: 3; border-radius: 50%; border: 3px solid #fff; background: var(--flare); color: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; box-shadow: 0 6px 18px rgba(0,0,0,.35); font-family: var(--body); padding: 0; }
   .voice svg { width: 30px; height: 30px; }
   .voice span { font-size: 13px; font-weight: 700; letter-spacing: .04em; line-height: 1; }
   .voice.rec { background: #b3261e; animation: pulse 1s ease-in-out infinite; }
   .voice:disabled { background: #4a5d76; cursor: default; opacity: .9; }
+  .voice.solo { background: rgba(12,24,40,.62); border-color: rgba(255,255,255,.7); }   /* in allenamento: visibile ma spento */
   @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(179,38,30,.25); } }
   /* classifica dal vivo, in alto a destra */
   .live { position: absolute; right: 10px; top: 10px; min-width: 190px; max-width: 46%; background: rgba(12,24,40,.68); color: #fff; border-radius: 10px; padding: 6px 8px 7px; font-size: 15px; font-variant-numeric: tabular-nums; pointer-events: none; }
@@ -93,7 +94,7 @@
   .donate { display: block; text-align: center; font-weight: 700; font-size: 16px; color: #b83a0c; text-decoration: none; padding: 8px; border-radius: 10px; border: 2px dashed #ffc2a8; }
   .donate:hover { background: #fff3ee; }
   .toasts { position: absolute; left: 0; right: 0; top: 46%; height: 0; pointer-events: none; }
-  .toast { position: absolute; left: 50%; top: 0; transform: translate(-50%, 0); font-weight: 700; font-size: 26px; white-space: nowrap; text-shadow: 0 0 6px #fff, 0 0 2px #fff, 0 2px 0 #fff; animation: rise 1.1s ease-out forwards; }
+  .toast { position: absolute; left: 50%; top: 0; transform: translate(-50%, 0); font-weight: 700; font-size: 26px; line-height: 1.15; width: max-content; max-width: calc(100% - 28px); text-align: center; text-shadow: 0 0 6px #fff, 0 0 2px #fff, 0 2px 0 #fff; animation: rise 1.1s ease-out forwards; }
   @keyframes rise { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.9); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); } 100% { opacity: 0; transform: translate(-50%, -70px) scale(1); } }
 
   .count { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; font-family: var(--display); font-size: clamp(80px, 22vw, 200px); color: #fff; text-shadow: 0 6px 30px rgba(12,24,40,.5); }
@@ -142,6 +143,7 @@
   /* risultati sul telefono: i pulsanti vanno a capo invece di tagliare le parole; "non arrivato" non schiaccia il nome */
   #raceResults .row > button { flex: 1 1 auto; min-width: max-content; white-space: nowrap; }
   #raceResults .players .name { min-width: 3.4em; }
+  @media (max-width: 480px) { #raceResults .players li { gap: 7px; padding: 8px 8px; font-size: 17px; } #raceResults .pos { min-width: 2.3em; font-size: 13px; } }
   .players .time.dnf { font-weight: 600; font-size: 14px; line-height: 1.1; color: var(--ink-soft); text-align: right; max-width: 6.5em; }
   .awards span:not(.k):not(.dot) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .awards b { white-space: nowrap; }
@@ -160,13 +162,30 @@
   .results .v { font-size: 28px; font-weight: 700; }
   .results .v.hi { color: var(--flare); }
 
-  .pad { display: none; gap: 10px; }
-  .pad button { flex: 1; font-weight: 700; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; padding: 16px 8px; border-radius: 10px; border: 0; background: #1d3352; color: var(--snow); touch-action: none; user-select: none; -webkit-user-select: none; }
-  .pad button.jump { background: var(--flare); color: #fff; flex: 1.3; }
-  .pad button.on { filter: brightness(1.35); }
-  @media (pointer: coarse) { .pad { display: flex; } .hide-touch { display: none; } }
+  /* comandi touch: Salta tondo a sinistra, rotellina a destra (compare dove si appoggia il dito) */
+  .tjump, .stick { display: none; }
+  .tjump { position: absolute; left: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: 104px; height: 104px; border-radius: 50%; border: 3px solid rgba(255,255,255,.9); background: var(--flare); color: #fff; font-family: var(--display); font-size: 15px; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 -5px 0 rgba(0,0,0,.18); touch-action: none; user-select: none; -webkit-user-select: none; z-index: 3; padding: 0; }
+  .tjump.on { transform: scale(.94); filter: brightness(1.15); }
+  .stick { position: absolute; right: 0; bottom: 0; width: 64%; height: 50%; touch-action: none; user-select: none; -webkit-user-select: none; z-index: 2; }
+  .stick .base { position: absolute; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; background: radial-gradient(circle, rgba(12,24,40,.22) 0 58%, rgba(12,24,40,.38) 59% 100%); border: 2px solid rgba(255,255,255,.75); box-shadow: 0 4px 14px rgba(0,0,0,.25); opacity: .55; transition: opacity .15s ease; pointer-events: none; }
+  .stick.on .base { opacity: 1; transition: none; }
+  .stick .knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; background: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.35), inset 0 -4px 0 rgba(19,35,58,.15); }
+  .stick .ar { position: absolute; color: #fff; font-size: 15px; line-height: 1; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .stick .ar.u { left: 50%; top: 6px; transform: translateX(-50%); }
+  .stick .ar.d { left: 50%; bottom: 6px; transform: translateX(-50%); }
+  .stick .ar.l { left: 7px; top: 50%; transform: translateY(-50%); }
+  .stick .ar.r { right: 7px; top: 50%; transform: translateY(-50%); }
+  .stage.playing .tjump, .stage.playing .stick { display: block; }
+  @media (pointer: fine) { .stage.playing .tjump, .stage.playing .stick { display: none; } }
+  @media (pointer: coarse) {
+    .hide-touch { display: none; }
+    .items { bottom: calc(132px + env(safe-area-inset-bottom, 0px)); left: 14px; flex-direction: column; align-items: flex-start; }
+    .sound { right: auto; left: 92px; top: 92px; bottom: auto; }
+    .voice-now { top: auto; bottom: 52%; }
+  }
   @media (pointer: fine) { .hide-mouse { display: none; } }
-  @media (max-width: 700px) { .live { top: 64px; font-size: 14px; min-width: 150px; } .voice { width: 64px; height: 64px; } }
+  @media (max-width: 700px) { .live { top: 64px; font-size: 14px; min-width: 150px; } .voice { width: 64px; height: 64px; top: 64px; } }
+  @media (pointer: coarse) and (max-width: 700px) { .sound { left: 84px; top: 82px; } .toast { font-size: 22px; } }
   @media (max-width: 480px) { .stat .v { font-size: 20px; } .hud { gap: 4px 12px; padding: 8px 10px 14px; } .stat.opt { display: none; } .code { font-size: 32px; } }
 </style>
 </head>
@@ -182,6 +201,10 @@
     <div class="items" id="items" hidden>
       <button type="button" id="btnBanana" data-i18n-title="bananaTitle"><b>🍌</b><span>50</span><small class="hide-touch">B</small></button>
       <button type="button" id="btnBomb" data-i18n-title="bombTitle"><b>💣</b><span>150</span><small class="hide-touch">N</small></button>
+    </div>
+    <button type="button" class="tjump" id="tJump" data-i18n="jump"></button>
+    <div class="stick" id="stick" data-i18n-aria="stickAria" aria-label="Rotellina" role="application">
+      <div class="base" id="stickBase"><span class="ar u">▲</span><span class="ar d">▼</span><span class="ar l">◀</span><span class="ar r">▶</span><div class="knob" id="stickKnob"></div></div>
     </div>
     <div class="live" id="live" hidden><h4 id="liveTitle"></h4><ol id="liveList"></ol></div>
     <div class="voice-now" id="voiceNow" hidden><i></i><span><b></b> <span data-i18n="isTalking"></span></span><button type="button" id="btnMute" data-i18n-title="muteTitle">🔇</button><button type="button" id="btnReport" data-i18n-title="reportTitle">⚠️</button></div>
@@ -268,7 +291,7 @@
             <kbd>M</kbd><span data-i18n="kAudio"></span>
           </div>
           <div class="keys hide-mouse">
-            <kbd>◀ ▶</kbd><span data-i18n="tSteer"></span>
+            <kbd data-i18n="tStickKey"></kbd><span data-i18n="tStick"></span>
             <kbd data-i18n="jump"></kbd><span data-i18n="tJump"></span>
             <kbd>🎤</kbd><span data-i18n="kVoice"></span>
             <kbd>🍌 💣</kbd><span data-i18n="tItems"></span>
@@ -367,11 +390,6 @@
     <span class="err" id="glErr" hidden>Questo browser non supporta la grafica 3D (WebGL) · This browser does not support 3D graphics (WebGL). Chrome, Edge, Firefox.</span>
   </div>
 
-  <div class="pad">
-    <button id="tLeft" data-i18n-aria="turnLeft" aria-label="◀">◀</button>
-    <button id="tJump" class="jump" data-i18n="jump"></button>
-    <button id="tRight" data-i18n-aria="turnRight" aria-label="▶">▶</button>
-  </div>
 </div>
 
 <script src="i18n.js"></script>

@@ -1681,7 +1681,7 @@
 
   // ---------- riders (local and remote share the same model) ----------
   const RM = c => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.7, metalness: 0 });
-  const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), helmet: RM('#eef2f6'), boot: RM('#1b1b1b'), skin: RM('#dfae8c'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
+  const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), helmet: RM('#eef2f6'), helmetPad: RM('#2b2f36'), helmetIn: Object.assign(RM('#eef2f6'), { side: THREE.DoubleSide }), boot: RM('#1b1b1b'), skin: RM('#dfae8c'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
   const SKATE = { deck: RM('#b9783f'), grip: RM('#1c1c1e'), truck: new THREE.MeshStandardMaterial({ color: lin('#9aa3ad'), roughness: 0.35, metalness: 0.7 }), wheel: RM('#f1e4c4'), wheelGeo: new THREE.CylinderGeometry(0.028, 0.028, 0.032, 14) };
   const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
   const PIVOT = new THREE.Vector3();
@@ -1709,18 +1709,39 @@
   }
   const RIDER_GEO = {
     // busto: dai fianchi (y = 0) al collo, schiacciato davanti-dietro e largo di spalle
-    torso: lathe([[0.001, -0.02], [0.13, 0], [0.142, 0.07], [0.132, 0.17], [0.148, 0.28], [0.165, 0.38], [0.162, 0.45], [0.13, 0.51], [0.07, 0.555], [0.001, 0.57]], 28).scale(0.72, 1, 1.22),
-    band: lathe([[0.137, -0.005], [0.146, 0.02], [0.146, 0.06], [0.137, 0.075]], 28).scale(0.74, 1, 1.24),
+    // giacca da snowboard: scende sotto la vita e copre l'attacco del bacino
+    torso: lathe([[0.001, 0.02], [0.13, -0.06], [0.15, -0.1], [0.152, -0.02], [0.144, 0.07], [0.136, 0.17], [0.15, 0.28], [0.168, 0.38], [0.166, 0.45], [0.135, 0.51], [0.075, 0.555], [0.001, 0.57]], 28).scale(0.74, 1, 1.22),
+    band: lathe([[0.15, -0.105], [0.158, -0.09], [0.158, -0.055], [0.15, -0.045]], 28).scale(0.76, 1, 1.24),
+    hood: new THREE.SphereGeometry(0.1, 16, 10).scale(0.55, 0.62, 1.15),
+    zip: new THREE.BoxGeometry(0.008, 0.5, 0.014),
+    // bacino con i pantaloni larghi: unisce le due cosce, niente fessura da manichino
+    pelvis: new THREE.SphereGeometry(0.15, 22, 14).scale(0.78, 0.62, 1.14),
     collar: new THREE.TorusGeometry(0.062, 0.026, 8, 20).rotateX(Math.PI / 2),
     // testa a uovo, casco, occhiali avvolgenti con elastico
-    head: lathe([[0.001, -0.125], [0.055, -0.118], [0.088, -0.085], [0.104, -0.025], [0.108, 0.035], [0.098, 0.095], [0.068, 0.135], [0.001, 0.15]], 22).scale(1.1, 1, 0.95),
-    helmet: new THREE.SphereGeometry(0.126, 26, 14, 0, TAU, 0, Math.PI * 0.56).scale(1.14, 0.98, 1.02),
-    goggle: new THREE.CylinderGeometry(0.122, 0.122, 0.058, 22, 1, true, Math.PI / 2 - 0.95, 1.9).scale(1.08, 1, 0.98),
-    strap: new THREE.TorusGeometry(0.119, 0.011, 6, 30).rotateX(Math.PI / 2).scale(1.06, 1, 0.97),
-    neck: new THREE.CylinderGeometry(0.045, 0.05, 0.12, 12),
+    head: lathe([[0.001, -0.125], [0.05, -0.12], [0.08, -0.095], [0.098, -0.04], [0.104, 0.02], [0.1, 0.08], [0.074, 0.125], [0.001, 0.142]], 24).scale(1.08, 1, 0.9),
+    // casco che copre anche le orecchie, con i paraorecchie e la visiera sul retro
+    // calotta intera sopra, e sotto un guscio aperto davanti per il viso (il davanti della testa è +x)
+    helmet: new THREE.SphereGeometry(0.146, 28, 10, 0, TAU, 0, Math.PI * 0.36).scale(1.1, 0.98, 1.0),
+    helmetSide: new THREE.SphereGeometry(0.146, 28, 12, Math.PI + 0.95, TAU - 1.9, Math.PI * 0.34, Math.PI * 0.3).scale(1.1, 0.98, 1.0),
+    earpad: new THREE.SphereGeometry(0.05, 14, 10).scale(1, 1.15, 0.45),
+    goggle: new THREE.CylinderGeometry(0.128, 0.128, 0.064, 26, 1, false, Math.PI / 2 - 1.0, 2.0).scale(1.1, 1, 0.98),
+    goggleFrame: new THREE.CylinderGeometry(0.131, 0.131, 0.076, 26, 1, true, Math.PI / 2 - 1.05, 2.1).scale(1.1, 1, 0.98),
+    strap: new THREE.TorusGeometry(0.15, 0.012, 6, 32).rotateX(Math.PI / 2).scale(1.1, 1, 0.99),
+    nose: new THREE.SphereGeometry(0.024, 12, 8).scale(1.1, 1.3, 0.85),
+    // scaldacollo tirato fin sopra il mento
+    gaiter: lathe([[0.058, -0.2], [0.064, -0.14], [0.07, -0.09], [0.074, -0.05], [0.07, -0.03]], 22).scale(1.12, 1, 1.0),
+    neck: new THREE.CylinderGeometry(0.048, 0.054, 0.14, 14),
     joint: r => new THREE.SphereGeometry(r, 14, 10),
     limb: r => new THREE.CylinderGeometry(r, r * 0.86, 1, 14),
-    glove: new THREE.SphereGeometry(0.058, 14, 10).scale(0.95, 0.8, 1.25),
+    // arti modellati (y da -0,5 a 0,5, poi allungati fino alla lunghezza giusta): pantaloni larghi, maniche morbide
+    thigh: lathe([[0.001, -0.5], [0.078, -0.5], [0.083, -0.36], [0.092, -0.08], [0.099, 0.22], [0.097, 0.44], [0.001, 0.5]], 18),
+    shin: lathe([[0.001, -0.5], [0.09, -0.5], [0.086, -0.4], [0.077, -0.12], [0.081, 0.18], [0.08, 0.42], [0.001, 0.5]], 18),
+    uarm: lathe([[0.001, -0.5], [0.066, -0.48], [0.068, -0.22], [0.063, 0.18], [0.058, 0.5], [0.001, 0.5]], 16),
+    farm: lathe([[0.001, -0.5], [0.057, -0.5], [0.056, -0.22], [0.05, 0.22], [0.06, 0.38], [0.062, 0.5], [0.001, 0.5]], 16),
+    // muffola con il pollice
+    glove: new THREE.SphereGeometry(0.06, 16, 12).scale(0.85, 1.25, 0.95),
+    thumb: new THREE.SphereGeometry(0.026, 10, 8).scale(1, 1.5, 1),
+    cuff: new THREE.CylinderGeometry(0.062, 0.058, 0.07, 14),
     // scarponi ovali con la punta arrotondata
     boot: new THREE.CylinderGeometry(0.07, 0.078, 0.13, 16).scale(1.45, 1, 0.95),
     toe: new THREE.SphereGeometry(0.07, 14, 8, 0, TAU, 0, Math.PI / 2).scale(1.45, 0.6, 0.95),
@@ -1832,24 +1853,36 @@
     const limb = (r, mat) => mesh(G.limb(r), mat);
     const joint = (r, mat) => mesh(G.joint(r), mat);
     const L = {
-      thighL: limb(0.088, SHARED.pants), thighR: limb(0.088, SHARED.pants), shinL: limb(0.074, SHARED.pants), shinR: limb(0.074, SHARED.pants),
-      uarmL: limb(0.062, sleeve), uarmR: limb(0.062, sleeve), farmL: limb(0.054, sleeve), farmR: limb(0.054, sleeve)
+      thighL: mesh(G.thigh, SHARED.pants), thighR: mesh(G.thigh, SHARED.pants), shinL: mesh(G.shin, SHARED.pants), shinR: mesh(G.shin, SHARED.pants),
+      uarmL: mesh(G.uarm, sleeve), uarmR: mesh(G.uarm, sleeve), farmL: mesh(G.farm, sleeve), farmR: mesh(G.farm, sleeve)
     };
     const JM = {
-      kneeL: joint(0.078, SHARED.pants), kneeR: joint(0.078, SHARED.pants), hipL: joint(0.09, SHARED.pants), hipR: joint(0.09, SHARED.pants),
-      shL: joint(0.07, sleeve), shR: joint(0.07, sleeve), elL: joint(0.058, sleeve), elR: joint(0.058, sleeve)
+      kneeL: joint(0.085, SHARED.pants), kneeR: joint(0.085, SHARED.pants), hipL: joint(0.098, SHARED.pants), hipR: joint(0.098, SHARED.pants),
+      shL: joint(0.074, sleeve), shR: joint(0.074, sleeve), elL: joint(0.062, sleeve), elR: joint(0.062, sleeve)
     };
+    const pelvis = mesh(G.pelvis, SHARED.pants);
     const torso = mesh(G.torso, jacket);
     mesh(G.band, jacketDark, torso);
     mesh(G.collar, jacketDark, torso).position.y = 0.535;
+    mesh(G.hood, jacketDark, torso).position.set(-0.1, 0.5, 0);           // cappuccio arrotolato sulla schiena
+    mesh(G.zip, SHARED.glove, torso).position.set(0.118, 0.22, 0);        // cerniera davanti
     const headG = new THREE.Group();
     body.add(headG);
-    mesh(G.neck, SHARED.skin, headG).position.y = -0.13;
+    mesh(G.neck, SHARED.skin, headG).position.y = -0.15;
     mesh(G.head, SHARED.skin, headG);
-    mesh(G.helmet, SHARED.helmet, headG).position.set(-0.012, 0.012, 0);
-    mesh(G.strap, SHARED.glove, headG).position.y = 0.018;
-    mesh(G.goggle, SHARED.goggle, headG).position.set(0.004, 0.018, 0);
+    mesh(G.nose, SHARED.skin, headG).position.set(0.112, -0.005, 0);
+    mesh(G.gaiter, jacketDark, headG);
+    mesh(G.helmet, SHARED.helmet, headG).position.set(-0.012, 0.0, 0);
+    mesh(G.helmetSide, SHARED.helmetIn, headG).position.set(-0.012, 0.0, 0);
+    for (const s of [-1, 1]) mesh(G.earpad, SHARED.helmetPad, headG).position.set(-0.02, -0.035, s * 0.14);
+    mesh(G.strap, SHARED.glove, headG).position.y = 0.022;
+    mesh(G.goggleFrame, SHARED.glove, headG).position.set(0.002, 0.024, 0);
+    mesh(G.goggle, SHARED.goggle, headG).position.set(0.006, 0.024, 0);
     const gloveL = mesh(G.glove, SHARED.glove), gloveR = mesh(G.glove, SHARED.glove);
+    for (const [gl, s] of [[gloveL, 1], [gloveR, -1]]) {
+      const th = mesh(G.thumb, SHARED.glove, gl); th.position.set(0.045, 0.01, -s * 0.02); th.rotation.z = -0.5;
+      mesh(G.cuff, SHARED.glove, gl).position.y = -0.055;
+    }
     const J = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => J[k] = new THREE.Vector3());
     function setLimb(m, a, b) {
       tmpV.subVectors(b, a);
@@ -1870,15 +1903,24 @@
       setLimb(L.thighL, J.kneeL, J.hipL); setLimb(L.thighR, J.kneeR, J.hipR);
       const lean = 0.25 + k * 0.35;
       const tilt = -fwd * 0.22;                 // busto inclinato verso il davanti della tavola
+      const open = 0.2;                         // spalle un po' aperte verso il davanti della tavola, come i rider veri
+      pelvis.position.set(hipX + 0.005, hipY - 0.03, fz);
+      pelvis.rotation.set(tilt * 0.5, open * 0.5, -lean * 0.5);
       torso.position.set(hipX, hipY - 0.02, fz);
-      torso.rotation.set(twist * 0.4 + tilt, 0, -lean);
+      torso.rotation.set(twist * 0.4 + tilt, open, -lean);
       const shX = hipX + Math.sin(lean) * 0.5, shY = hipY + Math.cos(lean) * 0.5 * Math.cos(tilt), shZ = fz - Math.sin(tilt) * 0.5;
-      headG.position.set(shX + 0.07, shY + 0.21, shZ);
-      headG.rotation.set(tilt * 0.5, 0, -lean * 0.35);
-      J.shL.set(shX, shY - 0.02, 0.19 + shZ); J.shR.set(shX, shY - 0.02, -0.19 + shZ);
-      const spread = 0.25 + arms * 0.35;
-      J.elL.set(shX + 0.12, shY - 0.2 + arms * 0.12, 0.2 + spread + shZ); J.elR.set(shX + 0.12, shY - 0.2 + arms * 0.12, -0.2 - spread + shZ);
-      J.haL.set(shX + 0.28, shY - 0.38 + arms * 0.25, 0.3 + spread * 1.4 + shZ); J.haR.set(shX + 0.28, shY - 0.38 + arms * 0.25, -0.3 - spread * 1.4 + shZ);
+      // testa girata verso dove si va (il davanti della tavola, -z) e più dritta del busto
+      headG.position.set(shX + 0.06, shY + 0.2, shZ);
+      headG.rotation.set(tilt * 0.4, 0.95 - twist * 0.5, -lean * 0.3);
+      const so = Math.sin(open) * 0.19, co = Math.cos(open) * 0.19;
+      J.shL.set(shX + so, shY - 0.03, co + shZ); J.shR.set(shX - so, shY - 0.03, -co + shZ);
+      // braccio davanti (R, verso il muso della tavola) teso in avanti, braccio dietro (L) morbido vicino al fianco;
+      // con arms = 1 (in aria o in curva stretta) si aprono entrambi per l'equilibrio
+      const a = arms, sR = J.shR, sL = J.shL;
+      J.elR.set(sR.x + 0.1 - a * 0.02, sR.y - 0.21 + a * 0.15, sR.z - 0.13 - a * 0.16);
+      J.haR.set(sR.x + 0.24 - a * 0.06, sR.y - 0.36 + a * 0.33, sR.z - 0.29 - a * 0.27);
+      J.elL.set(sL.x + 0.03 + a * 0.03, sL.y - 0.23 + a * 0.14, sL.z + 0.07 + a * 0.17);
+      J.haL.set(sL.x + 0.14 + a * 0.05, sL.y - 0.44 + a * 0.3, sL.z + 0.08 + a * 0.3);
       if (grab > 0) {   // presa della tavola: mano dietro sulla lamina, gomito piegato
         J.haR.lerp(GRAB_HAND, grab);
         J.elR.lerp(tmpE.set(shX + 0.16, shY - 0.3, -0.24), grab);
@@ -1888,7 +1930,7 @@
       for (const n of ['kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR']) JM[n].position.copy(J[n]);
       gloveL.position.copy(J.haL); gloveR.position.copy(J.haR);
       gloveL.quaternion.copy(L.farmL.quaternion); gloveR.quaternion.copy(L.farmR.quaternion);
-      gloveL.rotateX(Math.PI / 2); gloveR.rotateX(Math.PI / 2);
+      gloveL.translateY(0.04); gloveR.translateY(0.04);
     }
     function setColor(hex, jersey = '') {
       const J = JERSEYS[jersey];
@@ -2260,6 +2302,11 @@
 
   // ---------- input ----------
   const keys = { left: false, right: false, up: false, down: false };
+  // rotellina sul telefono: x da -1 (sinistra) a 1 (destra), y da -1 (su = accelera) a 1 (giù = frena)
+  const stick = { x: 0, y: 0, on: false };
+  const inSteer = () => clamp((keys.right ? 1 : 0) - (keys.left ? 1 : 0) + stick.x, -1, 1);
+  const inFast = () => (keys.down && !keys.up) || stick.y < -0.35;   // posizione raccolta, più veloce
+  const inSlow = () => keys.up || stick.y > 0.35;                    // peso in avanti, frena
   window.addEventListener('keydown', e => {
     if (e.target && e.target.tagName === 'INPUT') { if (e.key === 'Enter' && inCode.value.trim()) joinFromMenu(); return; }
     const k = e.key;
@@ -2285,7 +2332,7 @@
     if (k === 'ArrowUp' || k === 'w' || k === 'W') keys.up = false;
     if (k === 'ArrowDown' || k === 's' || k === 'S') keys.down = false;
   });
-  window.addEventListener('blur', () => { keys.left = keys.right = keys.up = keys.down = false; if (mode === 'solo') togglePause(); });
+  window.addEventListener('blur', () => { keys.left = keys.right = keys.up = keys.down = false; stick.x = stick.y = 0; if (mode === 'solo') togglePause(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'solo') togglePause(); });
   function holdButton(el, key) {
     const on = e => { e.preventDefault(); keys[key] = true; el.classList.add('on'); };
@@ -2294,11 +2341,53 @@
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, off));
     el.addEventListener('contextmenu', e => e.preventDefault());
   }
-  holdButton($('tLeft'), 'left');
-  holdButton($('tRight'), 'right');
   // sul telefono: Salta a terra salta, tenuto premuto in aria fa il salto mortale all'indietro
-  $('tJump').addEventListener('pointerdown', e => { e.preventDefault(); if (P && P.air) keys.down = true; else jump(); });
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('tJump').addEventListener(ev, () => { keys.down = false; }));
+  const tJump = $('tJump');
+  tJump.addEventListener('pointerdown', e => { e.preventDefault(); tJump.classList.add('on'); if (P && P.air) keys.down = true; else jump(); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => tJump.addEventListener(ev, () => { keys.down = false; tJump.classList.remove('on'); }));
+  tJump.addEventListener('contextmenu', e => e.preventDefault());
+  // rotellina: compare dove si appoggia il dito; spostandolo a destra/sinistra si curva (più lo sposti, più curvi),
+  // in su si accelera, in giù si frena; in aria destra/sinistra = avvitamento, su/giù = salto mortale
+  const stickEl = $('stick'), stickBase = $('stickBase'), stickKnob = $('stickKnob');
+  const STICK_R = 54;
+  let stickId = null, stickCx = 0, stickCy = 0;
+  function stickRest() {
+    const r = stickEl.getBoundingClientRect();
+    stickBase.style.left = (r.width * 0.56) + 'px'; stickBase.style.top = (r.height * 0.58) + 'px';
+    stickKnob.style.transform = '';
+  }
+  function stickMove(e) {
+    const dx = e.clientX - stickCx, dy = e.clientY - stickCy;
+    const d = Math.hypot(dx, dy), k = d > STICK_R ? STICK_R / d : 1;
+    const kx = dx * k, ky = dy * k;
+    stickKnob.style.transform = 'translate(' + kx + 'px,' + ky + 'px)';
+    const dead = (v) => Math.abs(v) < 0.14 ? 0 : (v - Math.sign(v) * 0.14) / 0.86;
+    stick.x = dead(kx / STICK_R); stick.y = dead(ky / STICK_R);
+  }
+  stickEl.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (stickId !== null) return;
+    stickId = e.pointerId;
+    try { stickEl.setPointerCapture(e.pointerId); } catch (err) {}
+    const r = stickEl.getBoundingClientRect();
+    // il centro della rotellina va sotto il dito, senza uscire dalla zona
+    const cx = clamp(e.clientX - r.left, 66, r.width - 66), cy = clamp(e.clientY - r.top, 66, r.height - 66);
+    stickCx = r.left + cx; stickCy = r.top + cy;
+    stickBase.style.left = cx + 'px'; stickBase.style.top = cy + 'px';
+    stick.on = true; stickEl.classList.add('on');
+    stickMove(e);
+    initAudio();
+  });
+  stickEl.addEventListener('pointermove', e => { if (e.pointerId === stickId) stickMove(e); });
+  const stickEnd = e => {
+    if (e.pointerId !== stickId) return;
+    stickId = null; stick.x = stick.y = 0; stick.on = false;
+    stickEl.classList.remove('on'); stickRest();
+  };
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => stickEl.addEventListener(ev, stickEnd));
+  stickEl.addEventListener('contextmenu', e => e.preventDefault());
+  window.addEventListener('resize', stickRest);
+  stickRest();
 
   // ---------- overlays & HUD ----------
   const OVERLAYS = ['menu', 'lobby', 'raceResults', 'over', 'pause'];
@@ -2404,7 +2493,7 @@
   // ---------- update ----------
   function update(dt, auto) {
     t += dt;
-    let steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    let steer = inSteer();
     if (auto) steer = clamp((center(P.z - 14) - P.x) * 0.25 + Math.sin(t * 0.8) * 0.9, -1, 1);
     const frozen = mode === 'countdown';
     const braking = mode === 'finished';
@@ -2428,14 +2517,14 @@
       const drop = hgt(P.x, P.z) - hgt(ax, az);
       let target = (auto ? 15 : vmax) * Math.pow(Math.cos(P.ang), 1.6) * (1 + clamp(drop * 0.35, -0.2, 0.2));
       // freccia giù: posizione raccolta, più veloce; freccia su: peso in avanti, frena
-      const tuck = !auto && !braking && keys.down && !keys.up, brake = !auto && !braking && keys.up;
+      const tuck = !auto && !braking && inFast() && !inSlow(), brake = !auto && !braking && inSlow();
       if (tuck) target *= 1.12;
       if (brake) target *= 0.5;
       if (braking) target = 0;
       P.speed += (target - P.speed) * (target > P.speed ? (tuck ? 0.85 : 0.65) : (braking ? 0.9 : (brake ? 2.0 : 1.3))) * dt;
       if (Math.abs(P.ang) > 0.6 && Math.random() < 0.8) spray(P.x, 0, P.z, 2, 1.6, 2.4, Math.cos(P.ang) * Math.sign(P.ang) * 3);
     } else {
-      const flipIn = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+      const flipIn = (keys.down || stick.y < -0.35 ? 1 : 0) - (keys.up || stick.y > 0.35 ? 1 : 0);
       P.airT += dt;
       P.spin += steer * 9 * dt;
       P.flip += flipIn * 8.5 * dt;
@@ -2965,7 +3054,11 @@
   const fmtWait = ms => { const s2 = Math.ceil(ms / 1000); return Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0'); };
   function updateVoiceBtn() {
     const on = online();
-    btnVoice.hidden = !on;
+    // si vede sempre mentre si gioca; in allenamento è spento e spiega che i vocali sono per le sfide
+    const solo = !on && (mode === 'solo' || mode === 'pause');
+    btnVoice.hidden = !on && !solo;
+    btnVoice.classList.toggle('solo', solo);
+    if (solo) { btnVoice.disabled = false; voiceLbl.textContent = tr('voiceTalk'); return; }
     if (!on) return;
     const wait = voice.next - serverNow();
     btnVoice.classList.toggle('rec', voice.recording);
@@ -3006,7 +3099,7 @@
     return '';
   }
   async function voiceButton() {
-    if (!online()) return;
+    if (!online()) { if (mode === 'solo' || mode === 'pause') say(tr('voiceOnlyChallenge'), '#13233a'); return; }
     if (voice.recording) { stopVoice(); return; }
     const wait = voice.next - serverNow();
     if (wait > 0) { say(tr('voiceWait', { t: fmtWait(wait) }), '#13233a'); return; }
@@ -3296,14 +3389,14 @@
   const vignette = $('vignette');
   let airCam = 0, tuckS = 0, brakeS = 0;
   function place(dt) {
-    const steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    const steer = inSteer();
     const autoLean = mode === 'menu' || mode === 'lobby' || mode === 'results';
     lean += ((P.air || P.crash > 0 || mode === 'countdown' ? 0 : (autoLean ? Math.sin(t * 0.8) * 0.8 : steer)) - lean) * Math.min(1, 7 * dt);
     armsUp += ((P.air ? 1 : Math.abs(lean) * 0.5) - armsUp) * Math.min(1, 6 * dt);
     const crouch = clamp(0.28 + Math.abs(lean) * 0.35 + squash * 0.5 + (P.air ? 0.25 : 0), 0, 1);
     const onGround = !P.air && P.crash <= 0 && (mode === 'solo' || mode === 'race');
-    tuckS += ((onGround && keys.down && !keys.up ? 1 : 0) - tuckS) * Math.min(1, 8 * dt);
-    brakeS += ((onGround && keys.up ? 1 : 0) - brakeS) * Math.min(1, 8 * dt);
+    tuckS += ((onGround && inFast() && !inSlow() ? 1 : 0) - tuckS) * Math.min(1, 8 * dt);
+    brakeS += ((onGround && inSlow() ? 1 : 0) - brakeS) * Math.min(1, 8 * dt);
     me.pose(Math.min(1, crouch + P.grab * 0.45 + tuckS * 0.55), armsUp * (1 - tuckS * 0.6), P.air ? Math.sin(P.spin) * 0.3 : lean * 0.3, P.grab, brakeS);
 
     const gH = hgt(P.x, P.z);
@@ -3412,7 +3505,7 @@
   window.addEventListener('resize', resize);
   if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
 
-  let last = performance.now();
+  let last = performance.now(), wasPlaying = null;
   function frame(now) {
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
@@ -3420,6 +3513,8 @@
     else if (racing()) { raceClock(); update(dt, false); updateRemotes(dt); hud(dt); }
     else if (mode === 'menu' || mode === 'lobby' || mode === 'results') update(dt, true);
     else if (mode === 'over') { updateSpray(dt); updateFlakes(dt, P.x, P.z, 0); }
+    const playing = mode === 'solo' || racing();
+    if (playing !== wasPlaying) { wasPlaying = playing; stage.classList.toggle('playing', playing); stick.x = stick.y = 0; stickRest(); }
     place(mode === 'pause' ? 0 : dt);
     renderer.render(scene, camera);
     requestAnimationFrame(frame);

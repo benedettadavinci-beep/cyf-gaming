@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.8.3 · aggiornato al 24 ottobre 2026, ore 22:00"
+subtitle: "Versione 0.9.0 · aggiornato al 24 ottobre 2026, ore 23:45"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -66,6 +66,9 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-207 | Freccia su: il rider si sposta un po' in avanti e la velocità diminuisce | 24/10/2026 | Fatto | Peso in avanti e frenata; a terra non fa più saltare (si salta con Spazio) |
 | R-208 | Accelerazione più alta del 30%: oggi si arriva alla velocità massima troppo lentamente | 24/10/2026 | Fatto | |
 | R-209 | Maglia dell'omino a scelta con un menu a tendina: la maglia della squadra di calcio della propria città o di un'altra città | 24/10/2026 | Fatto | 8 maglie con i colori delle città (Napoli, Roma, Milano ×2, Torino ×2, Palermo, Bologna); gli avversari la vedono. Solo colori, senza nomi o stemmi delle squadre, che sono marchi registrati |
+| R-210 | Sul telefono una rotellina al posto delle freccette: dove si appoggia il dito si sposta a destra o a sinistra per curvare, in alto o in basso per accelerare o frenare | 24/10/2026 | Fatto | Zona in basso a destra; la rotellina compare sotto il dito. Più la sposti di lato, più curvi. ▲ accelera (come freccia giù sulla tastiera), ▼ frena; in aria ◀ ▶ avvitamento, ▲ ▼ salto mortale. Provato: stessa velocità della tastiera (21 m/s accelerando, 10 m/s frenando) |
+| R-211 | Sul telefono il pulsante Salta a sinistra | 24/10/2026 | Fatto | Pulsante tondo arancione in basso a sinistra; tenuto premuto in aria fa il backflip. Banane e bombe sopra il Salta |
+| R-212 | Simbolo del microfono in alto per mandare i vocali agli altri giocatori durante il gioco | 24/10/2026 | Fatto | In alto a sinistra, sempre visibile mentre si gioca. In sfida e online è arancione e manda il vocale; in allenamento è grigio e, toccato, spiega che i vocali sono per le sfide |
 
 # 4. Scenari e città
 
@@ -85,6 +88,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-401 | Eliminare le schermate di un solo colore, come dei muri | 24/10/2026 | Fatto | Lo sfondo di Napoli restava fermo e dopo ~400 m la telecamera ci entrava dentro |
 | R-402 | Migliorare un po' la qualità generale delle immagini | 24/10/2026 | Fatto | Texture più definite, luce più morbida, modelli più arrotondati |
 | R-403 | Omino con un corpo più naturale: niente cubi, testa non a sfera, busto non a parallelepipedo | 24/10/2026 | Fatto | Busto e testa modellati, spalle, gomiti e ginocchia arrotondati, scarponi e tavole con bordi morbidi |
+| R-404 | Omino più umano | 24/10/2026 | Fatto | Bacino e pantaloni larghi (niente fessura da manichino), gambe e braccia modellate, giacca lunga con cappuccio e cerniera, casco che copre le orecchie e lascia il viso scoperto, occhiali, naso, scaldacollo, muffole con il pollice; testa girata verso dove si va, braccio davanti teso e braccio dietro morbido come i rider veri |
 
 # 6. Documentazione
 
@@ -121,6 +125,8 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-17 | Le posizioni si scrivono come si usa in ogni lingua: 1° · 1st · 1er · 1.º (prima c'era sempre "1°", in inglese "I finished 1° in…") | 24/10/2026 | Da confermare |
 | S-18 | Nomi delle maglie tradotti con i colori (es. "Naples · sky blue", "Rome · jaune et rouge"); in italiano restano i soprannomi (azzurra, giallorossa…) | 24/10/2026 | Da confermare |
 | S-19 | Revisione delle traduzioni: in francese "Feu rouge !" (prima "Feu !", cioè "Fuoco!"), "Le plus de figures" (prima "Plus de figures", che si legge anche "basta figure"), "Borne d'incendie", "double appui"; in inglese "Run complete" (prima "Run over", che vuol dire anche "investito"); in spagnolo "Reanudar" | 24/10/2026 | Da confermare |
+| S-20 | Rotellina: ▲ (dito in alto) accelera e ▼ frena, come un joystick; sulla tastiera resta freccia giù = accelera, freccia su = frena (R-206, R-207) | 24/10/2026 | Da confermare |
+| S-21 | Sul telefono l'interruttore dell'audio è in alto accanto al microfono, i messaggi del vocale ("sta parlando…") compaiono a metà schermo; su PC il microfono è in alto a sinistra e i comandi touch non si vedono | 24/10/2026 | Da confermare |
 
 # 8. Idee per il futuro (da confermare)
 
@@ -148,7 +154,7 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | D-01 | Provare la v0.8.0 dai telefoni con qualche amico (microfono su iPhone, comandi touch, fluidità) e scrivere a Claude i numeri dei requisiti che vanno bene ("R-303 controllato") | Luigi |
 | D-02 | Leggere il rapporto del primo controllo notturno (parte stasera alle 21:33) | Luigi |
 | D-03 | Comprare il dominio (es. cyfgaming.it, ~10-15 €/anno) e collegarlo: Cloudflare → Workers & Pages → cyf-gaming → Domains. Claude guida se serve | Luigi, ~10 min |
-| D-04 | Decidere le scelte S-01…S-19: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
+| D-04 | Decidere le scelte S-01…S-21: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
 | D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione | Claude |
 | D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
 
@@ -165,3 +171,4 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | 0.8.1 | 24/10/2026 | Home in quattro lingue con scelta IT/EN/FR/ES, lingua condivisa tra home e gioco, link ?lang=, voce della maglia non più tagliata sul telefono |
 | 0.8.2 | 24/10/2026 | Debug sul sito online: pulsante di partenza in francese e spagnolo, posizioni nella lingua giusta anche nel risultato condiviso, maglie tradotte, revisione delle traduzioni, schermata dei risultati sul telefono (pulsanti non più tagliati, nomi leggibili accanto a "non arrivato", premi su una riga) |
 | 0.8.3 | 24/10/2026 | Controllo notturno: descrizioni rimaste alla versione dei 2.000 m aggiornate (anteprima dei link condivisi di Pista Nera, che diceva ancora "2.000 metri" e "Napoli e Roma", e README con regole e limiti attuali); nessun baco trovato nel codice: sintassi, chiavi delle 4 lingue, server locale, 13 scenari e una gara a due giocatori provati e a posto |
+| 0.9.0 | 24/10/2026 | Rotellina sul telefono (curva, accelera, frena), Salta a sinistra, microfono in alto sempre visibile, omino più umano, messaggi a schermo che vanno a capo, riga dei risultati più compatta |
