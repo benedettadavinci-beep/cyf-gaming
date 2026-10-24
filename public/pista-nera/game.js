@@ -730,7 +730,7 @@
 
   // ---------- riders (local and remote share the same model) ----------
   const RM = c => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.7, metalness: 0 });
-  const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), helmet: RM('#eef2f6'), boot: RM('#1b1b1b'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
+  const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), helmet: RM('#eef2f6'), boot: RM('#1b1b1b'), skin: RM('#dfae8c'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
   const SKATE = { deck: RM('#b9783f'), grip: RM('#1c1c1e'), truck: new THREE.MeshStandardMaterial({ color: lin('#9aa3ad'), roughness: 0.35, metalness: 0.7 }), wheel: RM('#f1e4c4'), wheelGeo: new THREE.CylinderGeometry(0.028, 0.028, 0.032, 14) };
   const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
   const PIVOT = new THREE.Vector3();
@@ -740,66 +740,120 @@
     PIVOT.set(0, 0.6, 0).applyEuler(b.rotation);
     b.position.set(-PIVOT.x, 0.6 - PIVOT.y, -PIVOT.z);
   }
-  // ali stampate sulla schiena della giacca (stesso disegno per tutti i rider)
-  const WINGS = (() => {
-    const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-    const g = c.getContext('2d');
+  // ---------- modello del rider: forme arrotondate (niente cubi, testa e busto modellati) ----------
+  const lathe = (pts, seg = 24) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg);
+  // lastra con i bordi arrotondati (tavole, deck): w = larghezza (x), l = lunghezza (z), h = spessore (y)
+  function roundedSlab(w, l, r, h) {
+    const s = new THREE.Shape(), x0 = -w / 2, y0 = -l / 2;
+    s.moveTo(x0 + r, y0);
+    s.lineTo(x0 + w - r, y0); s.quadraticCurveTo(x0 + w, y0, x0 + w, y0 + r);
+    s.lineTo(x0 + w, y0 + l - r); s.quadraticCurveTo(x0 + w, y0 + l, x0 + w - r, y0 + l);
+    s.lineTo(x0 + r, y0 + l); s.quadraticCurveTo(x0, y0 + l, x0, y0 + l - r);
+    s.lineTo(x0, y0 + r); s.quadraticCurveTo(x0, y0, x0 + r, y0);
+    const bev = Math.min(h * 0.4, 0.008);
+    const g = new THREE.ExtrudeGeometry(s, { depth: h - 2 * bev, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 2, curveSegments: 10 });
+    g.translate(0, 0, -(h - 2 * bev) / 2);
+    g.rotateX(-Math.PI / 2);
+    return g;
+  }
+  const RIDER_GEO = {
+    // busto: dai fianchi (y = 0) al collo, schiacciato davanti-dietro e largo di spalle
+    torso: lathe([[0.001, -0.02], [0.13, 0], [0.142, 0.07], [0.132, 0.17], [0.148, 0.28], [0.165, 0.38], [0.162, 0.45], [0.13, 0.51], [0.07, 0.555], [0.001, 0.57]], 28).scale(0.72, 1, 1.22),
+    band: lathe([[0.137, -0.005], [0.146, 0.02], [0.146, 0.06], [0.137, 0.075]], 28).scale(0.74, 1, 1.24),
+    collar: new THREE.TorusGeometry(0.062, 0.026, 8, 20).rotateX(Math.PI / 2),
+    // testa a uovo, casco, occhiali avvolgenti con elastico
+    head: lathe([[0.001, -0.125], [0.055, -0.118], [0.088, -0.085], [0.104, -0.025], [0.108, 0.035], [0.098, 0.095], [0.068, 0.135], [0.001, 0.15]], 22).scale(1.1, 1, 0.95),
+    helmet: new THREE.SphereGeometry(0.126, 26, 14, 0, TAU, 0, Math.PI * 0.56).scale(1.14, 0.98, 1.02),
+    goggle: new THREE.CylinderGeometry(0.122, 0.122, 0.058, 22, 1, true, Math.PI / 2 - 0.95, 1.9).scale(1.08, 1, 0.98),
+    strap: new THREE.TorusGeometry(0.119, 0.011, 6, 30).rotateX(Math.PI / 2).scale(1.06, 1, 0.97),
+    neck: new THREE.CylinderGeometry(0.045, 0.05, 0.12, 12),
+    joint: r => new THREE.SphereGeometry(r, 14, 10),
+    limb: r => new THREE.CylinderGeometry(r, r * 0.86, 1, 14),
+    glove: new THREE.SphereGeometry(0.058, 14, 10).scale(0.95, 0.8, 1.25),
+    // scarponi ovali con la punta arrotondata
+    boot: new THREE.CylinderGeometry(0.07, 0.078, 0.13, 16).scale(1.45, 1, 0.95),
+    toe: new THREE.SphereGeometry(0.07, 14, 8, 0, TAU, 0, Math.PI / 2).scale(1.45, 0.6, 0.95),
+    snowboard: roundedSlab(0.3, 1.5, 0.15, 0.03),
+    stripe: roundedSlab(0.05, 1.1, 0.025, 0.006),
+    binding: new THREE.CylinderGeometry(0.11, 0.11, 0.035, 18, 1, true, -Math.PI / 2, Math.PI).scale(1, 1, 0.75),
+    deck: roundedSlab(0.21, 0.56, 0.02, 0.018),
+    tail: roundedSlab(0.21, 0.17, 0.1, 0.018),
+    grip: roundedSlab(0.2, 0.55, 0.02, 0.004),
+    hanger: new THREE.CylinderGeometry(0.012, 0.012, 0.17, 10).rotateZ(Math.PI / 2),
+    baseplate: new THREE.CylinderGeometry(0.03, 0.035, 0.03, 12)
+  };
+  // la giacca è una texture per colore, con le ali stampate sul fianco visto dalla telecamera e sulla schiena
+  const jacketTex = new Map();
+  // il disegno (512 x 256) viene stirato in w x h pixel della texture: la superficie del busto è ovale
+  function drawWings(g, cx, cy, w, h) {
+    g.save(); g.translate(cx, cy); g.scale(w / 512, h / 256); g.translate(-256, -128);
     g.lineJoin = 'round';
     for (const s of [-1, 1]) {
-      g.save();
-      g.translate(256, 96);
-      g.scale(s, 1);
-      // piume: dalla più lunga (in alto) alla più corta (in basso)
+      g.save(); g.translate(256, 96); g.scale(s, 1);
       for (let i = 4; i >= 0; i--) {
         const len = 205 - i * 30, y = i * 24, tilt = 0.10 + i * 0.07;
-        g.save();
-        g.translate(18, y);
-        g.rotate(tilt);
-        g.beginPath();
-        g.moveTo(0, -14);
+        g.save(); g.translate(18, y); g.rotate(tilt);
+        g.beginPath(); g.moveTo(0, -14);
         g.quadraticCurveTo(len * 0.55, -34, len, -8);
         g.quadraticCurveTo(len * 0.6, 26, 0, 16);
         g.closePath();
-        g.fillStyle = '#ffffff'; g.fill();
-        g.lineWidth = 7; g.strokeStyle = '#13233a'; g.stroke();
+        g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#13233a'; g.stroke();
         g.restore();
       }
       g.restore();
     }
     g.beginPath(); g.arc(256, 120, 26, 0, TAU);
     g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#13233a'; g.stroke();
+    g.restore();
+  }
+  function jacketTexture(hex) {
+    if (jacketTex.has(hex)) return jacketTex.get(hex);
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+    const g = c.getContext('2d');
+    g.fillStyle = hex; g.fillRect(0, 0, 1024, 512);
+    // cuciture e pieghe leggere
+    g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 300, 1024, 6);
+    g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(0, 306, 1024, 4);
+    g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(250, 0, 5, 512); g.fillRect(762, 0, 5, 512);
+    // u = 0 è il fianco +z (telecamera), u = 0,75 la schiena (-x); v cresce verso il collo
+    for (const u of [0, 1]) drawWings(g, u * 1024, 512 - 0.52 * 512, 355, 76);
+    drawWings(g, 0.75 * 1024, 512 - 0.55 * 512, 280, 100);
     const tex = new THREE.CanvasTexture(c);
     tex.encoding = THREE.sRGBEncoding;
     tex.anisotropy = 4;
-    return {
-      geo: new THREE.PlaneGeometry(0.42, 0.21),
-      mat: new THREE.MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.3, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -2 })
-    };
-  })();
+    jacketTex.set(hex, tex);
+    return tex;
+  }
   function makeRider(jacketHex) {
     const group = new THREE.Group();
     group.rotation.order = 'YXZ';
     const body = new THREE.Group();
     group.add(body);
-    const jacket = RM(jacketHex), jacketDark = RM(jacketHex);
+    const jacket = new THREE.MeshStandardMaterial({ map: jacketTexture(jacketHex), roughness: 0.75, metalness: 0 });
+    const sleeve = RM(jacketHex), jacketDark = RM(jacketHex);
     jacketDark.color.multiplyScalar(0.7);
     const mesh = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; (parent || body).add(m); return m; };
+    const G = RIDER_GEO;
     // snowboard (neve) e skateboard con le rotelle (città senza neve): se ne vede uno alla volta
     const snowG = new THREE.Group(), skateG = new THREE.Group();
     body.add(snowG, skateG);
-    mesh(new THREE.BoxGeometry(0.3, 0.035, 1.3), SHARED.board, snowG).position.y = 0.05;
+    mesh(G.snowboard, SHARED.board, snowG).position.y = 0.05;
+    mesh(G.stripe, SHARED.stripe, snowG).position.y = 0.067;
     for (const s of [-1, 1]) {
-      const tip = mesh(new THREE.BoxGeometry(0.3, 0.035, 0.22), SHARED.board, snowG);
-      tip.position.set(0, 0.08, s * 0.74); tip.rotation.x = s * 0.35;
-      mesh(new THREE.BoxGeometry(0.2, 0.12, 0.14), SHARED.boot).position.set(0.02, 0.13, s * 0.26);
+      const bind = mesh(G.binding, SHARED.boot, snowG);
+      bind.position.set(-0.01, 0.12, s * 0.26);
+      bind.rotation.y = Math.PI;
+      const boot = mesh(G.boot, SHARED.boot);
+      boot.position.set(0.02, 0.135, s * 0.26);
+      mesh(G.toe, SHARED.boot).position.set(0.02, 0.2, s * 0.26);
     }
-    mesh(new THREE.BoxGeometry(0.06, 0.038, 1.1), SHARED.stripe, snowG).position.y = 0.055;
-    mesh(new THREE.BoxGeometry(0.22, 0.02, 0.62), SKATE.deck, skateG).position.y = 0.056;
-    mesh(new THREE.BoxGeometry(0.215, 0.005, 0.6), SKATE.grip, skateG).position.y = 0.068;
+    mesh(G.deck, SKATE.deck, skateG).position.y = 0.056;
+    mesh(G.grip, SKATE.grip, skateG).position.y = 0.068;
     for (const s of [-1, 1]) {
-      const tail = mesh(new THREE.BoxGeometry(0.22, 0.02, 0.15), SKATE.deck, skateG);
-      tail.position.set(0, 0.075, s * 0.37); tail.rotation.x = -s * 0.38;
-      mesh(new THREE.BoxGeometry(0.15, 0.028, 0.05), SKATE.truck, skateG).position.set(0, 0.034, s * 0.2);
+      const tail = mesh(G.tail, SKATE.deck, skateG);
+      tail.position.set(0, 0.072, s * 0.34); tail.rotation.x = -s * 0.38;
+      mesh(G.baseplate, SKATE.truck, skateG).position.set(0, 0.04, s * 0.2);
+      mesh(G.hanger, SKATE.truck, skateG).position.set(0, 0.028, s * 0.2);
       for (const w of [-1, 1]) {
         const wheel = mesh(SKATE.wheelGeo, SKATE.wheel, skateG);
         wheel.position.set(w * 0.095, 0.028, s * 0.2);
@@ -808,26 +862,27 @@
     }
     skateG.visible = false;
     function setBoard(kind) { snowG.visible = kind !== 'skate'; skateG.visible = kind === 'skate'; }
-    const limb = (r, mat) => mesh(new THREE.CylinderGeometry(r, r * 0.9, 1, 10), mat);
+    const limb = (r, mat) => mesh(G.limb(r), mat);
+    const joint = (r, mat) => mesh(G.joint(r), mat);
     const L = {
-      thighL: limb(0.085, SHARED.pants), thighR: limb(0.085, SHARED.pants), shinL: limb(0.07, SHARED.pants), shinR: limb(0.07, SHARED.pants),
-      uarmL: limb(0.06, jacket), uarmR: limb(0.06, jacket), farmL: limb(0.05, jacket), farmR: limb(0.05, jacket)
+      thighL: limb(0.088, SHARED.pants), thighR: limb(0.088, SHARED.pants), shinL: limb(0.074, SHARED.pants), shinR: limb(0.074, SHARED.pants),
+      uarmL: limb(0.062, sleeve), uarmR: limb(0.062, sleeve), farmL: limb(0.054, sleeve), farmR: limb(0.054, sleeve)
     };
-    const torso = mesh(new THREE.BoxGeometry(0.28, 0.55, 0.42), jacket);
-    // il rider scende di lato: la telecamera alle spalle vede soprattutto il lato +z del busto,
-    // quindi le ali sono stampate lì e anche sulla schiena (lato -x), visibile agli avversari
-    const wingsBack = new THREE.Mesh(WINGS.geo, WINGS.mat);
-    wingsBack.position.set(-0.142, 0.08, 0);
-    wingsBack.rotation.y = -Math.PI / 2;
-    const wingsCam = new THREE.Mesh(WINGS.geo, WINGS.mat);
-    wingsCam.position.set(0, 0.1, 0.212);
-    wingsCam.scale.setScalar(0.66);
-    torso.add(wingsBack, wingsCam);
-    const band = mesh(new THREE.BoxGeometry(0.29, 0.1, 0.43), jacketDark);
-    const head = mesh(new THREE.SphereGeometry(0.15, 20, 14), SHARED.helmet);
-    const goggle = mesh(new THREE.BoxGeometry(0.06, 0.08, 0.22), SHARED.goggle);
-    const gloveL = mesh(new THREE.SphereGeometry(0.06, 10, 8), SHARED.glove);
-    const gloveR = mesh(new THREE.SphereGeometry(0.06, 10, 8), SHARED.glove);
+    const JM = {
+      kneeL: joint(0.078, SHARED.pants), kneeR: joint(0.078, SHARED.pants), hipL: joint(0.09, SHARED.pants), hipR: joint(0.09, SHARED.pants),
+      shL: joint(0.07, sleeve), shR: joint(0.07, sleeve), elL: joint(0.058, sleeve), elR: joint(0.058, sleeve)
+    };
+    const torso = mesh(G.torso, jacket);
+    mesh(G.band, jacketDark, torso);
+    mesh(G.collar, jacketDark, torso).position.y = 0.535;
+    const headG = new THREE.Group();
+    body.add(headG);
+    mesh(G.neck, SHARED.skin, headG).position.y = -0.13;
+    mesh(G.head, SHARED.skin, headG);
+    mesh(G.helmet, SHARED.helmet, headG).position.set(-0.012, 0.012, 0);
+    mesh(G.strap, SHARED.glove, headG).position.y = 0.018;
+    mesh(G.goggle, SHARED.goggle, headG).position.set(0.004, 0.018, 0);
+    const gloveL = mesh(G.glove, SHARED.glove), gloveR = mesh(G.glove, SHARED.glove);
     const J = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => J[k] = new THREE.Vector3());
     function setLimb(m, a, b) {
       tmpV.subVectors(b, a);
@@ -836,35 +891,39 @@
       m.scale.set(1, len, 1);
       m.quaternion.setFromUnitVectors(UP, tmpV.normalize());
     }
-    function pose(k, arms, twist, grab = 0) {
+    // k: quanto è accovacciato; arms: braccia aperte; twist: torsione; grab: presa della tavola; fwd: peso in avanti (frenata)
+    function pose(k, arms, twist, grab = 0, fwd = 0) {
+      const fz = -fwd * 0.09;   // il davanti della tavola è verso -z
       J.ankL.set(0.02, 0.17, 0.26); J.ankR.set(0.02, 0.17, -0.26);
       const kneeX = 0.1 + k * 0.17, kneeY = 0.55 - k * 0.13;
-      J.kneeL.set(kneeX, kneeY, 0.24); J.kneeR.set(kneeX, kneeY, -0.24);
-      const hipX = -0.04 - k * 0.12, hipY = 0.93 - k * 0.25;
-      J.hipL.set(hipX, hipY, 0.13); J.hipR.set(hipX, hipY, -0.13);
+      J.kneeL.set(kneeX, kneeY, 0.24 + fz * 0.5); J.kneeR.set(kneeX, kneeY, -0.24 + fz * 0.5);
+      const hipX = -0.04 - k * 0.12, hipY = 0.93 - k * 0.25 + fwd * 0.03;
+      J.hipL.set(hipX, hipY, 0.11 + fz); J.hipR.set(hipX, hipY, -0.11 + fz);
       setLimb(L.shinL, J.ankL, J.kneeL); setLimb(L.shinR, J.ankR, J.kneeR);
       setLimb(L.thighL, J.kneeL, J.hipL); setLimb(L.thighR, J.kneeR, J.hipR);
       const lean = 0.25 + k * 0.35;
-      torso.position.set(hipX + Math.sin(lean) * 0.27, hipY + Math.cos(lean) * 0.27, 0);
-      torso.rotation.set(twist * 0.4, 0, -lean);
-      band.position.set(hipX + Math.sin(lean) * 0.06, hipY + Math.cos(lean) * 0.06, 0);
-      band.rotation.copy(torso.rotation);
-      const shX = hipX + Math.sin(lean) * 0.5, shY = hipY + Math.cos(lean) * 0.5;
-      head.position.set(shX + 0.08, shY + 0.2, 0);
-      goggle.position.set(shX + 0.2, shY + 0.21, 0);
-      J.shL.set(shX, shY, 0.2); J.shR.set(shX, shY, -0.2);
+      const tilt = -fwd * 0.22;                 // busto inclinato verso il davanti della tavola
+      torso.position.set(hipX, hipY - 0.02, fz);
+      torso.rotation.set(twist * 0.4 + tilt, 0, -lean);
+      const shX = hipX + Math.sin(lean) * 0.5, shY = hipY + Math.cos(lean) * 0.5 * Math.cos(tilt), shZ = fz - Math.sin(tilt) * 0.5;
+      headG.position.set(shX + 0.07, shY + 0.21, shZ);
+      headG.rotation.set(tilt * 0.5, 0, -lean * 0.35);
+      J.shL.set(shX, shY - 0.02, 0.19 + shZ); J.shR.set(shX, shY - 0.02, -0.19 + shZ);
       const spread = 0.25 + arms * 0.35;
-      J.elL.set(shX + 0.12, shY - 0.2 + arms * 0.12, 0.2 + spread); J.elR.set(shX + 0.12, shY - 0.2 + arms * 0.12, -0.2 - spread);
-      J.haL.set(shX + 0.28, shY - 0.38 + arms * 0.25, 0.3 + spread * 1.4); J.haR.set(shX + 0.28, shY - 0.38 + arms * 0.25, -0.3 - spread * 1.4);
+      J.elL.set(shX + 0.12, shY - 0.2 + arms * 0.12, 0.2 + spread + shZ); J.elR.set(shX + 0.12, shY - 0.2 + arms * 0.12, -0.2 - spread + shZ);
+      J.haL.set(shX + 0.28, shY - 0.38 + arms * 0.25, 0.3 + spread * 1.4 + shZ); J.haR.set(shX + 0.28, shY - 0.38 + arms * 0.25, -0.3 - spread * 1.4 + shZ);
       if (grab > 0) {   // presa della tavola: mano dietro sulla lamina, gomito piegato
         J.haR.lerp(GRAB_HAND, grab);
         J.elR.lerp(tmpE.set(shX + 0.16, shY - 0.3, -0.24), grab);
       }
       setLimb(L.uarmL, J.shL, J.elL); setLimb(L.uarmR, J.shR, J.elR);
       setLimb(L.farmL, J.elL, J.haL); setLimb(L.farmR, J.elR, J.haR);
+      for (const n of ['kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR']) JM[n].position.copy(J[n]);
       gloveL.position.copy(J.haL); gloveR.position.copy(J.haR);
+      gloveL.quaternion.copy(L.farmL.quaternion); gloveR.quaternion.copy(L.farmR.quaternion);
+      gloveL.rotateX(Math.PI / 2); gloveR.rotateX(Math.PI / 2);
     }
-    function setColor(hex) { jacket.color.copy(lin(hex)); jacketDark.color.copy(lin(hex)).multiplyScalar(0.7); }
+    function setColor(hex) { jacket.map = jacketTexture(hex); jacket.needsUpdate = true; sleeve.color.copy(lin(hex)); jacketDark.color.copy(lin(hex)).multiplyScalar(0.7); }
     pose(0.3, 0.2, 0);
     return { group, body, pose, setColor, setBoard };
   }
@@ -1221,9 +1280,9 @@
     else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = true; e.preventDefault(); }
     else if (k === ' ') { if (mode === 'solo' || mode === 'race') e.preventDefault(); if (!e.repeat) jump(); }
     else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
-      // a terra salta; in aria salto mortale in avanti
+      // a terra frena (peso in avanti); in aria salto mortale in avanti
       if (mode === 'solo' || mode === 'race') e.preventDefault();
-      if (P && P.air) keys.up = true; else if (!e.repeat) jump();
+      keys.up = true;
     }
     else if (k === 'ArrowDown' || k === 's' || k === 'S') { e.preventDefault(); keys.down = true; }
     else if (k === 'p' || k === 'P' || k === 'Escape') togglePause();
@@ -1356,7 +1415,7 @@
     const braking = mode === 'finished';
     if (braking) steer = clamp((center(P.z - 10) - P.x) * 0.15, -0.5, 0.5);
     const d = distM();
-    const vmax = 18 + Math.min(26, d * 0.0075);
+    const vmax = 18 + Math.min(26, d * 0.00975);   // +30%: si arriva prima alla velocità massima
     if (invuln > 0) invuln -= dt;
     if (shake > 0) shake = Math.max(0, shake - 1.2 * dt);
     squash = Math.max(0, squash - 2.5 * dt);
@@ -1373,8 +1432,12 @@
       const ax = P.x + Math.sin(P.ang) * 2, az = P.z - Math.cos(P.ang) * 2;
       const drop = hgt(P.x, P.z) - hgt(ax, az);
       let target = (auto ? 15 : vmax) * Math.pow(Math.cos(P.ang), 1.6) * (1 + clamp(drop * 0.35, -0.2, 0.2));
+      // freccia giù: posizione raccolta, più veloce; freccia su: peso in avanti, frena
+      const tuck = !auto && !braking && keys.down && !keys.up, brake = !auto && !braking && keys.up;
+      if (tuck) target *= 1.12;
+      if (brake) target *= 0.5;
       if (braking) target = 0;
-      P.speed += (target - P.speed) * (target > P.speed ? 0.5 : (braking ? 0.9 : 1.3)) * dt;
+      P.speed += (target - P.speed) * (target > P.speed ? (tuck ? 0.85 : 0.65) : (braking ? 0.9 : (brake ? 2.0 : 1.3))) * dt;
       if (Math.abs(P.ang) > 0.6 && Math.random() < 0.8) spray(P.x, 0, P.z, 2, 1.6, 2.4, Math.cos(P.ang) * Math.sign(P.ang) * 3);
     } else {
       const flipIn = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
@@ -1949,14 +2012,17 @@
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
   const vignette = $('vignette');
-  let airCam = 0;
+  let airCam = 0, tuckS = 0, brakeS = 0;
   function place(dt) {
     const steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
     const autoLean = mode === 'menu' || mode === 'lobby' || mode === 'results';
     lean += ((P.air || P.crash > 0 || mode === 'countdown' ? 0 : (autoLean ? Math.sin(t * 0.8) * 0.8 : steer)) - lean) * Math.min(1, 7 * dt);
     armsUp += ((P.air ? 1 : Math.abs(lean) * 0.5) - armsUp) * Math.min(1, 6 * dt);
     const crouch = clamp(0.28 + Math.abs(lean) * 0.35 + squash * 0.5 + (P.air ? 0.25 : 0), 0, 1);
-    me.pose(Math.min(1, crouch + P.grab * 0.45), armsUp, P.air ? Math.sin(P.spin) * 0.3 : lean * 0.3, P.grab);
+    const onGround = !P.air && P.crash <= 0 && (mode === 'solo' || mode === 'race');
+    tuckS += ((onGround && keys.down && !keys.up ? 1 : 0) - tuckS) * Math.min(1, 8 * dt);
+    brakeS += ((onGround && keys.up ? 1 : 0) - brakeS) * Math.min(1, 8 * dt);
+    me.pose(Math.min(1, crouch + P.grab * 0.45 + tuckS * 0.55), armsUp * (1 - tuckS * 0.6), P.air ? Math.sin(P.spin) * 0.3 : lean * 0.3, P.grab, brakeS);
 
     const gH = hgt(P.x, P.z);
     rider.position.set(P.x, gH + P.y, P.z);
