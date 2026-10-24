@@ -303,6 +303,42 @@
   const RM = c => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.7, metalness: 0 });
   const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), helmet: RM('#eef2f6'), boot: RM('#1b1b1b'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
   const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3();
+  // ali stampate sulla schiena della giacca (stesso disegno per tutti i rider)
+  const WINGS = (() => {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 256;
+    const g = c.getContext('2d');
+    g.lineJoin = 'round';
+    for (const s of [-1, 1]) {
+      g.save();
+      g.translate(256, 96);
+      g.scale(s, 1);
+      // piume: dalla più lunga (in alto) alla più corta (in basso)
+      for (let i = 4; i >= 0; i--) {
+        const len = 205 - i * 30, y = i * 24, tilt = 0.10 + i * 0.07;
+        g.save();
+        g.translate(18, y);
+        g.rotate(tilt);
+        g.beginPath();
+        g.moveTo(0, -14);
+        g.quadraticCurveTo(len * 0.55, -34, len, -8);
+        g.quadraticCurveTo(len * 0.6, 26, 0, 16);
+        g.closePath();
+        g.fillStyle = '#ffffff'; g.fill();
+        g.lineWidth = 7; g.strokeStyle = '#13233a'; g.stroke();
+        g.restore();
+      }
+      g.restore();
+    }
+    g.beginPath(); g.arc(256, 120, 26, 0, TAU);
+    g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#13233a'; g.stroke();
+    const tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    tex.anisotropy = 4;
+    return {
+      geo: new THREE.PlaneGeometry(0.42, 0.21),
+      mat: new THREE.MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.3, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -2 })
+    };
+  })();
   function makeRider(jacketHex) {
     const group = new THREE.Group();
     group.rotation.order = 'YXZ';
@@ -324,6 +360,15 @@
       uarmL: limb(0.06, jacket), uarmR: limb(0.06, jacket), farmL: limb(0.05, jacket), farmR: limb(0.05, jacket)
     };
     const torso = mesh(new THREE.BoxGeometry(0.28, 0.55, 0.42), jacket);
+    // il rider scende di lato: la telecamera alle spalle vede soprattutto il lato +z del busto,
+    // quindi le ali sono stampate lì e anche sulla schiena (lato -x), visibile agli avversari
+    const wingsBack = new THREE.Mesh(WINGS.geo, WINGS.mat);
+    wingsBack.position.set(-0.142, 0.08, 0);
+    wingsBack.rotation.y = -Math.PI / 2;
+    const wingsCam = new THREE.Mesh(WINGS.geo, WINGS.mat);
+    wingsCam.position.set(0, 0.1, 0.212);
+    wingsCam.scale.setScalar(0.66);
+    torso.add(wingsBack, wingsCam);
     const band = mesh(new THREE.BoxGeometry(0.29, 0.1, 0.43), jacketDark);
     const head = mesh(new THREE.SphereGeometry(0.15, 14, 10), SHARED.helmet);
     const goggle = mesh(new THREE.BoxGeometry(0.06, 0.08, 0.22), SHARED.goggle);
