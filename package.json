@@ -1,0 +1,13 @@
+{
+  "name": "cyf-gaming",
+  "version": "0.1.0",
+  "private": true,
+  "description": "C-Y-F Gaming (Challenge Your Friends): giochi online per sfidare gli amici. Primo gioco: Pista Nera.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.148.0"
+  }
+}
