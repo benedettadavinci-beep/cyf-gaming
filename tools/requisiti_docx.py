@@ -46,7 +46,9 @@ def borders(table):
         b.append(e)
     tblPr.append(b)
 
-WIDTHS = {5: [1.6, 7.4, 2.0, 2.0, 4.4], 4: [1.4, 10.6, 2.2, 3.2], 3: [1.6, 3.2, 12.6]}
+import os
+BP = os.path.basename(src).lower().startswith('business')
+WIDTHS = {5: [1.9, 4.3, 3.2, 3.2, 4.8], 4: [2.3, 3.4, 7.2, 4.5], 3: [4.3, 5.4, 7.7], 2: [4.9, 12.5]} if BP else {5: [1.6, 7.4, 2.0, 2.0, 4.4], 4: [1.4, 10.6, 2.2, 3.2], 3: [1.6, 3.2, 12.6]}
 for t in doc.tables:
     borders(t)
     n = len(t.columns)
