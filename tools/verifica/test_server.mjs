@@ -1,0 +1,238 @@
+// Prove del server delle gare (src/worker.js) con client WebSocket simulati, contro wrangler dev su 127.0.0.1:8787
+const BASE = process.env.BASE || 'http://127.0.0.1:8787';
+const WS = BASE.replace(/^http/, 'ws');
+const problems = [];
+const ok = (cond, label, extra = '') => { console.log((cond ? '  ✓ ' : '  ✗ ') + label + (extra ? '  [' + extra + ']' : '')); if (!cond) problems.push(label + (extra ? ' [' + extra + ']' : '')); };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+class Client {
+  constructor(code, id, name, j = '') { this.code = code; this.id = id; this.name = name; this.j = j; this.msgs = []; this.closed = null; this.waiters = []; }
+  connect() {
+    return new Promise((res, rej) => {
+      this.ws = new WebSocket(WS + '/api/room/' + this.code);
+      this.ws.onopen = () => { this.send({ t: 'hello', id: this.id, name: this.name, j: this.j }); res(); };
+      this.ws.onmessage = ev => { if (ev.data === 'pong') return; const m = JSON.parse(ev.data); this.msgs.push(m); for (const w of [...this.waiters]) if (w.pred(m)) { this.waiters.splice(this.waiters.indexOf(w), 1); w.res(m); } };
+      this.ws.onclose = ev => { this.closed = { code: ev.code, reason: ev.reason }; for (const w of [...this.waiters]) if (w.pred({ t: '__closed', code: ev.code })) { this.waiters.splice(this.waiters.indexOf(w), 1); w.res({ t: '__closed', code: ev.code }); } };
+      this.ws.onerror = e => rej(e);
+    });
+  }
+  send(m) { this.ws.send(typeof m === 'string' ? m : JSON.stringify(m)); }
+  wait(pred, ms = 4000) {
+    const past = this.msgs.find(pred);
+    if (past) return Promise.resolve(past);
+    return new Promise(res => { const w = { pred, res }; this.waiters.push(w); setTimeout(() => { if (this.waiters.includes(w)) { this.waiters.splice(this.waiters.indexOf(w), 1); res(null); } }, ms); });
+  }
+  waitType(t, ms) { return this.wait(m => m.t === t, ms); }
+  last(t) { return [...this.msgs].reverse().find(m => m.t === t) || null; }
+  close() { try { this.ws.close(1000); } catch (e) {} }
+}
+const api = async (p) => { const r = await fetch(BASE + p); let b = null; try { b = await r.json(); } catch (e) {} return { status: r.status, body: b }; };
+const rnd = () => Math.random().toString(36).slice(2, 7).toUpperCase().replace(/[^A-Z0-9]/g, 'X').padEnd(5, 'Q');
+
+console.log('T1 · indirizzi e codici');
+{
+  const a = await api('/api/room/ABC'); ok(a.status === 400, 'codice di 3 caratteri rifiutato (400)', String(a.status));
+  const b = await api('/api/room/ABCDE'); ok(b.status === 426, 'senza WebSocket risponde 426', String(b.status));
+  const c = await api('/api/leaderboard?min=7'); ok(c.status === 200 && Array.isArray(c.body), 'leaderboard con durata non valida ripiega sui 5 minuti');
+  const d = await api('/api/me'); ok(d.status === 400, '/api/me senza id → 400', String(d.status));
+  const e = await api('/api/xyz'); ok(e.status === 404, '/api/xyz → 404', String(e.status));
+  const f = await api('/api/stats'); ok(f.status === 200 && Array.isArray(f.body), '/api/stats risponde con una lista');
+  const g = await api('/api/points'); ok(g.status === 200 && Array.isArray(g.body), '/api/points risponde con una lista');
+}
+
+console.log('T2 · stanza piena (8 giocatori, il 9° rifiutato) e pulizia dei nomi');
+{
+  const code = rnd();
+  const cs = [];
+  for (let i = 0; i < 8; i++) { const c = new Client(code, 'p' + i + code, 'Giocatore' + i); await c.connect(); cs.push(c); await c.waitType('welcome'); }
+  const lobby = await cs[0].wait(m => m.t === 'lobby' && m.players.length === 8, 3000);
+  ok(!!lobby, '8 giocatori nella stanza', lobby ? '' : 'lobby non ha mai avuto 8 giocatori');
+  const nine = new Client(code, 'p9' + code, 'Nono'); await nine.connect();
+  const full = await nine.waitType('full', 3000); const cl = await nine.wait(m => m.t === '__closed', 3000);
+  ok(!!full && cl && cl.code === 1008, 'il 9° riceve "full" e viene chiuso con 1008', JSON.stringify({ full: !!full, close: cl && cl.code }));
+  const colors = new Set(lobby ? lobby.players.map(p => p.color) : []);
+  ok(colors.size === 8, '8 colori di giacca tutti diversi', [...colors].join(','));
+  // nome con caratteri vietati e troppo lungo
+  const dirty = new Client(rnd(), 'pdirty', 'A<b>cdefghijklmnopqrstuvwxyz'); await dirty.connect();
+  const lw = await dirty.wait(m => m.t === 'lobby' && m.players.length === 1, 3000);
+  ok(lw && lw.players[0].name === 'Abcdefghijklmnop', 'nome ripulito (niente < >, massimo 16 caratteri)', lw && lw.players[0].name);
+  dirty.close(); nine.close(); cs.forEach(c => c.close());
+}
+
+console.log('T3 · organizzatore, durata, partenza, stesso seed, arrivo troppo veloce');
+{
+  const code = rnd();
+  const A = new Client(code, 'host' + code, 'Luigi', 'napoli'), B = new Client(code, 'guest' + code, 'Ospite', 'roma');
+  await A.connect(); await A.waitType('welcome'); await B.connect(); await B.waitType('welcome');
+  let lb = await B.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
+  ok(lb && lb.hostId === A.id, 'il primo entrato è l\'organizzatore', lb && lb.hostId);
+  ok(lb && lb.players.find(p => p.id === A.id).j === 'napoli', 'la maglia scelta viaggia nella lobby (gli avversari la vedono)');
+  B.send({ t: 'settings', minutes: 15 }); await sleep(400);
+  lb = A.last('lobby'); ok(lb.minutes === 5, 'un non organizzatore non può cambiare la durata', String(lb.minutes));
+  B.send({ t: 'start' }); const cd0 = await A.waitType('countdown', 1200); ok(!cd0, 'un non organizzatore non può far partire la gara');
+  A.send({ t: 'settings', minutes: 10 }); lb = await B.wait(m => m.t === 'lobby' && m.minutes === 10, 3000);
+  ok(lb && lb.length === 24000, 'durata 10 min → lunghezza 24.000 m', lb && String(lb.length));
+  A.send({ t: 'settings', minutes: 7 }); await sleep(300); ok(A.last('lobby').minutes === 10, 'durata non ammessa (7) ignorata');
+  A.send({ t: 'settings', minutes: 5 }); await B.wait(m => m.t === 'lobby' && m.minutes === 5, 3000);
+  const t0 = Date.now();
+  A.send({ t: 'start' });
+  const cA = await A.waitType('countdown'), cB = await B.waitType('countdown');
+  ok(cA && cB && cA.seed === cB.seed && cA.startAt === cB.startAt, 'stesso seed e stesso istante di partenza per tutti');
+  ok(cA && Math.abs(cA.startAt - cA.now - 5000) < 50, 'conto alla rovescia di 5 s', cA && String(cA.startAt - cA.now));
+  ok(cA && cA.racers.length === 2 && cA.racers.every(r => 'j' in r), 'elenco dei corridori con la maglia');
+  ok(cA && cA.length === 12000 && cA.minutes === 5, 'gara da 5 min = 12.000 m');
+  // posizioni: inoltrate agli altri, con limiti
+  A.send({ t: 'pos', x: 1, z: -50, y: 0, a: 0, s: 0, f: 0, g: 0, v: 999, c: 0, k: 0, top: 30, tk: 2, p: 120 });
+  const pB = await B.waitType('pos', 2000);
+  ok(pB && pB.id === A.id && pB.v === 60, 'posizione inoltrata agli altri, velocità limitata a 60', pB && String(pB.v));
+  // arrivo appena dopo il via: più veloce del limite fisico → tempo non valido
+  await sleep(Math.max(0, cA.startAt - Date.now() + 200));
+  A.send({ t: 'finish', top: 30, tk: 2, p: 120 });
+  const fA = await A.waitType('finished', 3000);
+  ok(fA && fA.id === A.id && fA.ms === null, 'arrivo troppo veloce scartato (ms = null)', JSON.stringify(fA));
+  B.send({ t: 'finish', top: 44, tk: 5, p: 80 });
+  const res = await A.waitType('results', 3000);
+  ok(!!res, 'con tutti arrivati arrivano i risultati');
+  if (res) {
+    const rA = res.results.find(r => r.id === A.id), rB = res.results.find(r => r.id === B.id);
+    ok(rA.dnf && rA.ms === null && rB.dnf && rB.ms === null, 'entrambi "non arrivati" (troppo veloci)');
+    ok(rA.earned === 120 && rB.earned === 80, 'punti = 0 per la posizione (non arrivati) + punti rimasti della gara', rA.earned + '/' + rB.earned);
+    ok(res.awards && res.awards.fastest.id === B.id && res.awards.tricks.id === B.id, 'premi: velocità massima e più acrobazie a chi li ha fatti');
+    ok(res.round === 1, 'gara n. 1');
+  }
+  // rivincita: solo l'organizzatore
+  B.send({ t: 'start' }); ok(!(await A.wait(m => m.t === 'countdown' && m.round === 2, 1000)), 'rivincita: un ospite non può lanciarla');
+  A.send({ t: 'start' }); const c2 = await B.wait(m => m.t === 'countdown' && m.round === 2, 3000); ok(!!c2, 'rivincita lanciata dall\'organizzatore (gara n. 2)');
+  // l'organizzatore se ne va: passa all'altro
+  A.close(); const lb2 = await B.wait(m => m.t === 'lobby' && m.hostId === B.id, 3000); ok(!!lb2, 'se l\'organizzatore esce, il ruolo passa al giocatore rimasto');
+  B.close();
+}
+
+console.log('T4 · banane e bombe (solo in gara, non più di una ogni 0,9 s)');
+{
+  const code = rnd();
+  const A = new Client(code, 'ha' + code, 'A'), B = new Client(code, 'gb' + code, 'B');
+  await A.connect(); await A.waitType('welcome'); await B.connect(); await B.waitType('welcome');
+  await B.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
+  A.send({ t: 'drop', kind: 'banana', x: 1, z: -10, hid: 'h1' });
+  ok(!(await B.waitType('drop', 800)), 'in sala d\'attesa le banane non si lasciano');
+  A.send({ t: 'start' }); await B.waitType('countdown');
+  await sleep(5300);
+  A.send({ t: 'pos', x: 0, z: -20, top: 10, tk: 0, p: 100 });   // fa passare la stanza a "racing"
+  await sleep(200);
+  A.send({ t: 'drop', kind: 'banana', x: 1, z: -10, hid: 'h1' });
+  const d1 = await B.waitType('drop', 2000); ok(d1 && d1.kind === 'banana' && d1.hid === 'h1' && d1.id === A.id, 'banana inoltrata all\'avversario in gara');
+  A.send({ t: 'drop', kind: 'bomb', x: 1, z: -12, hid: 'h2' });
+  ok(!(await B.wait(m => m.t === 'drop' && m.hid === 'h2', 700)), 'seconda cosa lasciata entro 0,9 s ignorata');
+  await sleep(1000);
+  A.send({ t: 'drop', kind: 'trap', x: 1, z: -12, hid: 'h3' });
+  ok(!(await B.wait(m => m.t === 'drop' && m.hid === 'h3', 700)), 'tipo sconosciuto ("trap") ignorato');
+  B.send({ t: 'hit', hid: 'h1', owner: A.id, kind: 'banana' });
+  const h = await A.waitType('hit', 2000); ok(h && h.hid === 'h1' && h.owner === A.id && h.name === 'B', 'chi scivola lo dice a tutti, e chi l\'ha lasciata lo sa');
+  A.close(); B.close();
+}
+
+console.log('T5 · vocali: inoltro, uno ogni 3 minuti, formati, segnalazioni e blocco');
+{
+  const code = rnd();
+  const A = new Client(code, 'va' + code, 'Voce'), B = new Client(code, 'vb' + code, 'Ascolta'), C = new Client(code, 'vc' + code, 'Terzo');
+  for (const c of [A, B, C]) { await c.connect(); await c.waitType('welcome'); }
+  await C.wait(m => m.t === 'lobby' && m.players.length === 3, 3000);
+  const data = 'QUJDRA=='.repeat(100);
+  A.send({ t: 'voice', mime: 'audio/x-fake', data, dur: 2 });
+  ok(!(await B.waitType('voice', 700)) && !(await A.waitType('voiceOk', 300)), 'formato audio sconosciuto scartato');
+  A.send({ t: 'voice', mime: 'audio/webm;codecs=opus', data, dur: 2 });
+  const vB = await B.waitType('voice', 2000), okA = await A.waitType('voiceOk', 2000);
+  ok(vB && vB.id === A.id && vB.data === data && vB.name === 'Voce', 'vocale inoltrato agli altri con nome e colore');
+  ok(okA && okA.next - okA.now === 180000, 'prossimo vocale fra 3 minuti', okA && String(okA.next - okA.now));
+  A.send({ t: 'voice', mime: 'audio/webm;codecs=opus', data, dur: 2 });
+  const w = await A.waitType('voiceWait', 2000); ok(w && w.next > w.now, 'secondo vocale entro 3 minuti: il server fa aspettare');
+  ok(!(await B.wait(m => m.t === 'voice' && B.msgs.filter(x => x.t === 'voice').length > 1, 500)), 'e non lo inoltra');
+  // segnalazioni: due dalla stessa persona non bastano
+  B.send({ t: 'reportVoice', id: A.id }); ok(!!(await B.waitType('reported', 2000)), 'segnalazione confermata');
+  B.send({ t: 'reportVoice', id: A.id }); await B.wait(m => m.t === 'reported' && B.msgs.filter(x => x.t === 'reported').length > 1, 2000);
+  A.send({ t: 'voice', mime: 'audio/webm;codecs=opus', data, dur: 2 });
+  ok(!!(await A.wait(m => m.t === 'voiceWait' && A.msgs.filter(x => x.t === 'voiceWait').length > 1, 2000)) && !A.last('voiceBlocked'), 'due segnalazioni dalla stessa persona non bloccano');
+  A.send({ t: 'reportVoice', id: A.id }); await sleep(300); ok(!A.last('reported'), 'non ci si può segnalare da soli');
+  C.send({ t: 'reportVoice', id: A.id }); await C.waitType('reported', 2000);
+  A.send({ t: 'voice', mime: 'audio/webm;codecs=opus', data, dur: 2 });
+  ok(!!(await A.waitType('voiceBlocked', 2000)), 'alla seconda persona che segnala, i vocali del segnalato sono bloccati');
+  A.close(); B.close(); C.close();
+}
+
+console.log('T6 · sala online: /api/quick, partenza automatica in 30 s, 3 s se tutti pronti');
+{
+  const q = await api('/api/quick');
+  ok(q.status === 200 && /^ONLINE\d+$/.test(q.body.code), '/api/quick indica una sala ONLINEn', q.body && q.body.code);
+  const code = q.body.code;
+  const A = new Client(code, 'oa' + code + Date.now(), 'Online1'), B = new Client(code, 'ob' + code + Date.now(), 'Online2');
+  await A.connect(); const wA = await A.waitType('welcome'); ok(wA && wA.pub === true, 'la sala è pubblica');
+  let lb = await A.wait(m => m.t === 'lobby' && m.players.length === 1, 3000);
+  ok(lb && lb.autoAt === 0 && lb.hostId === null, 'da soli non parte niente e non c\'è organizzatore');
+  A.send({ t: 'start' }); ok(!(await A.waitType('countdown', 800)), 'in sala online "Parti" non esiste');
+  await B.connect(); await B.waitType('welcome');
+  lb = await A.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
+  ok(lb && lb.autoAt - lb.now > 28000 && lb.autoAt - lb.now <= 30000, 'con 2 giocatori la gara parte da sola entro 30 s', lb && String(lb.autoAt - lb.now));
+  A.send({ t: 'settings', minutes: 15 }); await sleep(300); ok(A.last('lobby').minutes === 5, 'in sala online la durata resta 5 minuti');
+  A.send({ t: 'ready', ready: true }); B.send({ t: 'ready', ready: true });
+  lb = await A.wait(m => m.t === 'lobby' && m.players.every(p => p.ready), 3000);
+  ok(lb && lb.autoAt - lb.now <= 3000, 'tutti pronti: parte entro 3 s', lb && String(lb.autoAt - lb.now));
+  const cd = await B.waitType('countdown', 6000); ok(!!cd, 'conto alla rovescia partito da solo');
+  A.close(); B.close();
+}
+
+console.log('T7 · stesso giocatore da un\'altra scheda');
+{
+  const code = rnd();
+  const A1 = new Client(code, 'same' + code, 'Uno'); await A1.connect(); await A1.waitType('welcome');
+  const A2 = new Client(code, 'same' + code, 'Uno'); await A2.connect(); await A2.waitType('welcome');
+  const cl = await A1.wait(m => m.t === '__closed', 3000);
+  ok(cl && cl.code === 4000, 'la vecchia scheda viene chiusa con il codice 4000', cl && String(cl.code));
+  const lb = A2.last('lobby'); ok(lb && lb.players.length === 1, 'nella stanza resta un solo giocatore');
+  A2.close();
+}
+
+console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, chi esce è "non arrivato", contatori');
+{
+  const statsBefore = (await api('/api/stats')).body;
+  const code = rnd();
+  const name = 'Veloce' + code.slice(0, 3);
+  const A = new Client(code, 'wa' + code, name), B = new Client(code, 'wb' + code, 'Lento');
+  await A.connect(); await A.waitType('welcome'); await B.connect(); await B.waitType('welcome');
+  await B.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
+  A.send({ t: 'start' }); const cd = await A.waitType('countdown');
+  const minMs = Math.floor(12000 / 52 * 1000);
+  console.log('   aspetto', Math.round((cd.startAt + minMs - Date.now()) / 1000), 's per un arrivo valido…');
+  const pinger = setInterval(() => { A.send({ t: 'pos', x: 0, z: -100, top: 41, tk: 3, p: 210 }); B.send({ t: 'pos', x: 0, z: -90, top: 38, tk: 7, p: 50 }); }, 5000);
+  await sleep(cd.startAt + minMs + 1500 - Date.now());
+  A.send({ t: 'finish', top: 41, tk: 3, p: 210 });
+  const fA = await A.waitType('finished', 3000);
+  ok(fA && typeof fA.ms === 'number' && fA.ms >= minMs, 'arrivo valido con tempo misurato dal server', fA && String(fA.ms));
+  clearInterval(pinger);
+  B.close();   // l'altro se ne va: la gara finisce e lui risulta non arrivato
+  const res = await A.waitType('results', 5000);
+  ok(!!res, 'la gara si chiude quando non resta nessuno in pista');
+  if (res) {
+    const rA = res.results[0], rB = res.results[1];
+    ok(rA.id === A.id && rA.ms === fA.ms && rB.id === B.id && rB.dnf && rB.ms === null, 'classifica: il valido primo, chi è uscito "non arrivato"');
+    ok(rA.earned === 100 + 210 && rB.earned === 50, 'punti: 100 al vincitore + 210 rimasti; 0 + 50 al non arrivato', rA.earned + '/' + rB.earned);
+    ok(rA.total === 310, 'totale del vincitore salvato sul server', String(rA.total));
+    ok(res.awards.fastest.id === A.id && res.awards.tricks.id === B.id, 'premi: velocità a A (41 m/s), acrobazie a B (7)');
+  }
+  const me = (await api('/api/me?id=' + A.id)).body; ok(me.points === 310 && me.races === 1 && me.wins === 1, '/api/me: punti, gare e vittorie', JSON.stringify(me));
+  const lbd = (await api('/api/leaderboard?min=5')).body;
+  const row = lbd.find(r => r.name === name); ok(row && row.ms === fA.ms, 'tempo in classifica (5 min)', JSON.stringify(row));
+  const lbd10 = (await api('/api/leaderboard?min=10')).body; ok(!lbd10.find(r => r.name === name), 'non compare nella classifica dei 10 min');
+  const pts = (await api('/api/points')).body; ok(pts.some(r => r.name === name && r.points === 310), '/api/points lo elenca');
+  const stats = (await api('/api/stats')).body;
+  const today = new Date().toISOString().slice(0, 10);
+  const row0 = stats.find(r => r.day === today) || {}, rowB = (statsBefore || []).find(r => r.day === today) || {};
+  const d = k => (row0[k] || 0) - (rowB[k] || 0);
+  ok(d('races_started') === 1 && d('races_finished') === 1 && d('racers') === 2 && d('players') >= 2, '/api/stats: gare avviate/finite, corridori e giocatori unici del giorno', JSON.stringify({ started: d('races_started'), finished: d('races_finished'), racers: d('racers'), players: d('players') }));
+  ok((row0.voice_reports || 0) >= 2, '/api/stats conta le segnalazioni dei vocali', String(row0.voice_reports));
+  A.close();
+}
+
+console.log('\n' + (problems.length ? 'PROBLEMI:' : 'NESSUN PROBLEMA'));
+for (const p of problems) console.log(' -', p);
+process.exit(0);
