@@ -77,6 +77,9 @@ export default {
     // /api/points → giocatori con più punti
     if (url.pathname === '/api/points') return json(await board(env).topPoints(10));
 
+    // /api/stats → contatori aggregati degli ultimi 14 giorni
+    if (url.pathname === '/api/stats') return json(await board(env).stats(14));
+
     if (url.pathname.startsWith('/api/')) return json({ error: 'Non trovato' }, { status: 404 });
     return env.ASSETS.fetch(request);
   }
@@ -190,6 +193,8 @@ export class RaceRoom extends DurableObject {
     for (const s of this.sockets()) { const a = s.deserializeAttachment(); if (a && a.id) { a.ready = false; s.serializeAttachment(a); } }
     await this.save();
     await this.schedule();
+    board(this.env).bump('races_started').catch(() => {});
+    board(this.env).bump('racers', list.length).catch(() => {});
     this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: st.startAt, racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round });
     this.broadcast(this.lobbyMsg());
   }
@@ -232,6 +237,7 @@ export class RaceRoom extends DurableObject {
       this.updateAuto();
       await this.save();
       await this.schedule();
+      board(this.env).touch(id).catch(() => {});
       this.send(ws, {
         t: 'welcome', you: id, code: st.code, now, max: MAX_PLAYERS, length: lengthFor(st.minutes), minutes: st.minutes, pub: st.pub,
         phase: st.phase, seed: st.seed, startAt: st.startAt, racers: st.racers, results: st.results, awards: st.awards || null,
@@ -300,6 +306,7 @@ export class RaceRoom extends DurableObject {
     }
 
     if (m.t === 'voice') {
+      if ((st.voiceBlock || {})[me.id]) { this.send(ws, { t: 'voiceBlocked' }); return; }
       const data = typeof m.data === 'string' ? m.data : '';
       const mime = VOICE_MIME.includes(m.mime) ? m.mime : null;
       if (!mime || !data || data.length > VOICE_MAX_CHARS || !/^[A-Za-z0-9+/=]+$/.test(data)) return;
@@ -311,6 +318,22 @@ export class RaceRoom extends DurableObject {
       await this.save();
       this.send(ws, { t: 'voiceOk', next: now + VOICE_COOLDOWN_MS, now });
       this.broadcast({ t: 'voice', id: me.id, name: me.name, color: me.color, mime, data, dur: num(m.dur, 0, 15) }, ws);
+      return;
+    }
+
+    // segnalazione di un vocale offensivo: con 2 segnalazioni da persone diverse
+    // il server smette di inoltrare i vocali di quel giocatore in questa stanza
+    if (m.t === 'reportVoice') {
+      const rid = cleanId(m.id);
+      if (!rid || rid === me.id) return;
+      st.voiceRep = st.voiceRep || {};
+      const lst = st.voiceRep[rid] = st.voiceRep[rid] || [];
+      if (!lst.includes(me.id)) lst.push(me.id);
+      if (lst.length > 8) lst.shift();
+      if (lst.length >= 2) { st.voiceBlock = st.voiceBlock || {}; st.voiceBlock[rid] = true; }
+      await this.save();
+      board(this.env).reportVoice(st.code, me.id, rid).catch(() => {});
+      this.send(ws, { t: 'reported' });
       return;
     }
 
@@ -366,6 +389,7 @@ export class RaceRoom extends DurableObject {
     } catch (e) {}
     st.phase = 'results';
     st.timeoutAt = 0;
+    board(this.env).bump('races_finished').catch(() => {});
     this.fixHost(except);
     this.updateAuto(except);
     await this.save();
@@ -394,6 +418,8 @@ export class RaceRoom extends DurableObject {
     this.fixHost(ws);
     if (this.players(ws).length === 0 && this.state.phase !== 'countdown' && this.state.phase !== 'racing') {
       this.state.phase = 'lobby';
+      this.state.voiceRep = {};
+      this.state.voiceBlock = {};
     }
     this.updateAuto(ws);
     await this.save();
@@ -414,6 +440,39 @@ export class Leaderboard extends DurableObject {
     const cols = sql.exec('PRAGMA table_info(runs)').toArray().map(c => c.name);
     if (!cols.includes('len')) sql.exec('ALTER TABLE runs ADD COLUMN len INTEGER NOT NULL DEFAULT 2000');
     sql.exec('CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, name TEXT NOT NULL, points INTEGER NOT NULL DEFAULT 0, races INTEGER NOT NULL DEFAULT 0, wins INTEGER NOT NULL DEFAULT 0, at INTEGER NOT NULL)');
+    // contatori aggregati per giorno (niente cookie, niente dati personali)
+    sql.exec('CREATE TABLE IF NOT EXISTS stats (day TEXT NOT NULL, metric TEXT NOT NULL, value INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, metric))');
+    sql.exec('CREATE TABLE IF NOT EXISTS seen (day TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (day, id))');
+    sql.exec('CREATE TABLE IF NOT EXISTS voice_reports (at INTEGER NOT NULL, room TEXT NOT NULL, reporter TEXT NOT NULL, reported TEXT NOT NULL)');
+  }
+  day() { return new Date().toISOString().slice(0, 10); }
+  async bump(metric, n = 1) {
+    this.ctx.storage.sql.exec(
+      'INSERT INTO stats (day, metric, value) VALUES (?, ?, ?) ON CONFLICT(day, metric) DO UPDATE SET value = value + excluded.value',
+      this.day(), String(metric).slice(0, 32), Math.max(0, Math.round(n))
+    );
+  }
+  // un giocatore conta una volta sola al giorno
+  async touch(id) {
+    id = cleanId(id);
+    if (!id) return;
+    const d = this.day(), sql = this.ctx.storage.sql;
+    const had = sql.exec('SELECT 1 AS x FROM seen WHERE day = ? AND id = ?', d, id).toArray().length;
+    if (!had) {
+      sql.exec('INSERT OR IGNORE INTO seen (day, id) VALUES (?, ?)', d, id);
+      await this.bump('players');
+    }
+  }
+  async reportVoice(room, reporter, reported) {
+    this.ctx.storage.sql.exec('INSERT INTO voice_reports (at, room, reporter, reported) VALUES (?, ?, ?, ?)', Date.now(), String(room).slice(0, 8), cleanId(reporter), cleanId(reported));
+    await this.bump('voice_reports');
+  }
+  async stats(days = 14) {
+    const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    const rows = this.ctx.storage.sql.exec('SELECT day, metric, value FROM stats WHERE day >= ? ORDER BY day DESC', from).toArray();
+    const out = {};
+    for (const r of rows) (out[r.day] = out[r.day] || { day: r.day })[r.metric] = r.value;
+    return Object.values(out).sort((a, b) => (a.day < b.day ? 1 : -1));
   }
   async submit(name, ms, len) {
     this.ctx.storage.sql.exec('INSERT INTO runs (name, ms, at, len) VALUES (?, ?, ?, ?)', cleanName(name), Math.round(ms), Date.now(), Math.round(len));
