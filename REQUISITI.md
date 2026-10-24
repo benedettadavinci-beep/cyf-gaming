@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.8.2 · aggiornato al 24 ottobre 2026, ore 20:40"
+subtitle: "Versione 0.8.3 · aggiornato al 24 ottobre 2026, ore 22:00"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -164,3 +164,4 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | 0.8.0 | 24/10/2026 | Contatori d'uso (/api/stats), condivisione su WhatsApp/Telegram e del risultato, silenzia/segnala i vocali con blocco automatico dopo 2 segnalazioni |
 | 0.8.1 | 24/10/2026 | Home in quattro lingue con scelta IT/EN/FR/ES, lingua condivisa tra home e gioco, link ?lang=, voce della maglia non più tagliata sul telefono |
 | 0.8.2 | 24/10/2026 | Debug sul sito online: pulsante di partenza in francese e spagnolo, posizioni nella lingua giusta anche nel risultato condiviso, maglie tradotte, revisione delle traduzioni, schermata dei risultati sul telefono (pulsanti non più tagliati, nomi leggibili accanto a "non arrivato", premi su una riga) |
+| 0.8.3 | 24/10/2026 | Controllo notturno: descrizioni rimaste alla versione dei 2.000 m aggiornate (anteprima dei link condivisi di Pista Nera, che diceva ancora "2.000 metri" e "Napoli e Roma", e README con regole e limiti attuali); nessun baco trovato nel codice: sintassi, chiavi delle 4 lingue, server locale, 13 scenari e una gara a due giocatori provati e a posto |
