@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>C-Y-F Gaming · Challenge Your Friends</title>
+<meta name="description" content="Giochi nel browser per sfidare gli amici in tempo reale. Crea una sfida, condividi il link, vince il migliore.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #0c1828; --panel: #13233a; --line: #23395a; --fg: #eef4f8; --soft: #9fb3c8; --flare: #ff5a1f; --ice: #6cb4ff;
+    --display: "Rubik Mono One", "Arial Black", Impact, sans-serif;
+    --body: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 19px; line-height: 1.4;
+    padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  }
+  main { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+  header { display: flex; flex-direction: column; gap: 14px; padding-top: 4vh; }
+  .logo { font-family: var(--display); font-size: clamp(40px, 11vw, 96px); line-height: .95; letter-spacing: .01em; margin: 0; }
+  .logo span { color: var(--flare); }
+  .tag { font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--ice); font-size: 15px; }
+  header p { margin: 0; max-width: 46ch; color: var(--soft); font-size: 21px; }
+  .how { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0; counter-reset: s; }
+  .how li { border-top: 2px solid var(--line); padding-top: 10px; counter-increment: s; }
+  .how li::before { content: counter(s); font-family: var(--display); color: var(--flare); margin-right: 8px; }
+  .game { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); background: var(--panel); border-radius: 16px; overflow: hidden; text-decoration: none; color: inherit; border: 1px solid var(--line); }
+  .game:hover .play, .game:focus-visible .play { transform: translateX(4px); }
+  .game:focus-visible { outline: 3px solid var(--ice); outline-offset: 3px; }
+  .art { min-height: 240px; background:
+      linear-gradient(170deg, #3f7fc4 0%, #9cc5e6 45%, #d6e7f3 58%, #eef4f8 59%, #dce8f1 100%);
+      position: relative; }
+  .art::before { content: ""; position: absolute; left: 0; right: 0; top: 34%; height: 26%;
+      background: linear-gradient(135deg, transparent 49%, #8faccb 50%) 0 100% / 90px 60px repeat-x,
+                  linear-gradient(225deg, transparent 49%, #8faccb 50%) 45px 100% / 90px 60px repeat-x; }
+  .art::after { content: ""; position: absolute; left: 46%; bottom: 18%; width: 64px; height: 14px; border-radius: 7px; background: #13233a; transform: rotate(-12deg); box-shadow: 0 -34px 0 -2px #ff5a1f; }
+  .info { padding: 22px; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+  .info h2 { font-family: var(--display); font-weight: 400; font-size: 30px; margin: 0; }
+  .info p { margin: 0; color: var(--soft); }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; }
+  .meta span { font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; background: #1d3352; color: var(--fg); }
+  .play { font-family: var(--display); font-size: 17px; color: #fff; background: var(--flare); align-self: flex-start; padding: 12px 18px; border-radius: 10px; transition: transform .15s ease; }
+  footer { color: var(--soft); font-size: 15px; border-top: 1px solid var(--line); padding-top: 14px; }
+  @media (max-width: 640px) { .game { grid-template-columns: 1fr; } .art { min-height: 170px; } }
+  @media (prefers-reduced-motion: reduce) { .play { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="tag">Challenge Your Friends</span>
+    <h1 class="logo">C-Y-F<br><span>Gaming</span></h1>
+    <p>Giochi nel browser per sfidare gli amici in tempo reale. Niente da installare: crei una sfida, mandi il link, vince il migliore.</p>
+  </header>
+
+  <ol class="how">
+    <li>Scrivi il tuo nome e crea una sfida</li>
+    <li>Manda il link o il codice agli amici</li>
+    <li>Stessa pista, stesso via: conta solo il tempo</li>
+  </ol>
+
+  <a class="game" href="/pista-nera/">
+    <div class="art" aria-hidden="true"></div>
+    <div class="info">
+      <h2>Pista Nera</h2>
+      <p>Snowboard in 3D su una pista nera di 2.000 metri. Abeti, rocce, porte e rampe: chi arriva primo vince.</p>
+      <div class="meta"><span>2–8 giocatori</span><span>Circa 1 minuto a gara</span><span>PC e telefono</span></div>
+      <span class="play">Gioca →</span>
+    </div>
+  </a>
+
+  <footer>C-Y-F Gaming · Challenge Your Friends</footer>
+</main>
+</body>
+</html>
