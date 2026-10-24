@@ -29,7 +29,7 @@ for st in doc.styles:
     if st.name.lower().startswith('heading 1'):
         st.font.size = Pt(15)
 
-STATE = {'Controllato': '9ED9B3', 'Fatto': 'D7F0DF', 'In corso': 'FFF1C7', 'Da fare': 'FDE2D6', 'Da confermare': 'E6EDF5'}
+STATE = {'Controllato': '9ED9B3', 'Fatto': 'D7F0DF', 'In corso': 'FFF1C7', 'Da fare': 'FDE2D6', 'Da confermare': 'E6EDF5', '✓': 'D7F0DF', '✓ dopo correzione': 'FFF1C7'}
 
 def shade(cell, hex_color):
     tcPr = cell._tc.get_or_add_tcPr()
@@ -55,6 +55,8 @@ for t in doc.tables:
     w = WIDTHS.get(n)
     if w and n == 3 and t.rows and t.rows[0].cells[0].text.strip() == 'Versione':
         w = [2.2, 2.4, 12.8]   # lo storico ha la descrizione nell'ultima colonna
+    if w and n == 3 and t.rows and t.rows[0].cells[1].text.strip() == 'Esito':
+        w = [3.4, 2.6, 11.4]   # la verifica: ID, esito, come è stato verificato
     if w:
         # pandoc crea colonne uguali: si fissano larghezze e griglia della tabella
         t.autofit = False
