@@ -2701,6 +2701,10 @@
     } else if (m.t === 'voiceWait') {
       voice.next = m.next;
       say(tr('voiceWait', { t: fmtWait(m.next - m.now) }), '#13233a');
+    } else if (m.t === 'reported') {
+      say(tr('reportedToast'), '#1f8a4c');
+    } else if (m.t === 'voiceBlocked') {
+      say(tr('voiceBlocked'), '#d8302a');
     } else if (m.t === 'drop') {
       if (mode === 'race' || mode === 'finished') addHazard({ hid: m.hid, owner: m.id, kind: m.kind, x: m.x, z: m.z });
     } else if (m.t === 'hit') {
@@ -2717,6 +2721,8 @@
     $('lobbyCode').textContent = net.code || '—';
     const link = location.origin + location.pathname + '?sfida=' + (net.code || '');
     $('linkText').textContent = link;
+    $('shareWa').href = 'https://wa.me/?text=' + encodeURIComponent(tr('shareMsg', { code: net.code || '', link }));
+    $('shareTg').href = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(tr('shareMsg2', { code: net.code || '' }));
     const ul = $('lobbyPlayers');
     ul.innerHTML = '';
     for (const p of net.players) {
@@ -2780,6 +2786,21 @@
   });
   $('btnLeave').addEventListener('click', toMenu);
   $('btnResLeave').addEventListener('click', toMenu);
+  const CITY_LABEL = { neve: 'snow', napoli: 'naples', roma: 'rome', milano: 'milan', parigi: 'paris', londra: 'london', francoforte: 'frankfurt', madrid: 'madrid', lisbona: 'lisbon', zagabria: 'zagreb', berlino: 'berlin', zurigo: 'zurich', newyork: 'newyorkCity' };
+  $('btnShareRes').addEventListener('click', async () => {
+    const i = net.results.findIndex(r => r.id === myId);
+    const mine = i >= 0 ? net.results[i] : null;
+    const link = location.origin + location.pathname;
+    const txt = tr('shareResult', {
+      p: mine && mine.ms != null ? (i + 1) + '°' : '…',
+      city: tr(CITY_LABEL[theme] || 'snow'),
+      t: mine && mine.ms != null ? fmtTime(mine.ms) : '—',
+      link
+    });
+    try { if (navigator.share) { await navigator.share({ text: txt }); return; } }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+    window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+  });
 
   function toMenu() {
     net.close();
@@ -2947,6 +2968,18 @@
   }
   setInterval(updateVoiceBtn, 250);
   btnVoice.addEventListener('click', () => voiceButton());
+  $('btnMute').addEventListener('click', () => {
+    if (!voiceFrom) return;
+    mutedIds.add(voiceFrom.id);
+    store.set('cyf.muted', JSON.stringify([...mutedIds].slice(-50)));
+    if (voicePlaying) { try { voicePlaying.pause(); } catch (e) {} }
+    voiceNow.hidden = true;
+    say(tr('mutedToast', { n: voiceFrom.name }), '#13233a');
+  });
+  $('btnReport').addEventListener('click', () => {
+    if (!voiceFrom) return;
+    net.send({ t: 'reportVoice', id: voiceFrom.id });
+  });
   function pickMime() {
     if (!window.MediaRecorder) return '';
     return ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/webm'].find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
@@ -3002,9 +3035,13 @@
     };
     fr.readAsDataURL(blob);
   }
-  let voicePlaying = null;
+  let voicePlaying = null, voiceFrom = null;
+  // giocatori silenziati su questo dispositivo (resta anche dopo la chiusura)
+  const mutedIds = new Set((() => { try { return JSON.parse(store.get('cyf.muted') || '[]'); } catch (e) { return []; } })());
   function playVoice(m) {
     const who = m.name || tr('someone');
+    if (mutedIds.has(m.id)) return;
+    voiceFrom = { id: m.id, name: who };
     if (muted) { say(tr('voiceMuted', { n: who }), '#13233a'); return; }
     try {
       const bin = atob(m.data), bytes = new Uint8Array(bin.length);

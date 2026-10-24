@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.7.0 · aggiornato al 24 ottobre 2026, ore 17:00"
+subtitle: "Versione 0.8.0 · aggiornato al 24 ottobre 2026, ore 17:25"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -30,6 +30,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-005 | Giocabile su PC e su telefono | ott 2026 | Fatto | Sul telefono pulsanti ◀, Salta, ▶ |
 | R-006 | Pulsante per fare una donazione | 24/10/2026 | Fatto | PayPal: paypal.me/Limper17, nella home e nei menu |
 | R-007 | Nella schermata iniziale si sceglie la lingua: italiano, inglese, francese, spagnolo | 24/10/2026 | Fatto | Quattro pulsanti in cima al menu; la scelta resta salvata e parte nella lingua del browser |
+| R-008 | Contatori d'uso per capire quanto viene giocato | 24/10/2026 | Fatto | Il server conta per giorno: gare avviate e finite, corridori, giocatori unici, segnalazioni. Si leggono su /api/stats (ultimi 14 giorni). Niente cookie né dati personali |
 
 # 2. Sfida online
 
@@ -48,6 +49,8 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-111 | Modalità online: senza invitare amici, si entra in una sala pubblica e si aspetta che si colleghino altre persone | 24/10/2026 | Fatto | Pulsante "Gioca online"; con almeno 2 giocatori la gara parte da sola dopo 30 s (prima se tutti premono "Sono pronto") |
 | R-112 | A ogni gara finita si collezionano punti e il gioco se li ricorda | 24/10/2026 | Fatto | 100/70/50 ai primi tre, 30 agli altri arrivati, più i punti rimasti della gara; salvati sul server e mostrati nel menu |
 | R-113 | Spendere i propri punti per far cadere gli altri: bombe, trappole o banane lasciate sulla strada; le banane si possono anche lanciare con un doppio clic sullo schermo | 24/10/2026 | Fatto | Banana 50 punti (tasto B), bomba 150 (tasto N); doppio clic o doppio tocco lancia la banana davanti a te; chi le tocca cade |
+| R-115 | Condividere la sfida e il risultato con gli amici | 24/10/2026 | Fatto | Pulsanti WhatsApp e Telegram nella stanza della sfida; "Condividi" a fine gara con posizione, città e tempo (sul telefono apre il menu di condivisione) |
+| R-116 | Moderazione dei messaggi vocali | 24/10/2026 | Fatto | Sul fumetto "sta parlando" ci sono 🔇 (non senti più quel giocatore, resta salvato sul tuo dispositivo) e ⚠️ (segnala); con 2 segnalazioni da persone diverse il server blocca i vocali del segnalato in quella stanza |
 
 # 3. Guida e acrobazie
 
@@ -129,6 +132,19 @@ Emerse nelle chat precedenti; nessuna è stata ancora approvata.
 | F-09 | Altri mezzi: sci, monopattino, deltaplano | Da confermare |
 | F-10 | Dominio proprio (es. cyfgaming.it) | Da confermare |
 
+# 9. Da fare domani (domenica 25 ottobre)
+
+Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
+
+| ID | Cosa | Chi |
+|---|---|---|
+| D-01 | Provare la v0.8.0 dai telefoni con qualche amico (microfono su iPhone, comandi touch, fluidità) e scrivere a Claude i numeri dei requisiti che vanno bene ("R-303 controllato") | Luigi |
+| D-02 | Leggere il rapporto del primo controllo notturno (parte stasera alle 21:33) | Luigi |
+| D-03 | Comprare il dominio (es. cyfgaming.it, ~10-15 €/anno) e collegarlo: Cloudflare → Workers & Pages → cyf-gaming → Domains. Claude guida se serve | Luigi, ~10 min |
+| D-04 | Decidere le scelte S-01…S-13: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
+| D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione | Claude |
+| D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
+
 # Storico delle versioni
 
 | Versione | Data | Cosa è cambiato |
@@ -138,3 +154,4 @@ Emerse nelle chat precedenti; nessuna è stata ancora approvata.
 | 0.5.0 | 24/10/2026 | Correzione schermate a tinta unita, scenario Roma con Colosseo, skateboard in città, "albero" ovunque, grafica migliorata, file dei requisiti |
 | 0.6.0 | 24/10/2026 | Rider modellato, accelerazione +30%, freccia giù/su, gare a traguardo 5/10/15 min, classifica live, premi, modalità online, punti collezionati, banane e bombe, microfono, 4 lingue, maglie delle città |
 | 0.7.0 | 24/10/2026 | Curve naturali, 10 nuove città dalla tabella di Luigi, stabilità sui salti di posizione, business plan e controllo notturno |
+| 0.8.0 | 24/10/2026 | Contatori d'uso (/api/stats), condivisione su WhatsApp/Telegram e del risultato, silenzia/segnala i vocali con blocco automatico dopo 2 segnalazioni |

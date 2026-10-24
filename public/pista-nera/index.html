@@ -78,8 +78,12 @@
   .mypts { font-size: 17px; font-weight: 700; color: var(--ink); }
   .mypts span { color: var(--flare); }
   @keyframes blink { 50% { opacity: .2; } }
-  .voice-now { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(12,24,40,.78); color: #fff; padding: 6px 12px; border-radius: 999px; font-size: 16px; font-weight: 600; pointer-events: none; white-space: nowrap; }
+  .voice-now { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(12,24,40,.78); color: #fff; padding: 6px 8px 6px 12px; border-radius: 999px; font-size: 16px; font-weight: 600; pointer-events: none; white-space: nowrap; }
   .voice-now i { width: 10px; height: 10px; border-radius: 50%; display: block; animation: blink 0.8s steps(2) infinite; }
+  .voice-now button { pointer-events: auto; border: 0; background: rgba(255,255,255,.18); color: #fff; border-radius: 8px; padding: 2px 8px; font-size: 15px; cursor: pointer; }
+  .share { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  .share.wa { background: #1f8a4c; }
+  .share.tg { background: #2a9ad8; }
   .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; background: var(--snow-deep); padding: 4px; border-radius: 10px; }
   .seg button { font-weight: 700; font-size: 17px; border: 0; border-radius: 7px; padding: 9px 10px; background: transparent; color: var(--ink-soft); }
   .seg4 { grid-template-columns: repeat(4, 1fr); }
@@ -174,7 +178,7 @@
       <button type="button" id="btnBomb" data-i18n-title="bombTitle"><b>💣</b><span>150</span><small class="hide-touch">N</small></button>
     </div>
     <div class="live" id="live" hidden><h4 id="liveTitle"></h4><ol id="liveList"></ol></div>
-    <div class="voice-now" id="voiceNow" hidden><i></i><span><b></b> <span data-i18n="isTalking"></span></span></div>
+    <div class="voice-now" id="voiceNow" hidden><i></i><span><b></b> <span data-i18n="isTalking"></span></span><button type="button" id="btnMute" data-i18n-title="muteTitle">🔇</button><button type="button" id="btnReport" data-i18n-title="reportTitle">⚠️</button></div>
     <div class="banner" id="banner" hidden></div>
 
     <div class="hud">
@@ -285,6 +289,10 @@
             <button class="alt grow" id="btnCopy" data-i18n="copyLink"></button>
           </div>
           <span class="muted" id="linkText" style="word-break:break-all;display:block;margin-top:6px"></span>
+          <div class="row" style="margin-top:8px">
+            <a class="alt grow share wa" id="shareWa" target="_blank" rel="noopener">WhatsApp</a>
+            <a class="alt grow share tg" id="shareTg" target="_blank" rel="noopener">Telegram</a>
+          </div>
         </div>
         <h2 id="lobbyPublic" hidden data-i18n="onlineTitle"></h2>
         <div class="field" id="durBox" style="display:flex;flex-direction:column;gap:4px">
@@ -316,6 +324,7 @@
         <span class="muted" id="resStatus"></span>
         <div class="row">
           <button class="go grow" id="btnRematch" hidden data-i18n="rematch"></button>
+          <button class="alt grow" id="btnShareRes" data-i18n="shareBtn"></button>
           <button class="ghost grow" id="btnResLeave" data-i18n="exit"></button>
         </div>
         <a class="donate" data-donate hidden target="_blank" rel="noopener" data-i18n="donateResults"></a>
