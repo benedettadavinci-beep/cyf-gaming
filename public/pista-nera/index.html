@@ -49,17 +49,42 @@
 
   .vignette { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 55%, rgba(10,22,38,.45) 100%); transition: opacity .3s linear; }
   .sound { position: absolute; right: 10px; bottom: 10px; font-family: var(--body); font-weight: 700; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border-radius: 8px; border: 0; background: rgba(12,24,40,.55); color: #fff; cursor: pointer; }
-  .voice { position: absolute; left: 10px; bottom: 10px; font-family: var(--body); font-weight: 700; font-size: 15px; letter-spacing: .04em; padding: 8px 12px; border-radius: 10px; border: 0; background: rgba(12,24,40,.72); color: #fff; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-  .voice::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--flare); flex: none; }
-  .voice.rec { background: #b3261e; }
-  .voice.rec::before { background: #fff; animation: blink 1s steps(2) infinite; }
-  .voice:disabled { opacity: .65; cursor: default; }
-  .voice:disabled::before { background: rgba(255,255,255,.4); }
+  /* pulsante del microfono: tondo e ben visibile sul lato destro */
+  .voice { position: absolute; right: 12px; bottom: 56px; width: 76px; height: 76px; border-radius: 50%; border: 3px solid #fff; background: var(--flare); color: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; box-shadow: 0 6px 18px rgba(0,0,0,.35); font-family: var(--body); padding: 0; }
+  .voice svg { width: 30px; height: 30px; }
+  .voice span { font-size: 13px; font-weight: 700; letter-spacing: .04em; line-height: 1; }
+  .voice.rec { background: #b3261e; animation: pulse 1s ease-in-out infinite; }
+  .voice:disabled { background: #4a5d76; cursor: default; opacity: .9; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(179,38,30,.25); } }
+  /* classifica dal vivo, in alto a destra */
+  .live { position: absolute; right: 10px; top: 10px; min-width: 190px; max-width: 46%; background: rgba(12,24,40,.68); color: #fff; border-radius: 10px; padding: 6px 8px 7px; font-size: 15px; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .live h4 { margin: 0 0 3px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
+  .live ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .live li { display: grid; grid-template-columns: 1.5em 12px 1fr auto; gap: 6px; align-items: center; }
+  .live li.me { color: #ffb08a; font-weight: 700; }
+  .live .dot { width: 10px; height: 10px; }
+  .live .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .live .gap { opacity: .85; font-size: 14px; }
+  /* banane e bombe */
+  .items { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 8px; }
+  .items button { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 16px; padding: 7px 10px; border-radius: 10px; border: 0; background: rgba(12,24,40,.72); color: #fff; touch-action: manipulation; }
+  .items button b { font-size: 22px; line-height: 1; }
+  .items button small { font-size: 12px; opacity: .8; }
+  .items button:disabled { opacity: .45; }
+  .awards { display: grid; gap: 6px; border-top: 1px solid var(--snow-deep); padding-top: 10px; }
+  .awards div { display: flex; align-items: center; gap: 8px; font-size: 17px; }
+  .awards .k { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); min-width: 9.5em; }
+  .earned { font-weight: 700; color: var(--ok); font-size: 15px; }
+  .mypts { font-size: 17px; font-weight: 700; color: var(--ink); }
+  .mypts span { color: var(--flare); }
   @keyframes blink { 50% { opacity: .2; } }
   .voice-now { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(12,24,40,.78); color: #fff; padding: 6px 12px; border-radius: 999px; font-size: 16px; font-weight: 600; pointer-events: none; white-space: nowrap; }
   .voice-now i { width: 10px; height: 10px; border-radius: 50%; display: block; animation: blink 0.8s steps(2) infinite; }
   .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; background: var(--snow-deep); padding: 4px; border-radius: 10px; }
   .seg button { font-weight: 700; font-size: 17px; border: 0; border-radius: 7px; padding: 9px 10px; background: transparent; color: var(--ink-soft); }
+  .seg4 { grid-template-columns: repeat(4, 1fr); }
+  .seg4 button { font-size: 15px; padding: 7px 4px; }
+  .seg button:disabled { cursor: default; }
   .seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
   .donate { display: block; text-align: center; font-weight: 700; font-size: 16px; color: #b83a0c; text-decoration: none; padding: 8px; border-radius: 10px; border: 2px dashed #ffc2a8; }
   .donate:hover { background: #fff3ee; }
@@ -85,6 +110,8 @@
   label.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
   input[type=text] { font-family: var(--body); font-size: 20px; font-weight: 600; padding: 10px 12px; border-radius: 8px; border: 2px solid var(--snow-deep); background: #fff; color: var(--ink); width: 100%; }
   input[type=text]:focus { outline: none; border-color: var(--ice); }
+  select { font-family: var(--body); font-size: 19px; font-weight: 600; padding: 10px 12px; border-radius: 8px; border: 2px solid var(--snow-deep); background: #fff; color: var(--ink); width: 100%; }
+  select:focus { outline: none; border-color: var(--ice); }
   .row { display: flex; gap: 8px; flex-wrap: wrap; }
   .row > * { min-width: 0; }
   .grow { flex: 1; }
@@ -129,76 +156,119 @@
   .pad button.on { filter: brightness(1.35); }
   @media (pointer: coarse) { .pad { display: flex; } .hide-touch { display: none; } }
   @media (pointer: fine) { .hide-mouse { display: none; } }
+  @media (max-width: 700px) { .live { top: 64px; font-size: 14px; min-width: 150px; } .voice { width: 64px; height: 64px; } }
   @media (max-width: 480px) { .stat .v { font-size: 20px; } .hud { gap: 4px 12px; padding: 8px 10px 14px; } .stat.opt { display: none; } .code { font-size: 32px; } }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="stage" id="stage">
-    <canvas id="game" aria-label="Pista in 3D: neve, Napoli o Roma"></canvas>
+    <canvas id="game" data-i18n-aria="canvasAria" aria-label="Pista in 3D"></canvas>
     <div class="vignette" id="vignette"></div>
     <div class="toasts" id="toasts"></div>
     <div class="count" id="count" hidden></div>
-    <button class="sound" id="btnSound" aria-pressed="true">Audio: sì</button>
-    <button class="voice" id="btnVoice" hidden>Parla</button>
-    <div class="voice-now" id="voiceNow" hidden><i></i><span><b></b> sta parlando…</span></div>
+    <button class="sound" id="btnSound" aria-pressed="true">Audio</button>
+    <button class="voice" id="btnVoice" hidden data-i18n-aria="voiceAria" aria-label="Messaggio vocale"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg><span id="voiceLbl"></span></button>
+    <div class="items" id="items" hidden>
+      <button type="button" id="btnBanana" data-i18n-title="bananaTitle"><b>🍌</b><span>50</span><small class="hide-touch">B</small></button>
+      <button type="button" id="btnBomb" data-i18n-title="bombTitle"><b>💣</b><span>150</span><small class="hide-touch">N</small></button>
+    </div>
+    <div class="live" id="live" hidden><h4 id="liveTitle"></h4><ol id="liveList"></ol></div>
+    <div class="voice-now" id="voiceNow" hidden><i></i><span><b></b> <span data-i18n="isTalking"></span></span></div>
     <div class="banner" id="banner" hidden></div>
 
     <div class="hud">
-      <div class="stat hi"><span class="k" id="k1">Punti</span><span class="v" id="v1">0</span></div>
-      <div class="stat"><span class="k" id="k2">Distanza</span><span class="v" id="v2">0 m</span></div>
-      <div class="stat"><span class="k">Velocità</span><span class="v" id="vSpeed">0 km/h</span></div>
-      <div class="stat opt"><span class="k" id="k4">Quota</span><span class="v" id="v4">2.950 m</span></div>
+      <div class="stat hi"><span class="k" id="k1"></span><span class="v" id="v1">0</span></div>
+      <div class="stat"><span class="k" id="k2"></span><span class="v" id="v2">0 m</span></div>
+      <div class="stat"><span class="k" id="kSpeed"></span><span class="v" id="vSpeed">0 km/h</span></div>
+      <div class="stat opt"><span class="k" id="k4"></span><span class="v" id="v4">2.950 m</span></div>
+      <div class="stat hi" id="sPts" hidden><span class="k" id="k5"></span><span class="v" id="v5">0</span></div>
       <div class="lives" id="hLives"></div>
     </div>
 
     <!-- menu principale -->
     <div class="overlay" id="menu">
       <div class="panel">
+        <div class="seg seg4" role="group" aria-label="Lingua · Language">
+          <button type="button" data-lang="it" aria-pressed="true">Italiano</button>
+          <button type="button" data-lang="en" aria-pressed="false">English</button>
+          <button type="button" data-lang="fr" aria-pressed="false">Français</button>
+          <button type="button" data-lang="es" aria-pressed="false">Español</button>
+        </div>
         <a class="brand" href="/">C-Y-F Gaming · Challenge Your Friends</a>
         <h1>Pista <span>Nera</span></h1>
-        <p>Stessa pista, stesso via: sfida gli amici sui 2.000 metri. Vince il tempo migliore.</p>
-        <label class="field" for="inName">Il tuo nome
-          <input type="text" id="inName" maxlength="16" autocomplete="nickname" placeholder="Es. Luigi">
+        <p data-i18n="menuIntro"></p>
+        <span class="mypts" id="myPts" hidden></span>
+        <label class="field" for="inName"><span data-i18n="yourName"></span>
+          <input type="text" id="inName" maxlength="16" autocomplete="nickname" data-i18n-ph="namePh">
         </label>
         <div class="field" style="display:flex;flex-direction:column;gap:4px">
-          <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Scenario</span>
-          <div class="seg" role="group" aria-label="Scenario">
-            <button type="button" data-scena="neve" aria-pressed="true">Neve</button>
-            <button type="button" data-scena="napoli" aria-pressed="false">Napoli</button>
-            <button type="button" data-scena="roma" aria-pressed="false">Roma</button>
-          </div>
+          <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase" data-i18n="scenario"></span>
+          <select id="selScena" data-i18n-aria="scenario">
+            <option value="neve" data-i18n="snow"></option>
+            <option value="napoli" data-i18n="naples"></option>
+            <option value="roma" data-i18n="rome"></option>
+            <option value="milano" data-i18n="milan"></option>
+            <option value="parigi" data-i18n="paris"></option>
+            <option value="londra" data-i18n="london"></option>
+            <option value="francoforte" data-i18n="frankfurt"></option>
+            <option value="madrid" data-i18n="madrid"></option>
+            <option value="lisbona" data-i18n="lisbon"></option>
+            <option value="zagabria" data-i18n="zagreb"></option>
+            <option value="berlino" data-i18n="berlin"></option>
+            <option value="zurigo" data-i18n="zurich"></option>
+            <option value="newyork" data-i18n="newyorkCity"></option>
+          </select>
         </div>
-        <button class="go" id="btnCreate">Crea una sfida</button>
+        <label class="field" for="selJersey"><span data-i18n="jersey"></span>
+          <select id="selJersey">
+            <option value="" data-i18n="jerseyDefault"></option>
+            <option value="napoli">Napoli · azzurra</option>
+            <option value="roma">Roma · giallorossa</option>
+            <option value="milano-rossonera">Milano · rossonera</option>
+            <option value="milano-nerazzurra">Milano · nerazzurra</option>
+            <option value="torino-granata">Torino · granata</option>
+            <option value="torino-bianconera">Torino · bianconera</option>
+            <option value="palermo">Palermo · rosanero</option>
+            <option value="bologna">Bologna · rossoblù</option>
+          </select>
+        </label>
+        <button class="go" id="btnOnline" data-i18n="playOnline"></button>
+        <button class="alt" id="btnCreate" data-i18n="createChallenge"></button>
         <div class="row">
-          <input type="text" class="grow" id="inCode" maxlength="8" placeholder="Codice sfida" aria-label="Codice sfida" autocapitalize="characters">
-          <button class="alt" id="btnJoin">Entra</button>
+          <input type="text" class="grow" id="inCode" maxlength="8" data-i18n-ph="codePh" data-i18n-aria="codePh" autocapitalize="characters">
+          <button class="alt" id="btnJoin" data-i18n="join"></button>
         </div>
-        <button class="ghost" id="btnSolo">Allenati da solo</button>
+        <button class="ghost" id="btnSolo" data-i18n="practice"></button>
         <span class="err" id="menuErr" hidden></span>
         <details>
-          <summary>Comandi e regole</summary>
+          <summary data-i18n="controlsTitle"></summary>
           <div class="keys hide-touch">
-            <kbd>← →</kbd><span>curva (più curvi, più rallenti)</span>
-            <kbd>↓</kbd><span>ti abbassi sulle ginocchia e vai più veloce</span>
-            <kbd>↑</kbd><span>sposti il peso in avanti e freni</span>
-            <kbd>Spazio</kbd><span>salta: superi le rocce, non gli alberi</span>
-            <kbd>← → in aria</kbd><span>avvitamento (180°, 360°…)</span>
-            <kbd>↑ ↓ in aria</kbd><span>salto mortale avanti / indietro</span>
-            <kbd>niente in aria</kbd><span>il rider afferra la tavola (grab)</span>
-            <kbd>V</kbd><span>in sfida: messaggio vocale (uno ogni 3 minuti)</span>
-            <kbd>M</kbd><span>audio sì/no</span>
+            <kbd>← →</kbd><span data-i18n="kSteer"></span>
+            <kbd>↓</kbd><span data-i18n="kTuck"></span>
+            <kbd>↑</kbd><span data-i18n="kBrake"></span>
+            <kbd data-i18n="kSpaceKey"></kbd><span data-i18n="kJump"></span>
+            <kbd data-i18n="kAirLR"></kbd><span data-i18n="kSpin"></span>
+            <kbd data-i18n="kAirUD"></kbd><span data-i18n="kFlip"></span>
+            <kbd data-i18n="kNothing"></kbd><span data-i18n="kGrab"></span>
+            <kbd>V</kbd><span data-i18n="kVoice"></span>
+            <kbd>B</kbd><span data-i18n="kBanana"></span>
+            <kbd>N</kbd><span data-i18n="kBomb"></span>
+            <kbd data-i18n="kDblClick"></kbd><span data-i18n="kThrow"></span>
+            <kbd>M</kbd><span data-i18n="kAudio"></span>
           </div>
           <div class="keys hide-mouse">
-            <kbd>◀ ▶</kbd><span>curva; in aria avvitamento</span>
-            <kbd>Salta</kbd><span>supera le rocce; tenuto in aria: backflip</span>
-            <kbd>Parla</kbd><span>in sfida: messaggio vocale (uno ogni 3 minuti)</span>
+            <kbd>◀ ▶</kbd><span data-i18n="tSteer"></span>
+            <kbd data-i18n="jump"></kbd><span data-i18n="tJump"></span>
+            <kbd>🎤</kbd><span data-i18n="kVoice"></span>
+            <kbd>🍌 💣</kbd><span data-i18n="tItems"></span>
+            <kbd data-i18n="tDblTap"></kbd><span data-i18n="kThrow"></span>
           </div>
-          <p class="muted" style="margin-top:8px">Atterraggio assistito: poco prima di toccare terra il rider si raddrizza. In sfida le cadute non eliminano: fanno solo perdere tempo. Il tempo lo misura il server, uguale per tutti.</p>
+          <p class="muted" style="margin-top:8px" data-i18n="rulesText"></p>
         </details>
-        <a class="donate" data-donate hidden target="_blank" rel="noopener">Ti piace il gioco? Sostienilo con una donazione</a>
+        <a class="donate" data-donate hidden target="_blank" rel="noopener" data-i18n="donateMenu"></a>
         <div class="board" id="boardBox" hidden>
-          <h3>Migliori tempi · 2.000 m</h3>
+          <h3 data-i18n="boardTitle"></h3>
           <ol id="board"></ol>
         </div>
       </div>
@@ -207,77 +277,89 @@
     <!-- stanza della sfida -->
     <div class="overlay" id="lobby" hidden>
       <div class="panel">
-        <span class="brand">Sfida · Pista Nera</span>
-        <div>
-          <span class="muted">Codice da condividere</span>
+        <span class="brand" id="lobbyBrand"></span>
+        <div id="lobbyShare">
+          <span class="muted" data-i18n="shareCode"></span>
           <div class="code" id="lobbyCode">—</div>
+          <div class="row" style="margin-top:8px">
+            <button class="alt grow" id="btnCopy" data-i18n="copyLink"></button>
+          </div>
+          <span class="muted" id="linkText" style="word-break:break-all;display:block;margin-top:6px"></span>
         </div>
-        <div class="row">
-          <button class="alt grow" id="btnCopy">Copia il link</button>
+        <h2 id="lobbyPublic" hidden data-i18n="onlineTitle"></h2>
+        <div class="field" id="durBox" style="display:flex;flex-direction:column;gap:4px">
+          <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase" id="durLabel"></span>
+          <div class="seg" role="group" data-i18n-aria="durationLabel">
+            <button type="button" data-min="5" aria-pressed="true">5 min</button>
+            <button type="button" data-min="10" aria-pressed="false">10 min</button>
+            <button type="button" data-min="15" aria-pressed="false">15 min</button>
+          </div>
         </div>
-        <span class="muted" id="linkText" style="word-break:break-all"></span>
         <ul class="players" id="lobbyPlayers"></ul>
         <span class="muted" id="lobbyStatus"></span>
         <div class="row">
-          <button class="ghost grow" id="btnReady">Sono pronto</button>
-          <button class="go grow" id="btnGo" hidden>Parti</button>
+          <button class="ghost grow" id="btnReady"></button>
+          <button class="go grow" id="btnGo" hidden data-i18n="goBtn"></button>
         </div>
-        <button class="ghost" id="btnLeave">Esci dalla sfida</button>
+        <button class="ghost" id="btnLeave"></button>
       </div>
     </div>
 
-    <!-- risultati della sfida -->
+    <!-- risultati della gara -->
     <div class="overlay" id="raceResults" hidden>
       <div class="panel">
-        <span class="brand" id="resRound">Risultati</span>
-        <h2>Classifica</h2>
+        <span class="brand" id="resRound"></span>
+        <h2 data-i18n="standings"></h2>
         <ul class="players" id="resList"></ul>
+        <div class="awards" id="awards"></div>
+        <span class="mypts" id="resMine" hidden></span>
         <span class="muted" id="resStatus"></span>
         <div class="row">
-          <button class="go grow" id="btnRematch" hidden>Rivincita</button>
-          <button class="ghost grow" id="btnResLeave">Esci</button>
+          <button class="go grow" id="btnRematch" hidden data-i18n="rematch"></button>
+          <button class="ghost grow" id="btnResLeave" data-i18n="exit"></button>
         </div>
-        <a class="donate" data-donate hidden target="_blank" rel="noopener">Sostieni C-Y-F Gaming con una donazione</a>
+        <a class="donate" data-donate hidden target="_blank" rel="noopener" data-i18n="donateResults"></a>
       </div>
     </div>
 
     <!-- allenamento: fine discesa -->
     <div class="overlay" id="over" hidden>
       <div class="panel">
-        <span class="brand" id="overReason">Fine discesa</span>
-        <h2>Discesa finita</h2>
+        <span class="brand" id="overReason"></span>
+        <h2 data-i18n="runOver"></h2>
         <div class="results">
-          <div><span class="k">Punti</span><span class="v hi" id="rScore">0</span></div>
-          <div><span class="k">Distanza</span><span class="v" id="rDist">0 m</span></div>
-          <div><span class="k">Velocità max</span><span class="v" id="rSpeed">0 km/h</span></div>
-          <div><span class="k">Rotazione migliore</span><span class="v" id="rSpin">—</span></div>
+          <div><span class="k" data-i18n="hudPoints"></span><span class="v hi" id="rScore">0</span></div>
+          <div><span class="k" data-i18n="hudDistance"></span><span class="v" id="rDist">0 m</span></div>
+          <div><span class="k" data-i18n="maxSpeed"></span><span class="v" id="rSpeed">0 km/h</span></div>
+          <div><span class="k" data-i18n="bestSpin"></span><span class="v" id="rSpin">—</span></div>
         </div>
         <span class="muted" id="rBest"></span>
         <div class="row">
-          <button class="go grow" id="btnRetry">Riprova</button>
-          <button class="ghost grow" id="btnMenu">Menu</button>
+          <button class="go grow" id="btnRetry" data-i18n="retry"></button>
+          <button class="ghost grow" id="btnMenu" data-i18n="menu"></button>
         </div>
       </div>
     </div>
 
     <div class="overlay" id="pause" hidden>
       <div class="panel">
-        <h2>Pausa</h2>
-        <p>Premi P o il pulsante per ripartire.</p>
-        <button class="go" id="btnResume">Riprendi</button>
+        <h2 data-i18n="pause"></h2>
+        <p data-i18n="pauseText"></p>
+        <button class="go" id="btnResume" data-i18n="resume"></button>
       </div>
     </div>
 
-    <span class="err" id="glErr" hidden>Questo browser non supporta la grafica 3D (WebGL). Prova con Chrome, Edge o Firefox aggiornati.</span>
+    <span class="err" id="glErr" hidden>Questo browser non supporta la grafica 3D (WebGL) · This browser does not support 3D graphics (WebGL). Chrome, Edge, Firefox.</span>
   </div>
 
   <div class="pad">
-    <button id="tLeft" aria-label="Curva a sinistra">◀</button>
-    <button id="tJump" class="jump">Salta</button>
-    <button id="tRight" aria-label="Curva a destra">▶</button>
+    <button id="tLeft" data-i18n-aria="turnLeft" aria-label="◀">◀</button>
+    <button id="tJump" class="jump" data-i18n="jump"></button>
+    <button id="tRight" data-i18n-aria="turnRight" aria-label="▶">▶</button>
   </div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="/config.js"></script>
 <script src="game.js"></script>

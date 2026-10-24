@@ -28,6 +28,21 @@
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
+  // ---------- lingua (italiano, inglese, francese, spagnolo): testi in i18n.js ----------
+  const DICT = window.CYF_I18N || { it: {} };
+  const LANGS = ['it', 'en', 'fr', 'es'];
+  let lang = (() => {
+    const saved = store.get('cyf.lang');
+    if (LANGS.includes(saved)) return saved;
+    const nav = (navigator.language || 'it').slice(0, 2).toLowerCase();
+    return LANGS.includes(nav) ? nav : 'it';
+  })();
+  function tr(k, v) {
+    let s = (DICT[lang] && DICT[lang][k]) ?? (DICT.it && DICT.it[k]) ?? k;
+    if (v) for (const n in v) s = s.split('{' + n + '}').join(v[n]);
+    return s;
+  }
+  const fmtLen = m => m >= 1000 ? (Math.round(m / 100) / 10).toLocaleString(lang) + ' km' : Math.round(m) + ' m';
   function mulberry32(a) {
     return function () {
       a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -96,7 +111,8 @@
   scene.add(sun, sun.target);
 
   // ---------- terrain ----------
-  const center = z => 14 * Math.sin(z / 170) + 7 * Math.sin(z / 61);
+  // asse della pista: tre onde sovrapposte danno curve ampie e naturali, mai brusche
+  const center = z => 22 * Math.sin(z / 250) + 10 * Math.sin(z / 108) + 4 * Math.sin(z / 46);
   function hgt(x, z) {
     const off = Math.abs(x - center(z));
     const rough = 0.32 + clamp((off - 17) / 12, 0, 1) * 1.4;
@@ -416,6 +432,300 @@
     }
   })();
 
+
+  // --- sfondi lontani delle nuove città: costruiti solo la prima volta che servono ---
+  function skyBase(fn) {
+    const g = new THREE.Group();
+    const mk = c => new THREE.MeshBasicMaterial({ color: lin(c), fog: false });
+    const rr = mulberry32(31);
+    const B = -150;
+    const H = {
+      plain(col, r = 1150) { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 64), mk(col)); m.rotation.x = -Math.PI / 2; m.position.y = B; g.add(m); return m; },
+      ring(cfg) {
+        const walls = cfg.walls.map(mk), roofs = (cfg.roofs || cfg.walls).map(mk);
+        for (let i = 0; i < cfg.n; i++) {
+          const ang = (cfg.a0 ?? -1.55) + rr() * (cfg.span ?? 3.1), R = cfg.r0 + rr() * cfg.rs;
+          if (cfg.avoid && Math.abs(ang - cfg.avoid[0]) < cfg.avoid[1] && R > (cfg.avoid[2] || 0)) continue;
+          const w = 13 + rr() * 20, d = 13 + rr() * 20, h = cfg.h0 + rr() * cfg.hs;
+          const wall = walls[i % walls.length], roof = roofs[i % roofs.length];
+          const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [wall, wall, roof, roof, wall, wall]);
+          b.position.set(Math.sin(ang) * R, B + h / 2, -Math.cos(ang) * R);
+          b.rotation.y = rr() * 1.2;
+          g.add(b);
+        }
+      },
+      hills(cols, r0 = 980, snow) {
+        for (let i = 0; i < 13; i++) {
+          const ang = -1.55 + i * 0.26 + rr() * 0.1, R = r0 + rr() * 90;
+          const h = 46 + rr() * 72, r = 160 + rr() * 120;
+          const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 8, 0, TAU, 0, Math.PI / 2), mk(cols[i % cols.length]));
+          m.scale.y = h / r;
+          m.position.set(Math.sin(ang) * R, B, -Math.cos(ang) * R);
+          g.add(m);
+          if (snow) { const cap = new THREE.Mesh(new THREE.SphereGeometry(r * 0.45, 12, 6, 0, TAU, 0, Math.PI / 2), mk('#eef4fa')); cap.scale.y = h * 0.5 / (r * 0.45); cap.position.set(m.position.x, B + h * 0.52, m.position.z); g.add(cap); }
+        }
+      },
+      at(ang, R, obj, s = 1) { obj.position.set(Math.sin(ang) * R, B, -Math.cos(ang) * R); if (s !== 1) obj.scale.multiplyScalar(s); obj.rotation.y = -ang * 0.5; g.add(obj); return obj; },
+      grp() { return new THREE.Group(); },
+      box(gr, w, h, d, col, x = 0, y0 = 0, z = 0, ry = 0) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mk(col)); m.position.set(x, y0 + h / 2, z); m.rotation.y = ry; gr.add(m); return m; },
+      cyl(gr, r1, r2, h, col, x = 0, y0 = 0, z = 0, seg = 14) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, seg), mk(col)); m.position.set(x, y0 + h / 2, z); gr.add(m); return m; },
+      cone(gr, r, h, col, x = 0, y0 = 0, z = 0, seg = 10) { const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, seg), mk(col)); m.position.set(x, y0 + h / 2, z); gr.add(m); return m; },
+      sph(gr, r, col, x = 0, y = 0, z = 0, half = false) { const m = new THREE.Mesh(half ? new THREE.SphereGeometry(r, 16, 9, 0, TAU, 0, Math.PI / 2) : new THREE.SphereGeometry(r, 16, 10), mk(col)); m.position.set(x, y, z); gr.add(m); return m; },
+      mk, rr
+    };
+    fn(g, H, B, rr);
+    return g;
+  }
+  const SKY_BUILDERS = {
+    milano: () => skyBase((g, H) => {
+      H.plain('#b2aca0');
+      H.hills(['#c2ccd6', '#ccd6de'], 1010, true);   // Alpi lontane
+      H.ring({ n: 130, r0: 330, rs: 480, h0: 12, hs: 24, walls: ['#ddd2bc', '#d2c0a2', '#c8b89e', '#e2d8c4'], roofs: ['#7d8287'], avoid: [0.1, 0.3, 380] });
+      const duomo = H.grp();
+      H.box(duomo, 92, 36, 60, '#e8e2d2');
+      H.box(duomo, 60, 14, 58, '#e8e2d2', 0, 36);
+      for (let i = -4; i <= 4; i++) { H.cone(duomo, 2.2, 16, '#f0ead8', i * 10, 36 + (Math.abs(i) < 2 ? 14 : 4), 29); H.cone(duomo, 2.2, 16, '#f0ead8', i * 10, 36 + (Math.abs(i) < 2 ? 14 : 4), -29); }
+      H.cone(duomo, 3, 24, '#f0ead8', 0, 50);
+      H.sph(duomo, 2, '#e8c33c', 0, 77);
+      H.at(0.08, 560, duomo);
+      const tw = H.grp();   // grattacieli di Porta Nuova e CityLife
+      H.box(tw, 26, 150, 26, '#7a93a8', 0);
+      for (let i = 0; i < 6; i++) H.box(tw, 24 - i * 1.5, 22, 24 - i * 1.5, '#8aa2b4', 55, i * 22, 10, i * 0.14);   // torre "storta"
+      H.box(tw, 22, 115, 22, '#90a8ba', -55, 0, 20);
+      H.box(tw, 18, 92, 18, '#6a8296', 100, 0, 30);
+      H.cyl(tw, 1, 1, 36, '#9aa4ae', 0, 150);
+      H.at(-0.55, 720, tw);
+    }),
+    parigi: () => skyBase((g, H) => {
+      H.plain('#b0a48e');
+      H.ring({ n: 150, r0: 320, rs: 520, h0: 13, hs: 15, walls: ['#ddd2bc', '#d8cbb2', '#d2c6ae', '#e2d8c4'], roofs: ['#6a7078'], avoid: [-0.25, 0.3, 380] });
+      const eiffel = H.grp();
+      H.cyl(eiffel, 16, 40, 52, '#5a4636', 0, 0, 0, 4);
+      H.box(eiffel, 44, 5, 44, '#5a4636', 0, 50);
+      H.cyl(eiffel, 7, 15, 50, '#5a4636', 0, 55, 0, 4);
+      H.box(eiffel, 20, 4, 20, '#5a4636', 0, 103);
+      H.cyl(eiffel, 1.6, 6.5, 62, '#5a4636', 0, 107, 0, 4);
+      H.box(eiffel, 7, 4, 7, '#5a4636', 0, 167);
+      H.cyl(eiffel, 0.7, 0.7, 16, '#5a4636', 0, 171);
+      H.at(-0.25, 640, eiffel);
+      const sacre = H.grp();   // Sacré-Cœur sulla collina
+      H.sph(sacre, 36, '#8a9478', 0, 0, 0, true);
+      H.cyl(sacre, 9, 10, 20, '#f0ece0', 0, 30);
+      H.sph(sacre, 10, '#e8e4d8', 0, 55, 0, true);
+      for (const dx of [-15, 15]) { H.cyl(sacre, 4.5, 5, 14, '#f0ece0', dx, 28, 2); H.sph(sacre, 5, '#e8e4d8', dx, 44, 2, true); }
+      H.box(sacre, 7, 26, 7, '#f0ece0', 24, 26, -4);
+      H.at(0.6, 700, sacre);
+      const arc = H.grp();
+      H.box(arc, 9, 22, 10, '#d8cdb8', -9.5);
+      H.box(arc, 9, 22, 10, '#d8cdb8', 9.5);
+      H.box(arc, 28, 7, 10, '#d8cdb8', 0, 22);
+      H.box(arc, 24, 3, 8, '#cfc3aa', 0, 29);
+      H.at(0.18, 470, arc);
+    }),
+    londra: () => skyBase((g, H) => {
+      H.plain('#58707e');   // il Tamigi
+      H.ring({ n: 130, r0: 350, rs: 500, h0: 11, hs: 16, walls: ['#9a6a4e', '#8a5a40', '#b08060', '#a89a88'], roofs: ['#55585c'], avoid: [0.0, 0.42, 340] });
+      const ben = H.grp();
+      H.box(ben, 70, 20, 26, '#c8b488', -52, 0);
+      H.box(ben, 13, 78, 13, '#c8b488');
+      H.box(ben, 15, 12, 15, '#b8a478', 0, 78);
+      for (const [dx, dz] of [[0, 7.6], [0, -7.6], [7.6, 0], [-7.6, 0]]) H.cyl(ben, 4.2, 4.2, 1.5, '#f4f0e2', dx, 83, dz, 16).rotation.x = dz ? Math.PI / 2 : 0, H.mk;
+      H.cone(ben, 9, 18, '#55585c', 0, 90, 0, 4);
+      H.at(-0.38, 620, ben);
+      const eye = H.grp();
+      const wheel = new THREE.Mesh(new THREE.TorusGeometry(40, 2.2, 8, 36), H.mk('#d8dde2'));
+      wheel.position.y = 48; eye.add(wheel);
+      for (let i = 0; i < 8; i++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(1.2, 78, 1.2), H.mk('#c2c8ce')); sp.position.y = 48; sp.rotation.z = i * Math.PI / 8; eye.add(sp); }
+      for (let i = 0; i < 12; i++) { const a = i * TAU / 12; H.sph(eye, 2.6, '#8a9aa6', Math.cos(a) * 40, 48 + Math.sin(a) * 40, 0); }
+      H.cone(eye, 2.5, 46, '#9aa4ae', 8, 0, 1, 4);
+      H.cone(eye, 2.5, 46, '#9aa4ae', -8, 0, 1, 4);
+      H.at(0.3, 680, eye);
+      const bridge = H.grp();
+      for (const dx of [-42, 42]) { H.box(bridge, 15, 50, 13, '#d8d2c2', dx); H.cone(bridge, 9, 13, '#55789a', dx, 50, 0, 4); }
+      H.box(bridge, 130, 5, 10, '#55789a', 0, 16);
+      H.box(bridge, 68, 3.5, 8, '#d8d2c2', 0, 42);
+      H.at(0.02, 760, bridge);
+      const shard = H.grp();
+      H.cone(shard, 15, 112, '#9fb6c6', 0, 0, 0, 4);
+      H.at(0.62, 820, shard);
+    }),
+    francoforte: () => skyBase((g, H) => {
+      H.plain('#9aa08e');
+      H.ring({ n: 110, r0: 330, rs: 420, h0: 9, hs: 10, walls: ['#efe8da', '#e8dcc8', '#e2d4ba'], roofs: ['#6a4a3a'], avoid: [0.05, 0.35, 360] });
+      const sky = H.grp();   // lo skyline dei grattacieli
+      const tints = ['#6a8296', '#7a93a8', '#90a8ba', '#86a0b2'];
+      for (let i = 0; i < 9; i++) H.box(sky, 16 + (i % 3) * 5, 62 + (i * 37) % 92, 16 + (i % 2) * 6, tints[i % 4], -90 + i * 23, 0, (i % 3) * 18 - 12);
+      H.box(sky, 20, 148, 20, '#5f7a90', 10, 0, 6);
+      H.cyl(sky, 0.8, 0.8, 42, '#9aa4ae', 10, 148, 6);
+      H.at(0.05, 660, sky);
+      const dom = H.grp();   // la torre del Kaiserdom
+      H.box(dom, 15, 56, 15, '#9a4a34');
+      H.cyl(dom, 7.5, 9.5, 12, '#8a3f2c', 0, 56, 0, 8);
+      H.cone(dom, 7, 20, '#7a3426', 0, 68, 0, 8);
+      H.at(-0.45, 520, dom);
+    }),
+    madrid: () => skyBase((g, H) => {
+      H.plain('#c0a878');
+      H.hills(['#8a9aa8', '#9aacb8'], 1000, true);   // la sierra
+      H.ring({ n: 120, r0: 330, rs: 460, h0: 12, hs: 18, walls: ['#d8a878', '#c08a5c', '#e2c8a4', '#d2b490'], roofs: ['#8a5a3c'], avoid: [-0.1, 0.3, 360] });
+      const pal = H.grp();   // Palazzo Reale
+      H.box(pal, 110, 26, 36, '#ddd6c6');
+      H.box(pal, 114, 3, 40, '#cfc8b6', 0, 26);
+      for (let i = -5; i <= 5; i++) H.box(pal, 2.2, 22, 2, '#c8c0ac', i * 9, 2, 19);
+      H.sph(pal, 7, '#8a9496', 0, 32, 0, true);
+      H.at(-0.6, 560, pal);
+      const puerta = H.grp();
+      H.box(puerta, 46, 20, 9, '#d8cdb4');
+      for (const dx of [-15, -5, 5, 15]) H.cyl(puerta, 1.6, 1.6, 18, '#c8bda2', dx, 1, 5);
+      H.box(puerta, 20, 6, 8, '#d8cdb4', 0, 20);
+      H.at(0.22, 480, puerta);
+      const torres = H.grp();
+      for (let i = 0; i < 4; i++) H.box(torres, 15, 115 + (i % 2) * 28, 15, ['#7a93a8', '#90a8ba', '#86a0b2', '#9fb6c6'][i], i * 24 - 36, 0, (i % 2) * 14);
+      H.at(0.55, 840, torres);
+    }),
+    lisbona: () => skyBase((g, H) => {
+      H.plain('#4a7a9a');   // il Tago
+      H.ring({ n: 120, r0: 330, rs: 420, h0: 10, hs: 14, walls: ['#efe4ce', '#e8d2b4', '#e2c0a4', '#d8e2e4'], roofs: ['#b4603f'], avoid: [0.15, 0.4, 420] });
+      H.hills(['#a8a090', '#b0a898'], 990);
+      const ponte = H.grp();   // il ponte 25 de Abril
+      for (const dx of [-80, 80]) {
+        H.box(ponte, 4, 86, 4, '#b43a2a', dx, 0, 5);
+        H.box(ponte, 4, 86, 4, '#b43a2a', dx, 0, -5);
+        H.box(ponte, 12, 4, 12, '#b43a2a', dx, 40);
+        H.box(ponte, 12, 4, 12, '#b43a2a', dx, 80);
+      }
+      H.box(ponte, 300, 4.5, 14, '#a83626', 0, 42);
+      for (const s of [-1, 1]) {
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(76, 1.6, 1.6), H.mk('#8a9296'));
+        cab.position.set(s * 118, 68, 5); cab.rotation.z = s * -0.32; ponte.add(cab);
+        const cab2 = cab.clone(); cab2.position.z = -5; ponte.add(cab2);
+        const mid = new THREE.Mesh(new THREE.BoxGeometry(82, 1.6, 1.6), H.mk('#8a9296'));
+        mid.position.set(s * 40, 74, 5); mid.rotation.z = s * 0.18; ponte.add(mid);
+        const mid2 = mid.clone(); mid2.position.z = -5; ponte.add(mid2);
+      }
+      H.at(0.15, 780, ponte);
+      const cristo = H.grp();
+      H.box(cristo, 9, 46, 9, '#d8d2c4');
+      H.box(cristo, 5, 14, 4, '#e8e2d4', 0, 46);
+      H.box(cristo, 17, 2.6, 3, '#e8e2d4', 0, 54);
+      H.sph(cristo, 1.8, '#e8e2d4', 0, 62);
+      H.at(0.55, 700, cristo);
+      const castle = H.grp();
+      H.sph(castle, 40, '#8a9478', 0, 0, 0, true);
+      for (let i = 0; i < 5; i++) H.box(castle, 7, 10, 7, '#c8bda4', -16 + i * 8, 26 + (i % 2) * 2);
+      H.at(-0.55, 560, castle);
+    }),
+    zagabria: () => skyBase((g, H) => {
+      H.plain('#aab2a0');
+      H.hills(['#7a8a6a', '#8a9a78'], 940);   // la Medvednica
+      H.ring({ n: 110, r0: 320, rs: 430, h0: 11, hs: 15, walls: ['#e8dcc8', '#e2d0b4', '#d8c8ac', '#e8e0d0'], roofs: ['#8a4a3a'], avoid: [0.0, 0.3, 340] });
+      const cat = H.grp();   // la cattedrale con le due guglie
+      H.box(cat, 30, 26, 40, '#e8e2d2', 0, 0, -6);
+      for (const dx of [-9, 9]) { H.box(cat, 9, 56, 9, '#efe8da', dx, 0, 12); H.cone(cat, 6, 26, '#d8d2c2', dx, 56, 12, 8); }
+      H.at(0.0, 540, cat);
+      const marco = H.grp();   // San Marco con il tetto a scacchi colorati
+      H.box(marco, 30, 13, 20, '#e8e2d4');
+      const c = document.createElement('canvas'); c.width = 64; c.height = 32;
+      const mg = c.getContext('2d');
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 8; x++) { mg.fillStyle = (x + y) % 2 ? '#b43a2a' : '#e8e2d4'; mg.fillRect(x * 8, y * 8, 8, 8); }
+      mg.fillStyle = '#3a5fa8'; mg.fillRect(24, 4, 16, 22);
+      const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
+      const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 14, 10, 4, 1), new THREE.MeshBasicMaterial({ map: tex, fog: false }));
+      roof.position.y = 18; roof.rotation.y = Math.PI / 4; roof.scale.z = 0.72; marco.add(roof);
+      H.box(marco, 6, 24, 6, '#efe8da', 20, 0, -2);
+      H.cone(marco, 4, 12, '#4a7a5a', 20, 24, -2, 8);
+      H.at(-0.42, 440, marco);
+    }),
+    berlino: () => skyBase((g, H) => {
+      H.plain('#9aa0a0');
+      H.ring({ n: 120, r0: 330, rs: 480, h0: 13, hs: 17, walls: ['#c8c2b4', '#b8ac9c', '#cfc8ba', '#a8a096'], roofs: ['#6d7276'], avoid: [0.0, 0.3, 360] });
+      const tor = H.grp();   // la Porta di Brandeburgo
+      H.box(tor, 52, 4, 14, '#cfc7b4');
+      for (let i = 0; i < 6; i++) H.cyl(tor, 2.1, 2.3, 20, '#c8bda2', -21 + i * 8.4, 4);
+      H.box(tor, 54, 7, 15, '#cfc7b4', 0, 24);
+      H.box(tor, 30, 5, 12, '#c8bda2', 0, 31);
+      H.box(tor, 12, 4.5, 5, '#3f6b4a', 0, 36);
+      H.at(-0.2, 500, tor);
+      const tv = H.grp();   // il Fernsehturm
+      H.cyl(tv, 2.6, 5, 150, '#c8ccd2');
+      H.sph(tv, 13, '#b8c2cc', 0, 155);
+      H.cyl(tv, 0.9, 0.9, 40, '#c4372b', 0, 166);
+      H.at(0.35, 700, tv);
+      const reich = H.grp();
+      H.box(reich, 58, 22, 38, '#b8b2a4');
+      for (const [dx, dz] of [[-26, 16], [26, 16], [-26, -16], [26, -16]]) H.box(reich, 8, 27, 8, '#aca698', dx, 0, dz);
+      H.sph(reich, 11, '#9fc2d8', 0, 22, 0, true);
+      H.at(0.08, 620, reich);
+      for (let i = 0; i < 6; i++) {   // tratti del Muro dipinti
+        const m = new THREE.Mesh(new THREE.BoxGeometry(16, 6, 1.2), H.mk(['#d8403a', '#2f8fd0', '#e8c33c', '#7fb043', '#b05ad0', '#e8e8e8'][i]));
+        H.at(-0.75 + i * 0.05, 390 + i * 8, (() => { const gr = H.grp(); gr.add(m); m.position.y = 3; return gr; })());
+      }
+    }),
+    zurigo: () => skyBase((g, H) => {
+      H.plain('#3f7a9a');   // il lago
+      H.hills(['#b8c6d2', '#c6d2dc'], 960, true);   // Alpi innevate
+      H.ring({ n: 110, r0: 330, rs: 400, h0: 10, hs: 13, walls: ['#e2d8c4', '#d8c8b0', '#e8e0d0', '#cfc0a8'], roofs: ['#7a4a3a'], avoid: [0.1, 0.3, 360] });
+      const gm = H.grp();   // il Grossmünster
+      H.box(gm, 26, 20, 34, '#d2c8b4', 0, 0, -4);
+      for (const dx of [-8, 8]) {
+        H.box(gm, 9, 42, 9, '#c8beac', dx, 0, 8);
+        H.cyl(gm, 5.5, 6.5, 6, '#b8ae9a', dx, 42, 8, 8);
+        H.sph(gm, 5, '#7a8a96', dx, 51, 8, true);
+        H.cone(gm, 1, 6, '#5f6b76', dx, 54, 8, 6);
+      }
+      H.at(0.12, 500, gm);
+      const fm = H.grp();
+      H.box(fm, 12, 26, 12, '#e2d8c4');
+      H.cone(fm, 7, 30, '#4a8a7a', 0, 26, 0, 8);
+      H.at(-0.25, 460, fm);
+    }),
+    newyork: () => skyBase((g, H) => {
+      H.plain('#4a6a80');
+      const sky = H.grp();   // Manhattan
+      const tints = ['#6a7686', '#7a8696', '#5f6b7a', '#8692a0', '#737f8e'];
+      for (let i = 0; i < 16; i++) H.box(sky, 15 + (i % 4) * 5, 55 + (i * 43) % 130, 15 + (i % 3) * 6, tints[i % 5], -140 + i * 19, 0, ((i * 7) % 40) - 20);
+      H.box(sky, 26, 120, 26, '#7a8696', 24, 0, 8);   // Empire State a gradoni
+      H.box(sky, 19, 36, 19, '#8692a0', 24, 120, 8);
+      H.box(sky, 11, 22, 11, '#9aa4b0', 24, 156, 8);
+      H.cyl(sky, 0.9, 2, 30, '#b8c2cc', 24, 178, 8);
+      H.box(sky, 20, 112, 20, '#8a96a4', -52, 0, -14);   // il grattacielo con la corona
+      for (let i = 0; i < 4; i++) H.cyl(sky, 9 - i * 2, 10 - i * 2.2, 9, '#b8c2cc', -52, 112 + i * 8, -14, 12);
+      H.cyl(sky, 0.7, 0.7, 22, '#b8c2cc', -52, 146, -14);
+      H.at(0.12, 760, sky);
+      const lib = H.grp();   // la Statua della Libertà
+      H.cyl(lib, 16, 18, 8, '#8a9478', 0, 0);
+      H.box(lib, 13, 20, 13, '#b8a890', 0, 8);
+      H.cyl(lib, 4.5, 6, 24, '#5f9a84', 0, 28, 0, 10);
+      H.sph(lib, 3.2, '#5f9a84', 0, 55);
+      H.cone(lib, 4.5, 4, '#4f8a74', 0, 58, 0, 7);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.5, 16, 8), H.mk('#5f9a84'));
+      arm.position.set(5.5, 58, 0); arm.rotation.z = -0.5; lib.add(arm);
+      H.sph(lib, 2, '#e8c33c', 9.5, 67);
+      H.at(-0.5, 620, lib);
+      const bb = H.grp();   // il ponte di Brooklyn
+      for (const dx of [-55, 55]) { H.box(bb, 14, 56, 9, '#b0a896', dx); H.cone(bb, 5, 10, '#a09884', dx, 56, 0, 4); }
+      H.box(bb, 210, 4, 11, '#8a8478', 0, 24);
+      for (const s of [-1, 1]) {
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(110, 1.4, 1.4), H.mk('#d8d2c2'));
+        cab.position.set(s * 100, 44, 0); cab.rotation.z = s * -0.3; bb.add(cab);
+        const mid = new THREE.Mesh(new THREE.BoxGeometry(60, 1.4, 1.4), H.mk('#d8d2c2'));
+        mid.position.set(s * 28, 48, 0); mid.rotation.z = s * 0.2; bb.add(mid);
+      }
+      H.at(0.62, 820, bb);
+    })
+  };
+  const builtSky = { napoli: bay, roma: rome };
+  function skylineFor(name) {
+    if (!builtSky[name]) {
+      if (!SKY_BUILDERS[name]) return null;
+      const g = SKY_BUILDERS[name]();
+      g.visible = false;
+      scene.add(g);
+      builtSky[name] = g;
+    }
+    return builtSky[name];
+  }
+
   // ---------- shared geometry ----------
   function merge(parts) {
     const pos = [], nor = [], col = [];
@@ -618,7 +928,582 @@
     { geo: new THREE.CylinderGeometry(0.18, 0.18, 0.06, 10), color: '#cfc3ab', y: 0.03 }
   ]);
   // facciate: una texture per colore, finestre con persiane verdi e balconcini
-  // Napoli: persiane verdi e balconcini in ferro. Roma: finestre con cornici di travertino e timpani.
+  // ---------- altre città (dalla tabella di Luigi: CYF-elementi-per-citta.xlsx) ----------
+  // Ogni città cambia solo l'aspetto: gli ingombri di ostacoli, bonus, rampe e porte
+  // restano quelli della neve, così la pista e i tempi sono uguali ovunque.
+
+  // --- fondi stradali ---
+  const paveTexture = cfg => groundCanvas(g => {
+    const rr = mulberry32(cfg.seed);
+    g.fillStyle = cfg.joint; g.fillRect(0, 0, 512, 512);
+    const S = cfg.size;
+    for (let row = 0; row < 512 / S; row++) {
+      const shift = row % 2 ? S / 2 : 0;
+      for (let x = -S; x < 512 + S; x += S) {
+        const base = cfg.tones[Math.floor(rr() * cfg.tones.length)];
+        const w = (rr() - 0.5) * 8;
+        g.fillStyle = 'rgb(' + (base[0] + w) + ',' + (base[1] + w) + ',' + (base[2] + w) + ')';
+        const x0 = x + shift + 1 + rr() * 0.8, y0 = row * S + 1 + rr() * 0.8;
+        g.fillRect(x0, y0, S - 2.2, S - 2.2);
+        g.fillStyle = 'rgba(255,255,255,0.09)'; g.fillRect(x0, y0, S - 2.2, 1.3);
+        g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(x0, y0 + S - 3.2, S - 2.2, 1.2);
+      }
+    }
+    if (cfg.rails) {   // una coppia di rotaie del tram per piastrella (8 m)
+      for (const rx of [196, 290]) {
+        g.fillStyle = '#3a3b3d'; g.fillRect(rx - 5, 0, 10, 512);
+        g.fillStyle = '#9ba2a8'; g.fillRect(rx - 2, 0, 4, 512);
+      }
+    }
+  });
+  const asphaltTexture = cfg => groundCanvas(g => {
+    const rr = mulberry32(cfg.seed);
+    g.fillStyle = cfg.base; g.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 2600; i++) { g.fillStyle = rr() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.10)'; g.fillRect(rr() * 512, rr() * 512, 1.3, 1.3); }
+    for (let i = 0; i < 7; i++) { g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(rr() * 512, rr() * 512, 20 + rr() * 60, 8 + rr() * 20); }   // rattoppi
+    if (cfg.lines) {   // doppia linea gialla per piastrella
+      g.fillStyle = cfg.lines;
+      g.fillRect(242, 0, 8, 512); g.fillRect(262, 0, 8, 512);
+    }
+    if (cfg.manholes) for (const [mx, my] of [[120, 130], [390, 360]]) {
+      g.fillStyle = '#17181a'; g.beginPath(); g.arc(mx, my, 20, 0, TAU); g.fill();
+      g.strokeStyle = '#3c3f43'; g.lineWidth = 3; g.stroke();
+      g.beginPath(); g.arc(mx, my, 13, 0, TAU); g.stroke();
+    }
+    if (cfg.wet) { g.fillStyle = 'rgba(190,210,225,0.07)'; for (let i = 0; i < 14; i++) g.fillRect(rr() * 512, rr() * 512, 30 + rr() * 90, 10 + rr() * 30); }
+  });
+  const slabTexture = cfg => groundCanvas(g => {
+    const rr = mulberry32(cfg.seed);
+    g.fillStyle = '#6f6c66'; g.fillRect(0, 0, 512, 512);
+    const H = 64, W = 128;
+    for (let row = 0; row < 512 / H; row++) {
+      const shift = row % 2 ? W / 2 : 0;
+      for (let x = -W; x < 512 + W; x += W) {
+        const v = cfg.v0 + Math.floor(rr() * 20);
+        g.fillStyle = 'rgb(' + v + ',' + (v - 2) + ',' + (v - 6) + ')';
+        g.fillRect(x + shift + 2, row * H + 2, W - 4, H - 4);
+        g.fillStyle = 'rgba(255,255,255,0.07)'; g.fillRect(x + shift + 2, row * H + 2, W - 4, 2.5);
+        for (let k = 0; k < 8; k++) { g.fillStyle = 'rgba(0,0,0,0.07)'; g.fillRect(x + shift + 4 + rr() * (W - 8), row * H + 4 + rr() * (H - 8), 2, 2); }
+      }
+    }
+  });
+  // calçada portoghese: mosaico bianco con onde nere (e rotaie del tram)
+  const calcadaTexture = () => groundCanvas(g => {
+    const rr = mulberry32(77);
+    g.fillStyle = '#cfc7b4'; g.fillRect(0, 0, 512, 512);
+    const S = 10;
+    for (let y = 0; y < 512; y += S) for (let x = 0; x < 512; x += S) {
+      const cx = x + S / 2, wave = Math.sin((y + 40 * Math.sin(x / 90)) / 46);
+      const dark = Math.abs(wave) < 0.3;
+      const v = dark ? 56 + rr() * 22 : 212 + rr() * 30;
+      g.fillStyle = 'rgb(' + v + ',' + (v - 4) + ',' + (v - 10) + ')';
+      g.fillRect(x + 0.8, y + 0.8, S - 1.6, S - 1.6);
+    }
+    for (const rx of [196, 290]) { g.fillStyle = '#4a4b4d'; g.fillRect(rx - 5, 0, 10, 512); g.fillStyle = '#a6aaae'; g.fillRect(rx - 2, 0, 4, 512); }
+  });
+
+  // --- alberi e pali alti (prendono il posto dell'abete: fusto ≈ 0,8 m, alto ≈ 5,5 m) ---
+  function genTree(cfg) {
+    const rr = mulberry32(cfg.seed || 7);
+    const parts = [];
+    const h = cfg.h || 4.1;
+    for (let i = 0; i < 5; i++) parts.push({ geo: new THREE.CylinderGeometry(0.15 - i * 0.013, 0.18 - i * 0.013, h / 5 + 0.12, 8), color: i % 2 ? cfg.trunk : (cfg.trunk2 || cfg.trunk), y: h / 10 + i * h / 5 });
+    const n = cfg.blobs || 7;
+    for (let i = 0; i < n; i++) {
+      const a = i * TAU / n + rr() * 0.5, d = i ? 0.6 + rr() * 0.55 : 0;
+      const r = cfg.r * (0.75 + rr() * 0.4);
+      parts.push({ geo: new THREE.SphereGeometry(r, 10, 7), color: cfg.cols[i % cfg.cols.length], x: Math.cos(a) * d, y: h + (rr() - 0.3) * 0.9, z: Math.sin(a) * d });
+    }
+    if (cfg.dots) for (let i = 0; i < 24; i++) { const a = rr() * TAU, d = rr() * cfg.r * 1.25; parts.push({ geo: new THREE.SphereGeometry(0.08, 6, 5), color: cfg.dots, x: Math.cos(a) * d, y: h + 0.1 + rr() * 1.3, z: Math.sin(a) * d }); }
+    return merge(parts);
+  }
+  function genLamp(cfg) {
+    const parts = [
+      { geo: new THREE.CylinderGeometry(0.22, 0.3, 0.45, 10), color: cfg.pole, y: 0.22 },
+      { geo: new THREE.CylinderGeometry(0.06, 0.1, 4.7, 8), color: cfg.pole, y: 2.8 }
+    ];
+    if (cfg.kind === 'gas') {
+      parts.push({ geo: new THREE.BoxGeometry(0.34, 0.46, 0.34), color: cfg.lamp, y: 5.35 });
+      parts.push({ geo: new THREE.ConeGeometry(0.33, 0.26, 4), color: cfg.pole, y: 5.7, ry: Math.PI / 4 });
+      parts.push({ geo: new THREE.SphereGeometry(0.05, 6, 5), color: cfg.pole, y: 5.86 });
+    } else {   // braccio curvo con lampada a goccia (New York)
+      parts.push({ geo: new THREE.TorusGeometry(0.72, 0.045, 8, 14, Math.PI / 2), color: cfg.pole, x: -0.72, y: 5.15 });
+      parts.push({ geo: new THREE.SphereGeometry(0.17, 10, 8), color: cfg.lamp, sx: 1, sy: 1.35, sz: 1, x: -1.42, y: 4.98 });
+    }
+    return merge(parts);
+  }
+  // colonna Morris parigina: corpo verde scuro, fascia per i manifesti, cupola
+  function morrisColumn() {
+    const parts = [
+      { geo: new THREE.CylinderGeometry(0.72, 0.78, 0.3, 14), color: '#2c3a2e', y: 0.15 },
+      { geo: new THREE.CylinderGeometry(0.6, 0.62, 3.5, 14), color: '#35472f', y: 2.05 },
+      { geo: new THREE.CylinderGeometry(0.63, 0.63, 2.0, 14), color: '#d9cbb2', y: 2.1 }
+    ];
+    for (let i = 0; i < 3; i++) parts.push({ geo: new THREE.BoxGeometry(0.02, 1.5, 0.7), color: ['#b33a3a', '#2f5f8f', '#caa23c'][i], x: Math.cos(i * TAU / 3) * 0.635, y: 2.1, z: Math.sin(i * TAU / 3) * 0.635, ry: -i * TAU / 3 + Math.PI / 2 });
+    parts.push({ geo: new THREE.CylinderGeometry(0.72, 0.6, 0.22, 14), color: '#2c3a2e', y: 3.95 });
+    parts.push({ geo: new THREE.SphereGeometry(0.58, 14, 8, 0, TAU, 0, Math.PI / 2), color: '#35472f', sx: 1, sy: 0.75, sz: 1, y: 4.05 });
+    parts.push({ geo: new THREE.SphereGeometry(0.1, 8, 6), color: '#2c3a2e', y: 4.62 });
+    return merge(parts);
+  }
+
+  // --- ostacoli bassi (prendono il posto della roccia: raggio ≈ 1,1 m, alto ≈ 0,75 m) ---
+  const lowGeos = {
+    panettone: () => merge([
+      { geo: new THREE.CylinderGeometry(0.88, 0.95, 0.18, 16), color: '#8f949a', y: 0.09 },
+      { geo: new THREE.SphereGeometry(0.85, 16, 10, 0, TAU, 0, Math.PI / 2), color: '#aab0b6', sx: 1, sy: 0.75, sz: 1, y: 0.16 }
+    ]),
+    planterStone: () => {
+      const parts = [
+        { geo: new THREE.CylinderGeometry(0.92, 0.82, 0.5, 14), color: '#b9b2a4', y: 0.25 },
+        { geo: new THREE.TorusGeometry(0.9, 0.07, 8, 16).rotateX(Math.PI / 2), color: '#c8c2b4', y: 0.52 },
+        { geo: new THREE.SphereGeometry(0.72, 12, 8, 0, TAU, 0, Math.PI / 2), color: '#3f6b35', sx: 1.1, sy: 0.55, sz: 1.1, y: 0.5 }
+      ];
+      for (let i = 0; i < 8; i++) parts.push({ geo: new THREE.SphereGeometry(0.05, 6, 5), color: i % 2 ? '#d9534f' : '#e8c33c', x: Math.cos(i * 0.9) * 0.5, y: 0.78, z: Math.sin(i * 0.9) * 0.5 });
+      return merge(parts);
+    },
+    planterBrick: () => {
+      const parts = [
+        { geo: new THREE.BoxGeometry(1.7, 0.5, 1.0), color: '#9a523c', y: 0.25 },
+        { geo: new THREE.BoxGeometry(1.8, 0.09, 1.1), color: '#c9c0b2', y: 0.53 },
+        { geo: new THREE.SphereGeometry(0.6, 12, 8, 0, TAU, 0, Math.PI / 2), color: '#41682f', sx: 1.35, sy: 0.55, sz: 0.8, y: 0.52 }
+      ];
+      for (let y = 0.08; y < 0.45; y += 0.14) parts.push({ geo: new THREE.BoxGeometry(1.72, 0.015, 1.02), color: '#d8cfc0', y });
+      return merge(parts);
+    },
+    barrel: () => {
+      const parts = [{ geo: new THREE.CylinderGeometry(0.52, 0.52, 1.5, 14).rotateZ(Math.PI / 2), color: '#8a6038', y: 0.54 }];
+      for (const bx of [-0.55, 0, 0.55]) parts.push({ geo: new THREE.TorusGeometry(0.53, 0.035, 8, 16).rotateY(Math.PI / 2), color: '#3c3f43', x: bx, y: 0.54 });
+      for (const s of [-1, 1]) parts.push({ geo: new THREE.BoxGeometry(0.5, 0.14, 0.3), color: '#6d4a2a', x: s * 0.5, y: 0.07, z: 0.3 * s });
+      parts.push({ geo: new THREE.CylinderGeometry(0.07, 0.07, 0.1, 8).rotateX(Math.PI / 2), color: '#caa23c', y: 0.54, z: 0.53 });
+      return merge(parts);
+    },
+    geraniumPot: () => {
+      const parts = [
+        { geo: new THREE.CylinderGeometry(0.72, 0.5, 0.62, 14), color: '#b06a44', y: 0.31 },
+        { geo: new THREE.CylinderGeometry(0.76, 0.72, 0.12, 14), color: '#c07a50', y: 0.62 },
+        { geo: new THREE.SphereGeometry(0.62, 12, 8, 0, TAU, 0, Math.PI / 2), color: '#3f6b35', sx: 1.05, sy: 0.6, sz: 1.05, y: 0.62 }
+      ];
+      for (let i = 0; i < 10; i++) parts.push({ geo: new THREE.SphereGeometry(0.07, 6, 5), color: i % 3 ? '#d8403a' : '#e86a7a', x: Math.cos(i * 0.63) * (0.2 + (i % 3) * 0.16), y: 0.86 + (i % 2) * 0.08, z: Math.sin(i * 0.63) * (0.2 + (i % 3) * 0.16) });
+      return merge(parts);
+    },
+    crate: () => {
+      const parts = [{ geo: new THREE.BoxGeometry(1.5, 0.6, 1.0), color: '#b08954', y: 0.3 }];
+      for (const s of [-0.72, -0.24, 0.24, 0.72]) parts.push({ geo: new THREE.BoxGeometry(0.05, 0.64, 1.02), color: '#8a6638', x: s, y: 0.3 });
+      for (let i = 0; i < 9; i++) parts.push({ geo: new THREE.SphereGeometry(0.12, 8, 6), color: i % 2 ? '#e8902c' : '#d8b02c', x: -0.55 + (i % 3) * 0.55, y: 0.66, z: -0.25 + Math.floor(i / 3) * 0.25 });
+      return merge(parts);
+    },
+    crateStack: () => {
+      const parts = [];
+      for (const [cx, cy, cz, ry] of [[-0.3, 0.22, 0, 0], [0.55, 0.22, 0.1, 0.3], [0.1, 0.62, 0, -0.15]]) {
+        parts.push({ geo: new THREE.BoxGeometry(1.0, 0.44, 0.7), color: '#b08954', x: cx, y: cy, z: cz, ry });
+        for (let i = 0; i < 4; i++) parts.push({ geo: new THREE.SphereGeometry(0.1, 8, 6), color: ['#d8403a', '#e8902c', '#7fb043', '#e8c33c'][i], x: cx - 0.3 + i * 0.2, y: cy + 0.26, z: cz, ry });
+      }
+      return merge(parts);
+    },
+    graffitiBlock: () => {
+      const parts = [{ geo: new THREE.BoxGeometry(1.7, 0.72, 0.85), color: '#9aa0a6', y: 0.36 }];
+      const rr = mulberry32(9);
+      for (let i = 0; i < 8; i++) parts.push({ geo: new THREE.BoxGeometry(0.28 + rr() * 0.3, 0.16 + rr() * 0.2, 0.02), color: ['#d8403a', '#2f8fd0', '#e8c33c', '#7fb043', '#b05ad0'][i % 5], x: -0.6 + rr() * 1.2, y: 0.2 + rr() * 0.36, z: 0.435 * (i % 2 ? 1 : -1) });
+      return merge(parts);
+    },
+    cheese: () => {
+      const parts = [
+        { geo: new THREE.CylinderGeometry(0.85, 0.88, 0.56, 18), color: '#e2b84a', y: 0.28 },
+        { geo: new THREE.CylinderGeometry(0.86, 0.86, 0.1, 18), color: '#f2d879', y: 0.56 }
+      ];
+      const rr = mulberry32(14);
+      for (let i = 0; i < 7; i++) parts.push({ geo: new THREE.SphereGeometry(0.05, 6, 5), color: '#c49a30', x: (rr() - 0.5) * 1.3, y: 0.62, z: (rr() - 0.5) * 1.3 });
+      return merge(parts);
+    },
+    trashBags: () => {
+      const rr = mulberry32(21);
+      const parts = [];
+      for (const [cx, cy, cz, r] of [[-0.45, 0.3, 0.1, 0.48], [0.35, 0.32, -0.15, 0.52], [0.05, 0.62, 0.15, 0.4], [0.75, 0.24, 0.3, 0.34]]) {
+        parts.push({ geo: lumpy(new THREE.SphereGeometry(r, 10, 7), 0.12, rr), color: '#2d3137', x: cx, y: cy, z: cz, sx: 1, sy: 0.85, sz: 1 });
+        parts.push({ geo: new THREE.SphereGeometry(0.07, 6, 5), color: '#15171a', x: cx, y: cy + r * 0.8, z: cz });
+      }
+      return merge(parts);
+    },
+    columnDrum: () => {
+      const parts = [{ geo: new THREE.CylinderGeometry(0.68, 0.68, 1.1, 18).rotateZ(Math.PI / 2), color: '#d9cfba', y: 0.6 }];
+      for (let i = 0; i < 12; i++) parts.push({ geo: new THREE.BoxGeometry(1.12, 0.07, 0.1), color: '#c4b9a2', y: 0.6 + Math.sin(i * TAU / 12) * 0.62, z: Math.cos(i * TAU / 12) * 0.62, ry: 0, sx: 1, sy: 1, sz: 1 });
+      parts.push({ geo: new THREE.CylinderGeometry(0.5, 0.5, 0.12, 18).rotateZ(Math.PI / 2), color: '#ccc1aa', x: 0.61, y: 0.6 });
+      return merge(parts);
+    }
+  };
+
+  // --- segnaletica laterale (prende il posto della palina: sottile, ogni 22 m) ---
+  const markerGeos = {
+    nasone: () => merge([
+      { geo: new THREE.CylinderGeometry(0.17, 0.2, 1.08, 12), color: '#4a4d52', y: 0.54 },
+      { geo: new THREE.SphereGeometry(0.17, 10, 7, 0, TAU, 0, Math.PI / 2), color: '#53565c', y: 1.08 },
+      { geo: new THREE.CylinderGeometry(0.03, 0.03, 0.3, 6).rotateX(1.2), color: '#6a6d73', y: 0.78, z: 0.2 },
+      { geo: new THREE.CylinderGeometry(0.26, 0.3, 0.08, 12), color: '#8f949a', y: 0.04 }
+    ]),
+    potelet: () => merge([
+      { geo: new THREE.CylinderGeometry(0.055, 0.07, 1.15, 8), color: '#4a3b2e', y: 0.57 },
+      { geo: new THREE.SphereGeometry(0.09, 8, 6), color: '#8a6d3b', y: 1.2 }
+    ]),
+    ukBollard: () => merge([
+      { geo: new THREE.CylinderGeometry(0.12, 0.17, 0.95, 10), color: '#1d1f24', y: 0.47 },
+      { geo: new THREE.CylinderGeometry(0.13, 0.13, 0.1, 10), color: '#e8e8e8', y: 0.78 },
+      { geo: new THREE.SphereGeometry(0.12, 10, 7), color: '#1d1f24', y: 1.0 }
+    ]),
+    fwPole: () => {
+      const parts = [];
+      for (let i = 0; i < 6; i++) parts.push({ geo: new THREE.CylinderGeometry(0.055, 0.055, 0.2, 8), color: i % 2 ? '#e8e8e8' : '#c43a3a', y: 0.1 + i * 0.2 });
+      parts.push({ geo: new THREE.SphereGeometry(0.07, 8, 6), color: '#c43a3a', y: 1.26 });
+      return merge(parts);
+    },
+    stonePill: () => merge([
+      { geo: new THREE.CylinderGeometry(0.16, 0.19, 0.85, 10), color: '#cfc7b4', y: 0.42 },
+      { geo: new THREE.SphereGeometry(0.16, 10, 7, 0, TAU, 0, Math.PI / 2), color: '#dcd4c2', y: 0.85 }
+    ]),
+    ampel: () => merge([
+      { geo: new THREE.CylinderGeometry(0.05, 0.06, 1.45, 8), color: '#4a4d52', y: 0.72 },
+      { geo: new THREE.BoxGeometry(0.26, 0.42, 0.14), color: '#2a2c30', y: 1.62 },
+      { geo: new THREE.BoxGeometry(0.14, 0.14, 0.02), color: '#3ddc68', y: 1.54, z: 0.075 },
+      { geo: new THREE.BoxGeometry(0.14, 0.14, 0.02), color: '#7a2a28', y: 1.72, z: 0.075 },
+      { geo: new THREE.BoxGeometry(0.3, 0.05, 0.18), color: '#2a2c30', y: 1.86 }
+    ]),
+    zhPole: () => merge([
+      { geo: new THREE.CylinderGeometry(0.05, 0.06, 1.1, 8), color: '#eef0f2', y: 0.55 },
+      { geo: new THREE.CylinderGeometry(0.055, 0.055, 0.16, 8), color: '#2f6fc0', y: 0.86 },
+      { geo: new THREE.SphereGeometry(0.06, 8, 6), color: '#2f6fc0', y: 1.13 }
+    ]),
+    hydrant: () => merge([
+      { geo: new THREE.CylinderGeometry(0.2, 0.24, 0.2, 10), color: '#8a2a22', y: 0.1 },
+      { geo: new THREE.CylinderGeometry(0.17, 0.2, 0.55, 10), color: '#c4372b', y: 0.45 },
+      { geo: new THREE.SphereGeometry(0.17, 10, 7, 0, TAU, 0, Math.PI / 2), color: '#c4372b', y: 0.72 },
+      { geo: new THREE.CylinderGeometry(0.07, 0.07, 0.5, 8).rotateZ(Math.PI / 2), color: '#a02e24', y: 0.5 },
+      { geo: new THREE.CylinderGeometry(0.05, 0.05, 0.12, 8), color: '#e8c33c', y: 0.84 }
+    ])
+  };
+
+  // --- bonus da raccogliere (prendono il posto dei cristalli: sospesi a 0,9 m) ---
+  const plate = (r, col) => [
+    { geo: new THREE.CylinderGeometry(r, r * 0.65, 0.05, 22), color: col || '#f6f4ef' },
+    { geo: new THREE.TorusGeometry(r * 0.96, 0.025, 6, 24).rotateX(Math.PI / 2), color: '#e9e5dc', y: 0.03 }
+  ];
+  const tilt = (g, s) => { g.rotateX(0.75); g.scale(s, s, s); return g; };
+  const foodGeos = {
+    suppli: () => {
+      const rr = mulberry32(3);
+      const parts = plate(0.42);
+      for (const [x, z, ry] of [[-0.12, 0.08, 0.3], [0.14, -0.02, 1.2], [0.0, -0.16, 2.2]]) {
+        parts.push({ geo: new THREE.SphereGeometry(0.16, 10, 8), color: '#c87f32', sx: 1.5, sy: 0.85, sz: 0.9, x, y: 0.14, z, ry });
+      }
+      for (let i = 0; i < 8; i++) parts.push({ geo: new THREE.SphereGeometry(0.018, 5, 4), color: '#8a5a22', x: (rr() - 0.5) * 0.6, y: 0.24, z: (rr() - 0.5) * 0.5 });
+      return tilt(merge(parts), 1.5);
+    },
+    maritozzo: () => tilt(merge([
+      ...plate(0.4),
+      { geo: new THREE.SphereGeometry(0.3, 14, 10), color: '#9a6232', sx: 1.25, sy: 0.75, sz: 0.9, y: 0.2 },
+      { geo: new THREE.BoxGeometry(0.62, 0.3, 0.1), color: '#fbf8f0', y: 0.22, ry: 0.25 },
+      { geo: new THREE.SphereGeometry(0.05, 6, 5), color: '#fbf8f0', x: 0.25, y: 0.34, z: -0.05 }
+    ]), 1.5),
+    cotoletta: () => tilt(merge([
+      ...plate(0.46),
+      { geo: new THREE.SphereGeometry(0.3, 14, 10), color: '#cd8f3e', sx: 1.4, sy: 0.3, sz: 1.1, y: 0.1 },
+      { geo: new THREE.CylinderGeometry(0.09, 0.1, 0.22, 8).rotateZ(1.3), color: '#cd8f3e', x: 0.45, y: 0.1, z: 0.1 },
+      { geo: new THREE.CylinderGeometry(0.11, 0.11, 0.03, 12), color: '#f2e04a', x: -0.28, y: 0.12, z: -0.22 }
+    ]), 1.5),
+    risotto: () => {
+      const rr = mulberry32(6);
+      const parts = [...plate(0.46), { geo: new THREE.SphereGeometry(0.34, 16, 10, 0, TAU, 0, Math.PI / 2), color: '#efc84a', sx: 1.1, sy: 0.5, sz: 1.1, y: 0.04 }];
+      for (let i = 0; i < 10; i++) parts.push({ geo: new THREE.SphereGeometry(0.02, 5, 4), color: '#c4702a', x: (rr() - 0.5) * 0.5, y: 0.22, z: (rr() - 0.5) * 0.5 });
+      return tilt(merge(parts), 1.5);
+    },
+    croissant: () => {
+      const parts = [];
+      for (let i = -2; i <= 2; i++) {
+        const k = 1 - Math.abs(i) * 0.26;
+        parts.push({ geo: new THREE.SphereGeometry(0.19 * k + 0.05, 10, 8), color: i % 2 ? '#c8862e' : '#da9a3c', sx: 1, sy: 0.85, sz: 1.25, x: Math.sin(i * 0.55) * 0.42, y: 0.16 * k, z: -Math.cos(i * 0.55) * 0.42 + 0.42, ry: -i * 0.55 });
+      }
+      return tilt(merge(parts), 1.55);
+    },
+    macaron: () => tilt(merge([
+      { geo: new THREE.CylinderGeometry(0.34, 0.3, 0.13, 18), color: '#e889a8', y: 0.065 },
+      { geo: new THREE.CylinderGeometry(0.32, 0.32, 0.07, 18), color: '#fbf3ea', y: 0.17 },
+      { geo: new THREE.CylinderGeometry(0.3, 0.34, 0.13, 18), color: '#e889a8', y: 0.27 }
+    ]), 1.55),
+    tea: () => tilt(merge([
+      { geo: new THREE.CylinderGeometry(0.26, 0.21, 0.035, 22), color: '#f4f4f2' },
+      { geo: new THREE.CylinderGeometry(0.16, 0.11, 0.22, 18), color: '#fbfbf9', y: 0.13 },
+      { geo: new THREE.CylinderGeometry(0.145, 0.145, 0.012, 18), color: '#b4682a', y: 0.237 },
+      { geo: new THREE.TorusGeometry(0.065, 0.02, 6, 12), color: '#fbfbf9', x: 0.17, y: 0.14 },
+      { geo: new THREE.BoxGeometry(0.07, 0.015, 0.1), color: '#e8e2d4', x: 0.2, y: 0.03, z: 0.14 }
+    ]), 1.65),
+    fishchips: () => {
+      const rr = mulberry32(8);
+      const parts = [
+        { geo: new THREE.CylinderGeometry(0.3, 0.12, 0.5, 10, 1, true), color: '#e8dcc2', y: 0.25 },
+        { geo: new THREE.SphereGeometry(0.2, 10, 8), color: '#cd8f3e', sx: 1.6, sy: 0.5, sz: 0.7, x: 0.1, y: 0.56, ry: 0.5 }
+      ];
+      for (let i = 0; i < 9; i++) parts.push({ geo: new THREE.BoxGeometry(0.05, 0.3, 0.05), color: '#e8b84a', x: (rr() - 0.5) * 0.3, y: 0.52 + rr() * 0.1, z: (rr() - 0.5) * 0.3, ry: rr() * 3, sx: 1, sy: 1, sz: 1 });
+      return tilt(merge(parts), 1.35);
+    },
+    bembel: () => tilt(merge([
+      { geo: new THREE.CylinderGeometry(0.2, 0.26, 0.14, 14), color: '#b8bcc2', y: 0.07 },
+      { geo: new THREE.SphereGeometry(0.3, 14, 10), color: '#c8ccd2', sx: 1, sy: 1.05, sz: 1, y: 0.38 },
+      { geo: new THREE.CylinderGeometry(0.12, 0.17, 0.2, 12), color: '#c8ccd2', y: 0.72 },
+      { geo: new THREE.TorusGeometry(0.11, 0.035, 6, 12).rotateY(Math.PI / 2), color: '#b8bcc2', x: -0.3, y: 0.5 },
+      { geo: new THREE.TorusGeometry(0.3, 0.03, 6, 16).rotateX(Math.PI / 2), color: '#3a5fa8', y: 0.45 },
+      { geo: new THREE.SphereGeometry(0.06, 8, 6), color: '#3a5fa8', x: 0.22, y: 0.32, z: 0.14 }
+    ]), 1.4),
+    brezel: () => tilt(merge([
+      { geo: new THREE.TorusGeometry(0.2, 0.075, 8, 16), color: '#8a4f22', x: -0.16, y: 0.08 },
+      { geo: new THREE.TorusGeometry(0.2, 0.075, 8, 16), color: '#8a4f22', x: 0.16, y: 0.08 },
+      { geo: new THREE.TorusGeometry(0.3, 0.08, 8, 18), color: '#95561f', y: 0.1 },
+      { geo: new THREE.SphereGeometry(0.02, 4, 4), color: '#fbf6e8', x: 0.1, y: 0.2 },
+      { geo: new THREE.SphereGeometry(0.02, 4, 4), color: '#fbf6e8', x: -0.2, y: 0.18, z: 0.1 },
+      { geo: new THREE.SphereGeometry(0.02, 4, 4), color: '#fbf6e8', x: 0.05, y: 0.18, z: -0.2 }
+    ]), 1.45),
+    churro: () => {
+      const parts = [];
+      for (const [a, ry] of [[-0.3, 0.5], [0.0, 0.0], [0.3, -0.5]]) {
+        parts.push({ geo: new THREE.CylinderGeometry(0.075, 0.075, 0.85, 8).rotateZ(1.1), color: '#c8862e', x: a, y: 0.18 + Math.abs(a) * 0.1, z: a * 0.4, ry });
+      }
+      parts.push({ geo: new THREE.CylinderGeometry(0.18, 0.14, 0.18, 12), color: '#6a3a1e', x: 0.42, y: 0.1, z: -0.3 });
+      return tilt(merge(parts), 1.45);
+    },
+    bocadillo: () => tilt(merge([
+      { geo: new THREE.SphereGeometry(0.3, 14, 10), color: '#d8a65a', sx: 1.7, sy: 0.55, sz: 0.75, y: 0.26 },
+      { geo: new THREE.SphereGeometry(0.3, 14, 10), color: '#e8c384', sx: 1.65, sy: 0.4, sz: 0.72, y: 0.1 },
+      { geo: new THREE.TorusGeometry(0.1, 0.035, 6, 12).rotateX(Math.PI / 2), color: '#f2e2c4', x: 0.25, y: 0.2, z: 0.12 },
+      { geo: new THREE.TorusGeometry(0.09, 0.03, 6, 12).rotateX(Math.PI / 2), color: '#f2e2c4', x: -0.2, y: 0.2, z: -0.1 }
+    ]), 1.45),
+    nata: () => tilt(merge([
+      ...plate(0.36),
+      { geo: new THREE.CylinderGeometry(0.26, 0.2, 0.16, 16), color: '#d8b069', y: 0.1 },
+      { geo: new THREE.CylinderGeometry(0.21, 0.21, 0.05, 16), color: '#e8c33c', y: 0.19 },
+      { geo: new THREE.SphereGeometry(0.045, 6, 5), color: '#6a3a1e', x: 0.06, y: 0.22 },
+      { geo: new THREE.SphereGeometry(0.035, 6, 5), color: '#6a3a1e', x: -0.08, y: 0.22, z: 0.05 }
+    ]), 1.6),
+    sardina: () => tilt(merge([
+      ...plate(0.44),
+      { geo: new THREE.SphereGeometry(0.22, 14, 10), color: '#9fb6c6', sx: 1.9, sy: 0.5, sz: 0.55, y: 0.12 },
+      { geo: new THREE.ConeGeometry(0.12, 0.22, 8).rotateZ(Math.PI / 2), color: '#8aa2b2', x: -0.5, y: 0.12 },
+      { geo: new THREE.SphereGeometry(0.03, 6, 5), color: '#15171a', x: 0.32, y: 0.16, z: 0.08 }
+    ]), 1.5),
+    licitar: () => {
+      const shape = new THREE.Shape();
+      shape.moveTo(0, -0.3);
+      shape.bezierCurveTo(0.42, 0.05, 0.3, 0.34, 0, 0.14);
+      shape.bezierCurveTo(-0.3, 0.34, -0.42, 0.05, 0, -0.3);
+      const heart = new THREE.ExtrudeGeometry(shape, { depth: 0.1, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 2, curveSegments: 10 });
+      heart.rotateX(-0.3);
+      return tilt(merge([
+        { geo: heart, color: '#c4372b', y: 0.2 },
+        { geo: new THREE.SphereGeometry(0.045, 6, 5), color: '#fbf6f0', y: 0.28, z: 0.12 },
+        { geo: new THREE.SphereGeometry(0.035, 6, 5), color: '#3a5fa8', x: 0.12, y: 0.24, z: 0.12 }
+      ]), 1.45);
+    },
+    strukli: () => tilt(merge([
+      ...plate(0.44),
+      { geo: new THREE.CylinderGeometry(0.11, 0.11, 0.5, 10).rotateX(Math.PI / 2), color: '#f2e8d4', x: -0.18, y: 0.1 },
+      { geo: new THREE.CylinderGeometry(0.11, 0.11, 0.5, 10).rotateX(Math.PI / 2), color: '#efe2ca', x: 0.06, y: 0.1, ry: 0.15 },
+      { geo: new THREE.CylinderGeometry(0.1, 0.1, 0.44, 10).rotateX(Math.PI / 2), color: '#f2e8d4', x: 0.3, y: 0.1, ry: -0.1 },
+      { geo: new THREE.SphereGeometry(0.1, 8, 6), color: '#fbf8f0', sx: 1.6, sy: 0.3, sz: 1.2, y: 0.2 }
+    ]), 1.5),
+    currywurst: () => {
+      const parts = [...plate(0.44)];
+      for (let i = 0; i < 6; i++) parts.push({ geo: new THREE.CylinderGeometry(0.13, 0.13, 0.09, 12), color: '#b4543c', x: -0.3 + i * 0.12, y: 0.12, z: Math.sin(i * 1.1) * 0.08, ry: 0.3 });
+      for (let i = 0; i < 7; i++) parts.push({ geo: new THREE.SphereGeometry(0.05, 6, 5), color: '#a02e1a', x: -0.25 + i * 0.09, y: 0.19, z: Math.sin(i * 1.4) * 0.07 });
+      parts.push({ geo: new THREE.SphereGeometry(0.02, 4, 4), color: '#e8c33c', x: 0.1, y: 0.23 });
+      parts.push({ geo: new THREE.SphereGeometry(0.02, 4, 4), color: '#e8c33c', x: -0.15, y: 0.23, z: 0.05 });
+      return tilt(merge(parts), 1.5);
+    },
+    berliner: () => {
+      const rr = mulberry32(12);
+      const parts = [
+        ...plate(0.38),
+        { geo: new THREE.SphereGeometry(0.3, 14, 10), color: '#d8a65a', sx: 1.1, sy: 0.72, sz: 1.1, y: 0.2 },
+        { geo: new THREE.SphereGeometry(0.05, 6, 5), color: '#a02e3a', x: 0.3, y: 0.18 }
+      ];
+      for (let i = 0; i < 12; i++) parts.push({ geo: new THREE.SphereGeometry(0.015, 4, 4), color: '#ffffff', x: (rr() - 0.5) * 0.5, y: 0.36 + rr() * 0.08, z: (rr() - 0.5) * 0.5 });
+      return tilt(merge(parts), 1.5);
+    },
+    cioccolato: () => {
+      const parts = [{ geo: new THREE.BoxGeometry(0.72, 0.07, 0.46), color: '#5a3318', y: 0.05 }];
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) parts.push({ geo: new THREE.BoxGeometry(0.2, 0.035, 0.19), color: '#6a3f20', x: -0.23 + i * 0.23, y: 0.1, z: -0.11 + j * 0.22 });
+      parts.push({ geo: new THREE.BoxGeometry(0.2, 0.09, 0.48), color: '#c8ccd2', x: -0.38, y: 0.05 });
+      return tilt(merge(parts), 1.55);
+    },
+    luxemburgerli: () => {
+      const parts = [...plate(0.4)];
+      const cols = ['#e889a8', '#8fc8e8', '#e8c33c', '#b8e0a0', '#d8b8e8'];
+      for (let i = 0; i < 5; i++) {
+        const a = i * TAU / 5, d = i ? 0.22 : 0;
+        parts.push({ geo: new THREE.CylinderGeometry(0.1, 0.09, 0.05, 12), color: cols[i], x: Math.cos(a) * d, y: 0.06 + (i ? 0 : 0.06), z: Math.sin(a) * d });
+        parts.push({ geo: new THREE.CylinderGeometry(0.09, 0.1, 0.05, 12), color: cols[i], x: Math.cos(a) * d, y: 0.12 + (i ? 0 : 0.06), z: Math.sin(a) * d });
+      }
+      return tilt(merge(parts), 1.55);
+    },
+    hotdog: () => {
+      const parts = [
+        { geo: new THREE.SphereGeometry(0.16, 12, 9), color: '#d8a65a', sx: 2.4, sy: 0.75, sz: 0.65, y: 0.1, z: 0.07 },
+        { geo: new THREE.SphereGeometry(0.16, 12, 9), color: '#d8a65a', sx: 2.4, sy: 0.75, sz: 0.65, y: 0.1, z: -0.07 },
+        { geo: new THREE.CylinderGeometry(0.075, 0.075, 0.78, 10).rotateZ(Math.PI / 2), color: '#b4503c', y: 0.19 }
+      ];
+      for (let i = 0; i < 6; i++) parts.push({ geo: new THREE.BoxGeometry(0.07, 0.02, 0.04), color: '#e8c33c', x: -0.28 + i * 0.11, y: 0.26, z: (i % 2 ? 0.03 : -0.03), ry: 0.5 });
+      return tilt(merge(parts), 1.5);
+    },
+    bagel: () => {
+      const rr = mulberry32(16);
+      const parts = [{ geo: new THREE.TorusGeometry(0.26, 0.12, 10, 20).rotateX(Math.PI / 2), color: '#cd8f3e', y: 0.12 }];
+      for (let i = 0; i < 14; i++) { const a = rr() * TAU, d = 0.17 + rr() * 0.17; parts.push({ geo: new THREE.SphereGeometry(0.014, 4, 4), color: '#f2e8cf', x: Math.cos(a) * d, y: 0.23, z: Math.sin(a) * d }); }
+      return tilt(merge(parts), 1.55);
+    }
+  };
+
+  // paletti mancanti e rampa generica colorata
+  markerGeos.ghisa = () => merge([
+    { geo: new THREE.CylinderGeometry(0.075, 0.09, 1.05, 8), color: '#3a3d42', y: 0.52 },
+    { geo: new THREE.TorusGeometry(0.085, 0.02, 6, 12).rotateX(Math.PI / 2), color: '#53565c', y: 0.88 },
+    { geo: new THREE.SphereGeometry(0.095, 8, 6), color: '#3a3d42', y: 1.08 }
+  ]);
+  markerGeos.bolard = () => merge([
+    { geo: new THREE.CylinderGeometry(0.1, 0.13, 0.92, 10), color: '#26282c', y: 0.46 },
+    { geo: new THREE.SphereGeometry(0.1, 8, 6, 0, TAU, 0, Math.PI / 2), color: '#26282c', y: 0.92 }
+  ]);
+  function rampCity(body, edge) {
+    const shape = new THREE.Shape();
+    shape.moveTo(-0.6, 0); shape.lineTo(4, 0); shape.lineTo(4, 1.1); shape.quadraticCurveTo(1.6, 0.55, -0.6, 0);
+    const g = new THREE.ExtrudeGeometry(shape, { depth: 3, bevelEnabled: true, bevelSize: 0.2, bevelThickness: 0.2, bevelSegments: 1, curveSegments: 6 });
+    g.translate(-2, 0, -1.5);
+    g.rotateY(Math.PI / 2);
+    return merge([{ geo: g, color: body }, { geo: new THREE.BoxGeometry(3.3, 0.06, 0.14), color: edge, y: 1.18, z: -2 }]);
+  }
+
+  // --- la scheda di ogni città: ostacoli, bonus, rampa, porte, paletti, palazzi, strada, luce ---
+  const CITY_CFG = {
+    napoli: {
+      tall: () => GEO.palms[0], low: () => GEO.rockCity,
+      fa: 'pizza', faG: () => GEO.pizza, fb: 'coffee', fbG: () => GEO.coffee,
+      ramp: ['#b07a45', '#f2c230'], gate: ['#d8302a', '#2766c6'], marker: () => GEO.bollard,
+      tallCrash: 'crashTree', lowCrash: 'crashRock', markerCrash: 'crashBollard',
+      walls: ['#e7b65c', '#dd8a5c', '#c9573f', '#f1d999', '#e9a98a', '#d8c7a6', '#b85a43', '#f3e6cf'],
+      style: 'napoli', roof: '#a89a88', bldH: [10, 14], ground: stoneTexture,
+      theme: { sky: ['#2a7fd6', '#86c2ee', '#e6edf1'], fog: '#e1e8ec', hemi: ['#f6ecdc', '#b3a493'], sun: '#fff0cf', spray: '#c7beb3', sprayOp: 0.55, trail: '#262321', trailOp: 0.2, rough: 0.9 }
+    },
+    roma: {
+      tall: () => GEO.pines[0], low: lowGeos.columnDrum,
+      fa: 'carbonara', faG: () => GEO.carbonara, fb: 'artichoke', fbG: () => GEO.carciofo,
+      ramp: ['#ddd2bc', '#c9a227'], gate: ['#8e2434', '#d4a017'], marker: markerGeos.nasone,
+      tallCrash: 'crashTree', lowCrash: 'crashColumn', markerCrash: 'crashFountain',
+      walls: ['#d9a35a', '#c8703f', '#b24f33', '#e6c184', '#edd7a8', '#cf8e5c', '#a9503c', '#e9c99a'],
+      style: 'roma', roof: '#a9583b', bldH: [10, 14], ground: sampietriniTexture,
+      theme: { sky: ['#2f7cc8', '#92c1e6', '#efe5d6'], fog: '#e8e0d2', hemi: ['#f7ead8', '#b49b82'], sun: '#fff0cc', spray: '#c9bfb2', sprayOp: 0.5, trail: '#2a2623', trailOp: 0.18, rough: 0.92 }
+    },
+    milano: {
+      tall: () => genLamp({ pole: '#2a2c30', lamp: '#f5e3a0', kind: 'gas' }), low: lowGeos.panettone,
+      fa: 'cotoletta', faG: foodGeos.cotoletta, fb: 'risotto', fbG: foodGeos.risotto,
+      ramp: ['#8a9299', '#c4372b'], gate: ['#e8e8e8', '#c4372b'], marker: markerGeos.ghisa,
+      tallCrash: 'crashLamp', lowCrash: 'crashBollard', markerCrash: 'crashBollard',
+      walls: ['#e8dcc8', '#d8c8ac', '#e2d0b4', '#cfc0a8', '#e8e2d2', '#d2bfa0'],
+      style: 'altbau', roof: '#7d8287', bldH: [12, 16], ground: () => paveTexture({ seed: 41, size: 14, joint: '#2e2c2a', tones: [[96, 90, 86], [108, 100, 94], [88, 84, 82]], rails: true }),
+      theme: { sky: ['#5a84b0', '#9fb6cc', '#e0e3e4'], fog: '#dcdfe0', fogN: 40, fogF: 150, hemi: ['#e8ecf0', '#a8adb4'], sun: '#f2ead8', spray: '#b8bcc0', sprayOp: 0.5, trail: '#2a2a2c', trailOp: 0.18, rough: 0.9 }
+    },
+    parigi: {
+      tall: morrisColumn, low: lowGeos.planterStone,
+      fa: 'croissant', faG: foodGeos.croissant, fb: 'macaron', fbG: foodGeos.macaron,
+      ramp: ['#3f5a42', '#5a7a5e'], gate: ['#2753b8', '#d8352a'], marker: markerGeos.potelet,
+      tallCrash: 'crashColumn', lowCrash: 'crashPlanter', markerCrash: 'crashBollard',
+      walls: ['#ddd2bc', '#e2d8c4', '#d8cbb2', '#e8dfcc', '#d2c6ae', '#e5dcc8'],
+      style: 'haussmann', roof: '#6a7078', bldH: [13, 10], ground: () => paveTexture({ seed: 43, size: 18, joint: '#3a3835', tones: [[128, 122, 114], [142, 136, 126], [118, 114, 108]] }),
+      theme: { sky: ['#4a7dbd', '#a4c2dd', '#e8e4da'], fog: '#e4e1d8', hemi: ['#f2ecdc', '#aaa298'], sun: '#fff0d0', spray: '#c2b8a8', sprayOp: 0.5, trail: '#2a2623', trailOp: 0.18, rough: 0.9, part: { col: '#c08a3c', size: 0.15, fall: 0.5, sway: 1.5, op: 0.9 } }
+    },
+    londra: {
+      tall: () => genTree({ trunk: '#8a7a5a', trunk2: '#a89a78', cols: ['#4a7a3a', '#5a8a46', '#3f6b32'], r: 1.5, seed: 5 }), low: lowGeos.planterBrick,
+      fa: 'tea', faG: foodGeos.tea, fb: 'fishchips', fbG: foodGeos.fishchips,
+      ramp: ['#b07a45', '#c4372b'], gate: ['#d8352a', '#2753b8'], marker: markerGeos.ukBollard,
+      tallCrash: 'crashTree', lowCrash: 'crashPlanter', markerCrash: 'crashBollard',
+      walls: ['#9a6a4e', '#8a5a40', '#b08060', '#7a4a34', '#a06a4a', '#8f5f44'],
+      style: 'brick', roof: '#55585c', bldH: [9, 10], ground: () => asphaltTexture({ seed: 47, base: '#3a3d40', wet: true }),
+      theme: { sky: ['#6a7585', '#9aa4ae', '#d4d7d9'], fog: '#d2d5d8', hemi: ['#dde2e8', '#9aa0a8'], sun: '#e8e8e4', spray: '#bcd4e2', sprayOp: 0.65, trail: '#3a4248', trailOp: 0.3, rough: 0.6, part: { col: '#a8c2d4', size: 0.05, fall: 9, sway: 0, op: 0.45 } }
+    },
+    francoforte: {
+      tall: () => genTree({ trunk: '#8a7a5a', trunk2: '#a89a78', cols: ['#4a7a3a', '#55843c', '#3f6b32'], r: 1.45, seed: 11 }), low: lowGeos.barrel,
+      fa: 'bembel', faG: foodGeos.bembel, fb: 'brezel', fbG: foodGeos.brezel,
+      ramp: ['#b07a45', '#c4372b'], gate: ['#d8352a', '#e8e8e8'], marker: markerGeos.fwPole,
+      tallCrash: 'crashTree', lowCrash: 'crashBarrel', markerCrash: 'crashPole',
+      walls: ['#efe8da', '#e8dcc8', '#f2ece0', '#e2d4ba', '#efe4ce', '#e8dcc2'],
+      style: 'fachwerk', roof: '#6a4a3a', bldH: [8, 8], ground: () => paveTexture({ seed: 53, size: 16, joint: '#38342e', tones: [[122, 112, 100], [136, 126, 112], [110, 102, 92]] }),
+      theme: { sky: ['#56759c', '#9db0c2', '#dfe1e2'], fog: '#dcdee0', hemi: ['#e8eaec', '#a4a8ac'], sun: '#f2eedd', spray: '#b8bcc0', sprayOp: 0.5, trail: '#2a2a2c', trailOp: 0.18, rough: 0.9 }
+    },
+    madrid: {
+      tall: () => genTree({ trunk: '#7a4a34', cols: ['#3f6b35', '#4a7a3e', '#35602c'], r: 1.3, h: 3.7, dots: '#d8403a', seed: 9 }), low: lowGeos.geraniumPot,
+      fa: 'churro', faG: foodGeos.churro, fb: 'bocadillo', fbG: foodGeos.bocadillo,
+      ramp: ['#a86a3a', '#e0b818'], gate: ['#d8352a', '#e8c026'], marker: markerGeos.bolard,
+      tallCrash: 'crashTree', lowCrash: 'crashPot', markerCrash: 'crashBollard',
+      walls: ['#c87f5a', '#d8a878', '#b86a48', '#e2c8a4', '#c08a5c', '#d2b490'],
+      style: 'haussmann', roof: '#8a5a3c', bldH: [12, 14], ground: () => slabTexture({ seed: 59, v0: 142 }),
+      theme: { sky: ['#1f6fd0', '#7fb4e8', '#f0e8d8'], fog: '#ece4d4', hemi: ['#f8f0dc', '#b8a890'], sun: '#fff2c8', spray: '#c8b088', sprayOp: 0.5, trail: '#2a2623', trailOp: 0.18, rough: 0.92 }
+    },
+    lisbona: {
+      tall: () => genTree({ trunk: '#6a5a4a', cols: ['#8a6ab8', '#9a7ac8', '#7a5aa8'], r: 1.45, dots: '#b89ad8', seed: 13 }), low: lowGeos.crate,
+      fa: 'nata', faG: foodGeos.nata, fb: 'sardina', fbG: foodGeos.sardina,
+      ramp: ['#b07a45', '#e8c33c'], gate: ['#3f7a3a', '#d8352a'], marker: markerGeos.stonePill,
+      tallCrash: 'crashTree', lowCrash: 'crashCrate', markerCrash: 'crashBollard',
+      walls: ['#d8e2e4', '#c2d4dc', '#e8d2b4', '#efe4ce', '#b8d0d8', '#e2c0a4'],
+      style: 'azulejos', style2: 'altbau', roof: '#b4603f', bldH: [9, 10], ground: calcadaTexture,
+      theme: { sky: ['#2f86d8', '#8fc4ea', '#eef0ea'], fog: '#eaece6', hemi: ['#f6f0e2', '#aab0ac'], sun: '#fff4d4', spray: '#c8c4b8', sprayOp: 0.5, trail: '#2a2a28', trailOp: 0.18, rough: 0.9 }
+    },
+    zagabria: {
+      tall: () => genLamp({ pole: '#3a3d42', lamp: '#f5e3a0', kind: 'gas' }), low: lowGeos.crateStack,
+      fa: 'licitar', faG: foodGeos.licitar, fb: 'strukli', fbG: foodGeos.strukli,
+      ramp: ['#b07a45', '#c4372b'], gate: ['#d8352a', '#e8e8e8'], marker: markerGeos.ghisa,
+      tallCrash: 'crashLamp', lowCrash: 'crashCrate', markerCrash: 'crashBollard',
+      walls: ['#e8dcc8', '#e2d0b4', '#d8c8ac', '#e8e0d0', '#dfd4bc', '#e5d8c0'],
+      style: 'altbau', roof: '#8a4a3a', bldH: [10, 12], ground: () => paveTexture({ seed: 61, size: 13, joint: '#3a3632', tones: [[118, 110, 100], [132, 122, 110], [106, 100, 92]] }),
+      theme: { sky: ['#5b83b8', '#a2bcd4', '#e6e8e6'], fog: '#e2e4e2', hemi: ['#eef0ec', '#a8aca4'], sun: '#f6f0dc', spray: '#bcb8b0', sprayOp: 0.5, trail: '#2a2a28', trailOp: 0.18, rough: 0.9 }
+    },
+    berlino: {
+      tall: () => genTree({ trunk: '#6a5a46', cols: ['#5a8a3e', '#6a9a48', '#4f7a36'], r: 1.5, seed: 17 }), low: lowGeos.graffitiBlock,
+      fa: 'currywurst', faG: foodGeos.currywurst, fb: 'berliner', fbG: foodGeos.berliner,
+      ramp: ['#9aa0a6', '#b05ad0'], gate: ['#d8352a', '#d4a017'], marker: markerGeos.ampel,
+      tallCrash: 'crashTree', lowCrash: 'crashBlock', markerCrash: 'crashLight',
+      walls: ['#c8c2b4', '#b8ac9c', '#cfc8ba', '#a8a096', '#bfb8a8', '#c2bcae'],
+      style: 'altbau', roof: '#6d7276', bldH: [13, 12], ground: () => asphaltTexture({ seed: 67, base: '#4a4d50' }),
+      theme: { sky: ['#5d7792', '#9fb0bf', '#dfe2e4'], fog: '#dcdfe1', hemi: ['#e6e9ec', '#9ea4a8'], sun: '#eeeee6', spray: '#b4b8bc', sprayOp: 0.5, trail: '#2c2e30', trailOp: 0.18, rough: 0.9 }
+    },
+    zurigo: {
+      tall: () => genTree({ trunk: '#5f4a38', cols: ['#2f5a28', '#3a6a30', '#285022'], r: 1.5, dots: '#f0e8d0', seed: 19 }), low: lowGeos.cheese,
+      fa: 'cioccolato', faG: foodGeos.cioccolato, fb: 'luxemburgerli', fbG: foodGeos.luxemburgerli,
+      ramp: ['#b07a45', '#5aa0d8'], gate: ['#e8e8e8', '#5aa0d8'], marker: markerGeos.zhPole,
+      tallCrash: 'crashTree', lowCrash: 'crashCheese', markerCrash: 'crashPole',
+      walls: ['#e2d8c4', '#d8c8b0', '#e8e0d0', '#cfc0a8', '#e5dcc8', '#d2c4ac'],
+      style: 'napoli', roof: '#7a4a3a', bldH: [9, 10], ground: () => paveTexture({ seed: 71, size: 15, joint: '#3a3835', tones: [[130, 124, 116], [144, 138, 128], [120, 116, 108]], rails: true }),
+      theme: { sky: ['#2e7ac8', '#93c0e6', '#ecf2f6'], fog: '#e8eef2', hemi: ['#f2f6fa', '#a8b2b8'], sun: '#fcf6e4', spray: '#c4c8cc', sprayOp: 0.5, trail: '#2a2c2e', trailOp: 0.18, rough: 0.9 }
+    },
+    newyork: {
+      tall: () => genLamp({ pole: '#2e3034', lamp: '#f5e3a0', kind: 'ny' }), low: lowGeos.trashBags,
+      fa: 'hotdog', faG: foodGeos.hotdog, fb: 'bagel', fbG: foodGeos.bagel,
+      ramp: ['#8a9299', '#e8c33c'], gate: ['#e8842a', '#2753b8'], marker: markerGeos.hydrant,
+      tallCrash: 'crashLamp', lowCrash: 'crashTrash', markerCrash: 'crashHydrant',
+      walls: ['#7a4a34', '#8a5a40', '#6a3f2c', '#9a6a4e', '#5f3a2a', '#845640'],
+      style: 'brickfe', roof: '#4a4d52', bldH: [16, 26], ground: () => asphaltTexture({ seed: 73, base: '#3f4144', lines: '#d8b02c', manholes: true }),
+      theme: { sky: ['#4a7bb8', '#95b4d0', '#e2e3de'], fog: '#dedfda', hemi: ['#eceee8', '#a0a4a0'], sun: '#f6eeda', spray: '#b0b4b8', sprayOp: 0.5, trail: '#28292b', trailOp: 0.18, rough: 0.9 }
+    }
+  };
+  for (const k in CITY_CFG) GROUND_MAKE[k] = CITY_CFG[k].ground;
+  const CITY_ASSETS = {};
+  function assets() {
+    let a = CITY_ASSETS[theme];
+    if (!a) {
+      const C = CITY_CFG[theme];
+      a = CITY_ASSETS[theme] = {
+        tall: C.tall(), low: C.low(), fa: C.faG(), fb: C.fbG(),
+        ramp: rampCity(C.ramp[0], C.ramp[1]),
+        gates: [gateGeo(C.gate[0]), gateGeo(C.gate[1])],
+        marker: C.marker()
+      };
+    }
+    return a;
+  }
+
+  // facciate: una texture per colore e per stile di città
   function facadeMat(col, style, seed) {
     const c = document.createElement('canvas'); c.width = c.height = 256;
     const g = c.getContext('2d');
@@ -626,17 +1511,18 @@
     g.scale(2, 2);
     g.fillStyle = col; g.fillRect(0, 0, 128, 128);
     for (let i = 0; i < 140; i++) { g.fillStyle = rr() < 0.6 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'; g.fillRect(rr() * 128, rr() * 128, 1 + rr() * 3, 1 + rr() * 3); }
+    const win = (x, y, w, h, frame, glass) => { g.fillStyle = frame; g.fillRect(x - 3, y - 3, w + 6, h + 6); g.fillStyle = glass; g.fillRect(x, y, w, h); };
     if (style === 'roma') {
       g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 118, 128, 2);
-      g.fillStyle = '#eee4cf'; g.fillRect(0, 114, 128, 4);                     // marcapiano
-      g.fillStyle = '#efe6d3'; g.fillRect(40, 24, 48, 74);                     // cornice di travertino
-      g.beginPath(); g.moveTo(36, 22); g.lineTo(64, 10); g.lineTo(92, 22); g.closePath(); g.fill();   // timpano
+      g.fillStyle = '#eee4cf'; g.fillRect(0, 114, 128, 4);
+      g.fillStyle = '#efe6d3'; g.fillRect(40, 24, 48, 74);
+      g.beginPath(); g.moveTo(36, 22); g.lineTo(64, 10); g.lineTo(92, 22); g.closePath(); g.fill();
       g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(36, 22, 56, 2);
       g.fillStyle = '#2e2a28'; g.fillRect(46, 30, 36, 62);
-      g.fillStyle = '#6d4a2e'; g.fillRect(30, 30, 15, 62); g.fillRect(83, 30, 15, 62);   // persiane di legno
+      g.fillStyle = '#6d4a2e'; g.fillRect(30, 30, 15, 62); g.fillRect(83, 30, 15, 62);
       g.fillStyle = 'rgba(0,0,0,0.25)'; for (let y = 34; y < 92; y += 5) { g.fillRect(32, y, 11, 1.5); g.fillRect(85, y, 11, 1.5); }
       g.fillStyle = '#e8dfcc'; g.fillRect(38, 96, 52, 5);
-    } else {
+    } else if (style === 'napoli') {
       g.fillStyle = '#2b2f36'; g.fillRect(44, 26, 40, 66);
       g.fillStyle = '#3f6f4c'; g.fillRect(26, 26, 17, 66); g.fillRect(85, 26, 17, 66);
       g.fillStyle = 'rgba(0,0,0,0.25)'; for (let y = 30; y < 92; y += 6) { g.fillRect(28, y, 13, 2); g.fillRect(87, y, 13, 2); }
@@ -644,6 +1530,53 @@
       g.fillStyle = '#26282c'; g.fillRect(36, 94, 56, 4);
       for (let x = 38; x < 92; x += 6) g.fillRect(x, 98, 2, 14);
       g.fillRect(36, 110, 56, 3);
+    } else if (style === 'haussmann') {
+      g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 116, 128, 2);
+      g.fillStyle = '#efe9da'; g.fillRect(0, 112, 128, 4);
+      for (const x of [22, 74]) {
+        win(x, 26, 32, 60, '#efe9da', '#2e3138');
+        g.fillStyle = '#3a3d42'; g.fillRect(x - 5, 84, 42, 3);
+        for (let vx = x - 4; vx < x + 36; vx += 4) g.fillRect(vx, 78, 1.5, 7);
+      }
+    } else if (style === 'brick' || style === 'brickfe') {
+      g.fillStyle = 'rgba(0,0,0,0.18)';
+      for (let y = 0; y < 128; y += 7) g.fillRect(0, y, 128, 1.4);
+      for (let y = 0; y < 128; y += 7) for (let x = (y / 7) % 2 ? 0 : 7; x < 128; x += 14) g.fillRect(x, y, 1.2, 7);
+      win(28, 28, 26, 42, '#e8e2d2', '#2e3138');
+      win(76, 28, 26, 42, '#e8e2d2', '#2e3138');
+      g.fillStyle = '#d8d2c2'; g.fillRect(24, 72, 34, 4); g.fillRect(72, 72, 34, 4);
+      if (style === 'brickfe') {
+        g.strokeStyle = 'rgba(16,18,22,0.85)'; g.lineWidth = 2.4;
+        g.strokeRect(66, 16, 50, 96);
+        g.beginPath();
+        for (let y = 16; y < 104; y += 24) { g.moveTo(68, y + 2); g.lineTo(114, y + 22); }
+        g.stroke();
+        g.fillStyle = 'rgba(16,18,22,0.85)'; for (let y = 40; y < 114; y += 24) g.fillRect(66, y, 50, 2.2);
+      }
+    } else if (style === 'fachwerk') {
+      g.fillStyle = '#5a4030';
+      g.fillRect(0, 0, 128, 7); g.fillRect(0, 121, 128, 7); g.fillRect(0, 0, 7, 128); g.fillRect(121, 0, 7, 128);
+      g.fillRect(0, 60, 128, 6);
+      const beam = (x1, y1, x2, y2) => { const a = Math.atan2(y2 - y1, x2 - x1), L = Math.hypot(x2 - x1, y2 - y1); g.save(); g.translate(x1, y1); g.rotate(a); g.fillRect(0, -3, L, 6); g.restore(); };
+      beam(7, 66, 60, 121); beam(60, 66, 7, 121); beam(68, 121, 121, 66); beam(121, 121, 68, 66);
+      g.fillRect(60, 60, 8, 68);
+      win(42, 22, 20, 26, '#5a4030', '#2e3138');
+      win(76, 22, 20, 26, '#5a4030', '#2e3138');
+    } else if (style === 'azulejos') {
+      for (let y = 0; y < 128; y += 11) for (let x = 0; x < 128; x += 11) {
+        g.fillStyle = (x + y) % 22 ? '#ffffff' : '#9fc2dc';
+        g.fillRect(x + 0.7, y + 0.7, 9.6, 9.6);
+        if ((x + y) % 22) { g.fillStyle = '#b8d2e4'; g.fillRect(x + 3.7, y + 3.7, 3.6, 3.6); }
+      }
+      win(32, 30, 26, 46, '#ffffff', '#2e3138');
+      win(76, 30, 26, 46, '#ffffff', '#2e3138');
+      g.fillStyle = '#d8d2c2'; g.fillRect(28, 80, 34, 4); g.fillRect(72, 80, 34, 4);
+    } else {   // altbau
+      g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(0, 8, 128, 3);
+      g.fillStyle = 'rgba(0,0,0,0.08)'; for (let y = 102; y < 128; y += 7) g.fillRect(0, y, 128, 1.5);
+      win(26, 24, 24, 56, '#f0ece2', '#33383f');
+      win(78, 24, 24, 56, '#f0ece2', '#33383f');
+      g.fillStyle = '#f0ece2'; g.fillRect(22, 84, 32, 3); g.fillRect(74, 84, 32, 3);
     }
     const tex = new THREE.CanvasTexture(c);
     tex.encoding = THREE.sRGBEncoding;
@@ -651,15 +1584,9 @@
     tex.anisotropy = Math.min(8, ANISO);
     return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, metalness: 0 });
   }
-  const FACADES = {
-    napoli: ['#e7b65c', '#dd8a5c', '#c9573f', '#f1d999', '#e9a98a', '#d8c7a6', '#b85a43', '#f3e6cf'],
-    roma: ['#d9a35a', '#c8703f', '#b24f33', '#e6c184', '#edd7a8', '#cf8e5c', '#a9503c', '#e9c99a']
-  };
-  const facadeMats = {}, roofMats = {
-    napoli: new THREE.MeshStandardMaterial({ color: lin('#a89a88'), roughness: 0.95 }),
-    roma: new THREE.MeshStandardMaterial({ color: lin('#a9583b'), roughness: 0.95 })
-  };
-  const facadesFor = name => facadeMats[name] || (facadeMats[name] = FACADES[name].map((c, i) => facadeMat(c, name, i + 1)));
+  const facadeMats = {}, roofMatsC = {};
+  const facadesFor = name => facadeMats[name] || (facadeMats[name] = CITY_CFG[name].walls.map((c, i) => facadeMat(c, (i % 2 && CITY_CFG[name].style2) || CITY_CFG[name].style, i + 1)));
+  const roofFor = name => roofMatsC[name] || (roofMatsC[name] = new THREE.MeshStandardMaterial({ color: lin(CITY_CFG[name].roof), roughness: 0.95 }));
   function buildingGeo(w, h, d) {
     const g = new THREE.BoxGeometry(w, h, d);
     g.translate(0, h / 2 - 3, 0);
@@ -700,17 +1627,28 @@
     const banner = new THREE.Mesh(
       new THREE.BoxGeometry(36, 2, 0.2),
       [postMat, postMat, postMat, postMat,
-       new THREE.MeshBasicMaterial({ map: textTexture('ARRIVO · 2.000 m', 1024, 64, '#ff5a1f', '#ffffff', '700 44px "Barlow Condensed", Arial, sans-serif') }),
+       new THREE.MeshBasicMaterial({ map: textTexture(tr('finishBanner') + ' · ' + fmtLen(raceLen), 1024, 64, '#ff5a1f', '#ffffff', '700 44px "Barlow Condensed", Arial, sans-serif') }),
        new THREE.MeshBasicMaterial({ map: textTexture('C-Y-F GAMING', 1024, 64, '#13233a', '#ffffff', '700 44px "Barlow Condensed", Arial, sans-serif') })]
     );
     banner.position.set(c, Math.max(hgt(c - 18, z), hgt(c + 18, z)) + 6.2, z);
     banner.castShadow = true;
     grp.add(banner);
-    // linea rossa sulla neve
-    const line = new THREE.Mesh(new THREE.PlaneGeometry(36, 0.6), new THREE.MeshBasicMaterial({ color: lin('#d8302a'), transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 }));
+    // striscia a scacchi bianchi e neri sulla pista
+    const ck = document.createElement('canvas'); ck.width = 512; ck.height = 32;
+    const cg = ck.getContext('2d');
+    for (let i = 0; i < 32; i++) for (let j = 0; j < 2; j++) { cg.fillStyle = (i + j) % 2 ? '#111' : '#fff'; cg.fillRect(i * 16, j * 16, 16, 16); }
+    const ckTex = new THREE.CanvasTexture(ck); ckTex.encoding = THREE.sRGBEncoding; ckTex.anisotropy = ANISO;
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(36, 2.2), new THREE.MeshBasicMaterial({ map: ckTex, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 }));
     line.rotation.x = -Math.PI / 2;
-    line.position.set(c, hgt(c, z) + 0.05, z);
+    line.position.set(c, hgt(c, z) + 0.06, z);
     grp.add(line);
+    // bandierine ai lati
+    const flagMat = new THREE.MeshBasicMaterial({ map: ckTex, side: THREE.DoubleSide });
+    for (const s of [-1, 1]) {
+      const f = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.0), flagMat);
+      f.position.set(c + s * 18 - s * 0.9, hgt(c + s * 18, z) + 7.4, z);
+      grp.add(f);
+    }
     world.add(grp);
     return grp;
   }
@@ -782,7 +1720,19 @@
     hanger: new THREE.CylinderGeometry(0.012, 0.012, 0.17, 10).rotateZ(Math.PI / 2),
     baseplate: new THREE.CylinderGeometry(0.03, 0.035, 0.03, 12)
   };
-  // la giacca è una texture per colore, con le ali stampate sul fianco visto dalla telecamera e sulla schiena
+  // maglie delle città: solo i colori tradizionali, senza nomi o stemmi delle squadre
+  const JERSEYS = {
+    napoli: { body: ['#1e8fd6'], sleeves: '#1e8fd6' },
+    roma: { body: ['#8e2434'], sleeves: '#e8a21a' },
+    'milano-rossonera': { body: ['#c8102e', '#15151a'], sleeves: '#15151a' },
+    'milano-nerazzurra': { body: ['#1b3c8c', '#15151a'], sleeves: '#15151a' },
+    'torino-granata': { body: ['#7f2231'], sleeves: '#7f2231' },
+    'torino-bianconera': { body: ['#f4f4f4', '#15151a'], sleeves: '#f4f4f4' },
+    palermo: { body: ['#e7a4bd', '#15151a'], sleeves: '#15151a' },
+    bologna: { body: ['#8e2434', '#1b2a6b'], sleeves: '#1b2a6b' }
+  };
+  const myJersey = () => { const v = store.get('cyf.jersey') || ''; return JERSEYS[v] ? v : ''; };
+  // la giacca è una texture per colore o maglia, con le ali stampate sul fianco visto dalla telecamera e sulla schiena
   const jacketTex = new Map();
   // il disegno (512 x 256) viene stirato in w x h pixel della texture: la superficie del busto è ovale
   function drawWings(g, cx, cy, w, h) {
@@ -806,11 +1756,15 @@
     g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#13233a'; g.stroke();
     g.restore();
   }
-  function jacketTexture(hex) {
-    if (jacketTex.has(hex)) return jacketTex.get(hex);
+  function jacketTexture(hex, jersey = '') {
+    const key = jersey || hex;
+    if (jacketTex.has(key)) return jacketTex.get(key);
     const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
     const g = c.getContext('2d');
-    g.fillStyle = hex; g.fillRect(0, 0, 1024, 512);
+    const J = JERSEYS[jersey];
+    const body = J ? J.body : [hex];
+    g.fillStyle = body[0]; g.fillRect(0, 0, 1024, 512);
+    if (body.length === 2) { g.fillStyle = body[1]; for (let x = 0; x < 1024; x += 256) g.fillRect(x + 128, 0, 128, 512); }   // strisce verticali
     // cuciture e pieghe leggere
     g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 300, 1024, 6);
     g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(0, 306, 1024, 4);
@@ -821,7 +1775,7 @@
     const tex = new THREE.CanvasTexture(c);
     tex.encoding = THREE.sRGBEncoding;
     tex.anisotropy = 4;
-    jacketTex.set(hex, tex);
+    jacketTex.set(key, tex);
     return tex;
   }
   function makeRider(jacketHex) {
@@ -829,7 +1783,7 @@
     group.rotation.order = 'YXZ';
     const body = new THREE.Group();
     group.add(body);
-    const jacket = new THREE.MeshStandardMaterial({ map: jacketTexture(jacketHex), roughness: 0.75, metalness: 0 });
+    const jacket = new THREE.MeshStandardMaterial({ map: jacketTexture(jacketHex), roughness: 0.75, metalness: 0 });   // la maglia arriva con setColor
     const sleeve = RM(jacketHex), jacketDark = RM(jacketHex);
     jacketDark.color.multiplyScalar(0.7);
     const mesh = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; (parent || body).add(m); return m; };
@@ -923,7 +1877,13 @@
       gloveL.quaternion.copy(L.farmL.quaternion); gloveR.quaternion.copy(L.farmR.quaternion);
       gloveL.rotateX(Math.PI / 2); gloveR.rotateX(Math.PI / 2);
     }
-    function setColor(hex) { jacket.map = jacketTexture(hex); jacket.needsUpdate = true; sleeve.color.copy(lin(hex)); jacketDark.color.copy(lin(hex)).multiplyScalar(0.7); }
+    function setColor(hex, jersey = '') {
+      const J = JERSEYS[jersey];
+      jacket.map = jacketTexture(hex, J ? jersey : '');
+      jacket.needsUpdate = true;
+      sleeve.color.copy(lin(J ? J.sleeves : hex));
+      jacketDark.color.copy(lin(J ? J.body[0] : hex)).multiplyScalar(0.7);
+    }
     pose(0.3, 0.2, 0);
     return { group, body, pose, setColor, setBoard };
   }
@@ -1038,12 +1998,12 @@
   flakes.frustumCulled = false;
   if (!reduceMotion) world.add(flakes);
   function updateFlakes(dt, px, pz, speed) {
-    if (reduceMotion) return;
+    if (reduceMotion || !PART) return;
     const base = hgt(px, pz);
     for (let i = 0; i < FN; i++) {
       const o = i * 3;
-      fRel[o + 1] -= (1.1 + (i % 5) * 0.12) * dt;
-      fRel[o] += Math.sin(t * 0.7 + i) * 0.25 * dt;
+      fRel[o + 1] -= PART.fall * (1 + (i % 5) * 0.12) * dt;
+      fRel[o] += Math.sin(t * 0.7 + i) * PART.sway * dt;
       fRel[o + 2] += speed * dt * 0.02;
       if (fRel[o + 1] < 0) fRel[o + 1] += 22;
       fPos[o] = px + fRel[o]; fPos[o + 1] = base + fRel[o + 1]; fPos[o + 2] = pz + fRel[o + 2];
@@ -1096,17 +2056,17 @@
     muted = m;
     store.set('pistaNera.muted', m ? '1' : '0');
     $('btnSound').setAttribute('aria-pressed', String(!m));
-    $('btnSound').textContent = m ? 'Audio: no' : 'Audio: sì';
+    $('btnSound').textContent = m ? tr('audioOff') : tr('audioOn');
     if (audio) audio.master.gain.setTargetAtTime(m ? 0 : 0.9, audio.ac.currentTime, 0.05);
   }
 
   // ---------- scenari ----------
   const THEMES = {
-    neve: { sky: ['#3f7fc4', '#9cc5e6', '#d6e7f3'], fog: '#d6e7f3', hemi: ['#cfe4f7', '#aebfd0'], sun: '#fff0d6', spray: '#ffffff', sprayOp: 0.9, trail: '#9db4ca', trailOp: 0.42, rough: 0.82 },
-    napoli: { sky: ['#2a7fd6', '#86c2ee', '#e6edf1'], fog: '#e1e8ec', hemi: ['#f6ecdc', '#b3a493'], sun: '#fff0cf', spray: '#c7beb3', sprayOp: 0.55, trail: '#262321', trailOp: 0.2, rough: 0.9, city: true },
-    roma: { sky: ['#2f7cc8', '#92c1e6', '#efe5d6'], fog: '#e8e0d2', hemi: ['#f7ead8', '#b49b82'], sun: '#fff0cc', spray: '#c9bfb2', sprayOp: 0.5, trail: '#2a2623', trailOp: 0.18, rough: 0.92, city: true }
+    neve: { sky: ['#3f7fc4', '#9cc5e6', '#d6e7f3'], fog: '#d6e7f3', hemi: ['#cfe4f7', '#aebfd0'], sun: '#fff0d6', spray: '#ffffff', sprayOp: 0.9, trail: '#9db4ca', trailOp: 0.42, rough: 0.82, part: { col: '#ffffff', size: 0.09, fall: 1.1, sway: 0.25, op: 0.8 } }
   };
+  for (const k in CITY_CFG) THEMES[k] = Object.assign({ city: true }, CITY_CFG[k].theme);
   const isCity = () => !!THEMES[theme].city;   // città: niente neve, si va in skateboard
+  let PART = null;
   const urlScena = new URLSearchParams(location.search).get('scena');
   let theme = THEMES[urlScena] ? urlScena : (THEMES[store.get('cyf.scena')] ? store.get('cyf.scena') : 'neve');
   function applyTheme(name) {
@@ -1116,37 +2076,43 @@
     const u = sky.material.uniforms;
     u.top.value.set(T.sky[0]); u.mid.value.set(T.sky[1]); u.horizon.value.set(T.sky[2]);
     scene.fog.color.copy(lin(T.fog));
+    scene.fog.near = T.fogN || 60;
+    scene.fog.far = T.fogF || 200;
     hemi.color.copy(lin(T.hemi[0])); hemi.groundColor.copy(lin(T.hemi[1]));
     sun.color.copy(lin(T.sun));
     if (!GROUND_TEX[theme]) GROUND_TEX[theme] = GROUND_MAKE[theme]();
     groundMat.map = GROUND_TEX[theme];
-    groundMat.roughness = T.rough;
+    groundMat.roughness = T.rough || 0.9;
     groundMat.needsUpdate = true;
     gx0 = NaN;
     ranges.visible = theme === 'neve';
-    bay.visible = theme === 'napoli';
-    rome.visible = theme === 'roma';
-    flakes.visible = theme === 'neve';
+    for (const k in builtSky) builtSky[k].visible = false;
+    const sg = skylineFor(theme);
+    if (sg) sg.visible = true;
+    PART = T.part || null;
+    flakes.visible = !!PART && !reduceMotion;
+    if (PART) { flakes.material.color.copy(lin(PART.col)); flakes.material.size = PART.size; flakes.material.opacity = PART.op; }
     sprayPts.material.color.copy(lin(T.spray)); sprayPts.material.opacity = T.sprayOp;
     trailMesh.material.color.copy(lin(T.trail)); trailMesh.material.opacity = T.trailOp;
     const board = T.city ? 'skate' : 'snow';
     me.setBoard(board);
     for (const [, r] of remotes) r.model.setBoard(board);
-    if (audio) audio.carveF.frequency.value = T.city ? 900 : 2600;   // rotelle sulla pietra: rumore più basso della lamina
+    if (audio) audio.carveF.frequency.value = T.city ? 900 : 2600;
     stage.style.background = T.fog;
-    document.querySelectorAll('[data-scena]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scena === theme)));
+    selScena.value = theme;
   }
-  document.querySelectorAll('[data-scena]').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.scena === theme) return;
-    applyTheme(b.dataset.scena);
+  const selScena = $('selScena');
+  selScena.addEventListener('change', () => {
+    if (!THEMES[selScena.value] || selScena.value === theme) return;
+    applyTheme(selScena.value);
     if (!racing()) { reset((Math.random() * 2 ** 31) | 0, null, false); }
-  }));
+  });
 
   // ---------- game state ----------
   // mode: menu | solo | pause | over | lobby | countdown | race | finished | results
   let mode = 'menu';
   let best = parseInt(store.get('pistaNera.best') || '0', 10) || 0;
-  let wallT = 0, P, objs = [], bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, rowZ, forestZ, markerZ, camYaw, lean, camY, squash, armsUp;
+  let wallT = 0, tricksN = 0, near500 = false, P, objs = [], bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, rowZ, forestZ, markerZ, camYaw, lean, camY, squash, armsUp;
   let rowRng = Math.random, forestRng = Math.random, buildRng = Math.random, buildZ = 0, finishObj = null, raceLen = 2000;
   const racing = () => mode === 'countdown' || mode === 'race' || mode === 'finished';
   const distM = () => Math.max(0, -P.z);
@@ -1167,7 +2133,8 @@
     P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: 9, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
-    maxSpeed = 0; bestSpin = 0; overTimer = 0; overReason = '';
+    maxSpeed = 0; bestSpin = 0; overTimer = 0; overReason = ''; tricksN = 0; near500 = false;
+    clearHazards();
     rowZ = -28; forestZ = 22; markerZ = 10; camYaw = 0; lean = 0; camY = NaN; squash = 0; armsUp = 0;
     renderLives();
     gx0 = NaN;
@@ -1177,17 +2144,15 @@
   }
 
   // ---------- spawning (seeded: everybody in a race gets the same course) ----------
-  function addTree(rng, x, z, s, shadow) {
+  function addTree(rng, x, z, s, shadow, ghost) {
     const tilt = [(rng() - 0.5) * 0.1, (rng() - 0.5) * 0.1];
     const geo = GEO.trees[rng() < 0.3 ? 1 : 0];
     const sy = 0.9 + rng() * 0.25, ry = rng() * TAU;   // stessi numeri casuali in ogni scenario: la pista resta identica
-    if (theme === 'napoli') return { type: 'tree', x, z, s, mesh: addMesh(GEO.palms[0], vcMat, x, z, { s: s * 1.05, sy, ry, tilt, shadow }) };
-    if (theme === 'roma') return { type: 'tree', x, z, s, mesh: addMesh(GEO.pines[0], vcMat, x, z, { s: s * 1.05, sy, ry, tilt, shadow }) };
+    if (ghost) return null;
+    if (isCity()) return { type: 'tree', x, z, s, mesh: addMesh(assets().tall, vcMat, x, z, { s: s * 1.05, sy, ry, tilt, shadow }) };
     return { type: 'tree', x, z, s, mesh: addMesh(geo, vcMat, x, z, { s, sy, ry, tilt, shadow }) };
   }
-  const FOOD_NAME = new Map([[GEO.pizza, 'Pizza'], [GEO.coffee, 'Caffè'], [GEO.carbonara, 'Carbonara'], [GEO.carciofo, 'Carciofo']]);
-  const MARKER = { neve: GEO.marker, napoli: GEO.bollard, roma: GEO.travertino };
-  function spawnRow(z) {
+  function spawnRow(z, ghost) {
     const r = rowRng, rr = (a, b) => a + r() * (b - a);
     const d = -z, c = center(z);
     const n = r() < Math.min(0.8, 0.4 + d / 3500) ? 2 : 1;
@@ -1197,40 +2162,47 @@
       const kind = r();
       if (xs.some(v => Math.abs(v - x) < 4.5)) continue;
       xs.push(x);
-      if (kind < 0.38) objs.push(addTree(r, x, z, rr(0.75, 1.05), true));
-      else if (kind < 0.58) { const s = rr(0.8, 1.25); objs.push({ type: 'rock', x, z, s, mesh: addMesh(isCity() ? GEO.rockCity : GEO.rock, vcMat, x, z, { s, ry: r() * TAU }) }); }
+      if (kind < 0.38) { const t = addTree(r, x, z, rr(0.75, 1.05), true, ghost); if (t) objs.push(t); }
+      else if (kind < 0.58) { const s = rr(0.8, 1.25), ry = r() * TAU; if (!ghost) objs.push({ type: 'rock', x, z, s, mesh: addMesh(isCity() ? assets().low : GEO.rock, vcMat, x, z, { s, ry }) }); }
       else if (kind < 0.71) {
         const k = 3 + Math.floor(r() * 3);
-        for (let j = 0; j < k; j++) {
+        if (!ghost) for (let j = 0; j < k; j++) {
           const gx = x + Math.sin(j * 0.9) * 0.8, gz = z - j * 2.2;
           const alt = (Math.round(z) + j) % 2;
-          const food = theme === 'napoli' ? (alt ? GEO.pizza : GEO.coffee) : theme === 'roma' ? (alt ? GEO.carbonara : GEO.carciofo) : null;
-          objs.push({ type: 'gem', x: gx, z: gz, mesh: food ? addMesh(food, vcMat, gx, gz, { y: 0.9 }) : addMesh(gemGeo, gemMat, gx, gz, { y: 0.9 }), phase: j, food: FOOD_NAME.get(food) || null });
+          const CC = CITY_CFG[theme];
+          const food = CC ? (alt ? assets().fa : assets().fb) : null;
+          objs.push({ type: 'gem', x: gx, z: gz, mesh: food ? addMesh(food, vcMat, gx, gz, { y: 0.9 }) : addMesh(gemGeo, gemMat, gx, gz, { y: 0.9 }), phase: j, food: CC ? (alt ? CC.fa : CC.fb) : null });
         }
       }
-      else if (kind < 0.83) objs.push({ type: 'ramp', x, z, used: false, mesh: addMesh(isCity() ? GEO.rampWood : GEO.ramp, vcMat, x, z, { recv: true }) });
+      else if (kind < 0.83) { if (!ghost) objs.push({ type: 'ramp', x, z, used: false, mesh: addMesh(isCity() ? assets().ramp : GEO.ramp, vcMat, x, z, { recv: true }) }); }
       else {
-        const gx = c + rr(-9, 9), red = r() < 0.5;
-        objs.push({ type: 'gate', x: gx, z, half: 2.4, done: false, mesh: addMesh(red ? GEO.gateRed : GEO.gateBlue, vcMat, gx, z), name: red ? 'rossa' : 'blu' });
+        const gx = c + rr(-9, 9), gi = r() < 0.5 ? 0 : 1;
+        const CG = CITY_CFG[theme];
+        if (!ghost) objs.push({ type: 'gate', x: gx, z, half: 2.4, done: false, mesh: addMesh(CG ? assets().gates[gi] : (gi ? GEO.gateBlue : GEO.gateRed), vcMat, gx, z), col: CG ? CG.gate[gi] : (gi ? '#2766c6' : '#d8302a') });
       }
     }
   }
   // palazzi ai lati della strada (solo estetica: non cambiano la pista)
-  function spawnBuildings() {
+  function spawnBuildings(ghost) {
     const r = buildRng;
     const z = buildZ, c = center(z);
     let len = 0;
     for (const side of [-1, 1]) {
-      const w = 9 + r() * 6, d = 9 + r() * 5, h = 10 + r() * 14;
+      const bh = CITY_CFG[theme].bldH;
+      const w = 9 + r() * 6, d = 9 + r() * 5, h = bh[0] + r() * bh[1];
       const x = c + side * (23.5 + d / 2 + r() * 2);
-      const mats = facadesFor(theme), roof = roofMats[theme];
-      const mat = mats[Math.floor(r() * mats.length)];
-      const m = new THREE.Mesh(buildingGeo(d, h, w), [mat, mat, roof, roof, mat, mat]);
-      m.receiveShadow = true;
-      m.position.set(x, hgt(x, z), z);
-      m.rotation.y = (r() - 0.5) * 0.06;
-      world.add(m);
-      objs.push({ type: 'bldg', x, z, mesh: m });
+      const matI = Math.floor(r() * 8);
+      const rot = (r() - 0.5) * 0.06;
+      if (!ghost) {
+        const mats = facadesFor(theme), roof = roofFor(theme);
+        const mat = mats[matI % mats.length];
+        const m = new THREE.Mesh(buildingGeo(d, h, w), [mat, mat, roof, roof, mat, mat]);
+        m.receiveShadow = true;
+        m.position.set(x, hgt(x, z), z);
+        m.rotation.y = rot;
+        world.add(m);
+        objs.push({ type: 'bldg', x, z, mesh: m });
+      }
       len = Math.max(len, w);
     }
     buildZ -= len + 0.6 + r() * 1.2;
@@ -1239,32 +2211,34 @@
     world.remove(o.mesh);
     if (o.type === 'bldg') o.mesh.geometry.dispose();
   }
-  function spawnForest(z) {
+  function spawnForest(z, ghost) {
     const r = forestRng, c = center(z);
     for (const side of [-1, 1]) {
       const k = r() < 0.65 ? 2 : 1;
       for (let i = 0; i < k; i++) {
         const x = c + side * (22 + r() * 26), tz = z + (r() - 0.5) * 3;
-        objs.push(addTree(r, x, tz, 0.85 + r() * 0.55, Math.abs(x - c) < 32));
+        const t = addTree(r, x, tz, 0.85 + r() * 0.55, Math.abs(x - c) < 32, ghost);
+        if (t) objs.push(t);
       }
     }
   }
   function ensureSpawned() {
     const horizon = P.z - 200;
+    const bLine = P.z + 16;   // quello che è già alle spalle non va costruito: solo "consumato"
     const soloWorld = mode === 'solo' || mode === 'over' || mode === 'pause';
     while (rowZ > horizon) {
       // in gara niente ostacoli negli ultimi 25 m prima del traguardo
-      if (soloWorld || (racing() && -rowZ < raceLen - 25)) spawnRow(rowZ);
+      if (soloWorld || (racing() && -rowZ < raceLen - 25)) spawnRow(rowZ, rowZ > bLine);
       rowZ -= (6 + rowRng() * 4) * Math.max(0.5, 1 - (-rowZ) / 3200);
     }
     if (isCity()) {
-      while (buildZ > horizon) spawnBuildings();
+      while (buildZ > horizon) spawnBuildings(buildZ > bLine);
     } else {
-      while (forestZ > horizon) { spawnForest(forestZ); forestZ -= 2.4 + forestRng() * 1.6; }
+      while (forestZ > horizon) { spawnForest(forestZ, forestZ > bLine); forestZ -= 2.4 + forestRng() * 1.6; }
     }
     while (markerZ > horizon) {
       const c = center(markerZ);
-      for (const s of [-1, 1]) objs.push({ type: 'marker', x: c + s * 19.5, z: markerZ, mesh: addMesh(MARKER[theme], vcMat, c + s * 19.5, markerZ) });
+      if (markerZ <= bLine) for (const s of [-1, 1]) objs.push({ type: 'marker', x: c + s * 19.5, z: markerZ, mesh: addMesh(isCity() ? assets().marker : GEO.marker, vcMat, c + s * 19.5, markerZ) });
       markerZ -= 22;
     }
     const behind = P.z + 16;
@@ -1288,6 +2262,8 @@
     else if (k === 'p' || k === 'P' || k === 'Escape') togglePause();
     else if (k === 'm' || k === 'M') setMuted(!muted);
     else if (k === 'v' || k === 'V') { if (!e.repeat) voiceButton(); }
+    else if (k === 'b' || k === 'B') { if (!e.repeat) useItem('banana'); }
+    else if (k === 'n' || k === 'N') { if (!e.repeat) useItem('bomb'); }
   });
   window.addEventListener('keyup', e => {
     const k = e.key;
@@ -1319,10 +2295,15 @@
 
   function hudLabels() {
     const race = racing();
-    $('k1').textContent = race ? 'Tempo' : 'Punti';
-    $('k2').textContent = race ? 'Posizione' : 'Distanza';
-    $('k4').textContent = race ? 'Mancano' : 'Quota';
+    $('k1').textContent = race ? tr('hudTime') : tr('hudPoints');
+    $('k2').textContent = race ? tr('hudPlace') : tr('hudDistance');
+    $('kSpeed').textContent = tr('hudSpeed');
+    $('k4').textContent = race ? tr('hudLeft') : tr('hudAltitude');
+    $('k5').textContent = tr('hudPoints');
     $('hLives').hidden = race;
+    $('sPts').hidden = !race;
+    $('live').hidden = !race;
+    $('items').hidden = !race;
   }
 
   const toasts = $('toasts');
@@ -1339,7 +2320,7 @@
     initAudio();
     net.close();
     mode = 'solo';
-    me.setColor(PALETTE[0]);
+    me.setColor(PALETTE[0], myJersey());
     reset((Math.random() * 2 ** 31) | 0, null, false);
     hudLabels();
     show(null); setBanner('');
@@ -1386,7 +2367,7 @@
     thump(0.5 + impact);
     P.grab = 0;
     // atterraggio: oltre ~57° di rotazione o ~63° di salto mortale si cade; poco storto = solo rallentamento
-    if (errSpin > 1.0 || errFlip > 1.1) { P.spin = 0; P.flip = 0; crash('Atterraggio storto'); return; }
+    if (errSpin > 1.0 || errFlip > 1.1) { P.spin = 0; P.flip = 0; crash(tr('crashLanding')); return; }
     const sloppy = errSpin > 0.45 || errFlip > 0.5;
     if (sloppy) P.speed *= 0.75;
     const names = [];
@@ -1395,13 +2376,14 @@
     if (halfTurns >= 1) { names.push(halfTurns * 180 + '°'); pts += 60 * halfTurns; bestSpin = Math.max(bestSpin, halfTurns * 180); }
     if (grabbed) { names.push('Grab'); pts += 30 + Math.min(60, Math.round(P.grabT * 40)); }
     if (names.length) {
+      tricksN += names.length;
       if (P.ramp) pts *= 2;
       if (names.length > 1) pts = Math.round(pts * 1.5);
       if (sloppy) pts = Math.round(pts / 2);
       bonus += pts;
       say(names.join(' + ') + '  +' + pts, sloppy ? '#8a6d3b' : '#ff5a1f');
       if (!sloppy) { sparkle(P.x, hgt(P.x, P.z) + 0.6, P.z, names.length > 1 ? 70 : 40, true); tone('triangle', 880, 1320, 0.3, 0.1); }
-    } else if (sloppy) say('Atterraggio sporco', '#8a6d3b');
+    } else if (sloppy) say(tr('sloppyLanding'), '#8a6d3b');
     P.spin = halfTurns % 2 ? Math.PI : 0;
     P.flip = 0;
   }
@@ -1485,7 +2467,7 @@
           shake = reduceMotion ? 0 : 0.25;
           thump(0.9);
           spray(P.x, 0.3, P.z, 18, 2.5, 2);
-          say('Muro!', '#d8302a');
+          say(tr('wall'), '#d8302a');
         }
       }
     }
@@ -1499,7 +2481,7 @@
       else if (along >= 1) {
         P.onRamp = null; P.air = true; P.vy = 8.6; P.spin = P.spin % TAU; P.ramp = true; startAir();
         P.speed = Math.min(P.speed * 1.06, 46);
-        say(isPhone ? 'Rampa! ◀ ▶ ruota, tieni Salta per il backflip' : 'Rampa! ← → ruota, ↑ ↓ salto mortale', '#2f7fd0');
+        say(isPhone ? tr('rampPhone') : tr('rampKeys'), '#2f7fd0');
       }
     }
 
@@ -1515,6 +2497,8 @@
     updateGround(P.x, P.z);
     ensureSpawned();
     if (!auto && !frozen && !braking) collide();
+    if (mode === 'race') collideHazards();
+    updateHazards(dt);
     for (const o of objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = hgt(o.x, o.z) + 0.9 + Math.sin(t * 3 + o.phase) * 0.15; }
     updateSpray(dt);
     updateSparks(dt);
@@ -1530,23 +2514,24 @@
       const dz = o.z - P.z;
       if (dz < -6 || dz > 6) continue;
       const dx = o.x - P.x, d2 = dx * dx + dz * dz;
-      if (o.type === 'tree') { if (P.y < 5.5 * o.s && d2 < (0.8 * o.s) ** 2) crash('Albero!'); }
-      else if (o.type === 'rock') { if (P.y < 0.75 * o.s && d2 < (1.1 * o.s) ** 2) crash('Roccia!'); }
-      else if (o.type === 'marker') { if (P.y < 1.5 && d2 < 0.35 * 0.35) crash('Palina!'); }
+      const CC = CITY_CFG[theme];
+      if (o.type === 'tree') { if (P.y < 5.5 * o.s && d2 < (0.8 * o.s) ** 2) crash(tr(CC ? CC.tallCrash : 'crashTree')); }
+      else if (o.type === 'rock') { if (P.y < 0.75 * o.s && d2 < (1.1 * o.s) ** 2) crash(tr(CC ? CC.lowCrash : 'crashRock')); }
+      else if (o.type === 'marker') { if (P.y < 1.5 && d2 < 0.35 * 0.35) crash(tr(CC ? CC.markerCrash : 'crashPole')); }
       else if (o.type === 'ramp') {
         if (!o.used && !P.air && P.crash <= 0 && Math.abs(dx) < 1.5 && P.z < o.z + 2 && P.z > o.z - 1.2) { o.used = true; P.onRamp = o; }
       } else if (o.type === 'gem') {
-        if (P.y < 2.2 && d2 < 0.95 * 0.95) { o.taken = true; taken = true; bonus += 10; spray(o.x, 0.9, o.z, 8, 1.5, 2); world.remove(o.mesh); chime(); if (o.food && Math.random() < 0.35) say(o.food + '!  +10', '#c4361f'); }
+        if (P.y < 2.2 && d2 < 0.95 * 0.95) { o.taken = true; taken = true; bonus += 10; spray(o.x, 0.9, o.z, 8, 1.5, 2); world.remove(o.mesh); chime(); if (o.food && Math.random() < 0.35) say(tr('food_' + o.food) + '!  +10', '#c4361f'); }
       } else if (o.type === 'gate') {
         const left = o.x - o.half, right = o.x + o.half;
-        if (P.y < 1.7 && Math.abs(dz) < 0.25 && (Math.abs(P.x - left) < 0.2 || Math.abs(P.x - right) < 0.2)) crash('Paletto!');
+        if (P.y < 1.7 && Math.abs(dz) < 0.25 && (Math.abs(P.x - left) < 0.2 || Math.abs(P.x - right) < 0.2)) crash(tr('crashGate'));
         if (!o.done && P.prevZ > o.z && P.z <= o.z) {
           o.done = true;
           if (P.x > left && P.x < right) {
             combo++;
             const pts = 50 * combo;
             bonus += pts; chime();
-            say(combo > 1 ? 'Porta x' + combo + '  +' + pts : 'Porta  +50', o.name === 'rossa' ? '#d8302a' : '#2766c6');
+            say(combo > 1 ? tr('gate') + ' x' + combo + '  +' + pts : tr('gate') + '  +50', o.col || '#d8302a');
           } else combo = 0;
         }
       }
@@ -1559,12 +2544,12 @@
     soundLevels(0, 0, false);
     const s = score(), isBest = s > best;
     if (isBest) { best = s; store.set('pistaNera.best', String(best)); }
-    $('overReason').textContent = 'Ultima caduta: ' + overReason.replace('!', '');
+    $('overReason').textContent = tr('lastCrash', { r: overReason.replace('!', '') });
     $('rScore').textContent = fmt(s);
     $('rDist').textContent = fmt(Math.floor(distM())) + ' m';
     $('rSpeed').textContent = Math.round(kmh(maxSpeed)) + ' km/h';
     $('rSpin').textContent = bestSpin ? bestSpin + '°' : '—';
-    $('rBest').textContent = isBest ? 'Nuovo record personale!' : 'Il tuo record: ' + fmt(best);
+    $('rBest').textContent = isBest ? tr('newRecord') : tr('yourRecord', { p: fmt(best) });
     show('over');
     $('btnRetry').focus();
   }
@@ -1579,6 +2564,7 @@
   const net = {
     ws: null, code: null, hostId: null, players: [], offset: 0, phase: 'lobby', racers: [], results: [], finished: new Map(),
     seed: 0, startAt: 0, round: 0, retries: 0, want: false, pingTimer: null, posTimer: null, myColor: 0,
+    pub: false, minutes: 5, autoAt: 0, awards: null,
     close() {
       this.want = false;
       if (typeof stopVoice === 'function' && voice.recording) stopVoice(true);
@@ -1594,7 +2580,7 @@
   function menuError(text) { $('menuErr').hidden = !text; $('menuErr').textContent = text || ''; }
   function needName() {
     const n = inName.value.trim();
-    if (!n) { menuError('Scrivi il tuo nome per sfidare gli altri.'); inName.focus(); return null; }
+    if (!n) { menuError(tr('errName')); inName.focus(); return null; }
     store.set('cyf.name', n);
     menuError('');
     return n;
@@ -1603,16 +2589,30 @@
   function joinFromMenu() {
     if (!needName()) return;
     const c = inCode.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (c.length < 4) { menuError('Il codice ha 5 caratteri, per esempio K7QXM.'); inCode.focus(); return; }
+    if (c.length < 4) { menuError(tr('errCode')); inCode.focus(); return; }
     connect(c);
   }
   $('btnJoin').addEventListener('click', joinFromMenu);
+  // modalità online: il server indica una sala pubblica; si aspetta lì che arrivino altri giocatori
+  $('btnOnline').addEventListener('click', async () => {
+    if (!needName()) return;
+    const b = $('btnOnline');
+    b.disabled = true;
+    try {
+      const res = await fetch('/api/quick', { cache: 'no-store' });
+      const d = await res.json();
+      if (!res.ok || !d.code) throw new Error();
+      connect(d.code, true);
+    } catch (e) { menuError(tr('errOnline')); }
+    b.disabled = false;
+  });
 
-  function connect(code) {
+  function connect(code, pub) {
     initAudio();
     net.close();
     net.want = true; net.code = code; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map();
-    history.replaceState(null, '', location.pathname + '?sfida=' + code);
+    net.pub = !!pub || /^ONLINE\d+$/.test(code); net.autoAt = 0; net.awards = null;
+    history.replaceState(null, '', location.pathname + (net.pub ? '' : '?sfida=' + code));
     mode = 'lobby';
     renderLobby();
     show('lobby');
@@ -1622,11 +2622,11 @@
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     let ws;
     try { ws = new WebSocket(proto + '://' + location.host + '/api/room/' + net.code); }
-    catch (e) { setBanner('Impossibile collegarsi al server.'); return; }
+    catch (e) { setBanner(tr('errServer')); return; }
     net.ws = ws;
     ws.onopen = () => {
       net.retries = 0; setBanner('');
-      ws.send(JSON.stringify({ t: 'hello', id: myId, name: inName.value.trim() || 'Rider' }));
+      ws.send(JSON.stringify({ t: 'hello', id: myId, name: inName.value.trim() || 'Rider', j: myJersey() }));
       clearInterval(net.pingTimer);
       net.pingTimer = setInterval(() => { if (ws.readyState === 1) ws.send('ping'); }, 20000);
     };
@@ -1635,13 +2635,17 @@
       if (net.ws !== ws) return;
       clearInterval(net.pingTimer);
       if (!net.want) return;
-      if (ev.code === 1008) { net.want = false; toMenu(); menuError('La sfida è piena (massimo 8 giocatori).'); return; }
-      if (ev.code === 4000) { net.want = false; toMenu(); menuError('Sei entrato in questa sfida da un\'altra scheda.'); return; }
+      if (ev.code === 1008) {
+        // sala pubblica piena: se ne cerca un'altra
+        if (net.pub) { net.want = false; $('btnOnline').click(); return; }
+        net.want = false; toMenu(); menuError(tr('errFull')); return;
+      }
+      if (ev.code === 4000) { net.want = false; toMenu(); menuError(tr('errOtherTab')); return; }
       if (net.retries < 6) {
         net.retries++;
-        setBanner('Connessione persa: riprovo…');
+        setBanner(tr('reconnecting'));
         setTimeout(() => { if (net.want) open(); }, 1000 * net.retries);
-      } else { setBanner('Non riesco a collegarmi. Controlla la connessione e rientra con il codice ' + net.code + '.'); }
+      } else { setBanner(tr('cantConnect', { code: net.code })); }
     };
   }
 
@@ -1651,50 +2655,65 @@
       net.offset = m.now - Date.now();
       voice.next = m.voiceNext || 0;
       net.phase = m.phase; net.seed = m.seed; net.startAt = m.startAt; net.racers = m.racers || []; net.results = m.results || [];
-      raceLen = m.length || 2000;
+      net.pub = !!m.pub; net.minutes = m.minutes || 5; net.awards = m.awards || null;
+      raceLen = m.length || raceLen;
       if ((m.phase === 'countdown' || m.phase === 'racing') && amIn(net.racers) && !racing()) beginRace(true);
       renderLobby();
     } else if (m.t === 'lobby') {
+      if (m.now) net.offset = m.now - Date.now();
       net.players = m.players; net.hostId = m.hostId; net.phase = m.phase;
+      net.pub = !!m.pub; net.minutes = m.minutes || 5; net.autoAt = m.autoAt || 0;
+      if (!racing()) raceLen = m.length || raceLen;
       const mine = m.players.find(p => p.id === myId);
-      if (mine) { net.myColor = mine.color; if (!racing()) me.setColor(PALETTE[mine.color % PALETTE.length]); }
+      if (mine) { net.myColor = mine.color; if (!racing()) me.setColor(PALETTE[mine.color % PALETTE.length], myJersey()); }
       renderLobby();
       if (mode === 'results') renderResults();
     } else if (m.t === 'countdown') {
       net.offset = m.now - Date.now();
       net.phase = 'countdown'; net.seed = m.seed; net.startAt = m.startAt; net.racers = m.racers; net.round = m.round; net.results = []; net.finished = new Map();
-      raceLen = m.length || 2000;
+      raceLen = m.length || raceLen;
       if (amIn(net.racers)) beginRace(false);
       else renderLobby();
     } else if (m.t === 'pos') {
       remoteUpdate(m);
     } else if (m.t === 'finished') {
       net.finished.set(m.id, m.ms);
-      const who = (net.racers.find(r => r.id === m.id) || {}).name || 'Qualcuno';
+      const who = (net.racers.find(r => r.id === m.id) || {}).name || tr('someone');
       if (m.id === myId) {
-        say(m.ms != null ? 'Arrivo! ' + fmtTime(m.ms) : 'Tempo non valido', '#1f8a4c');
+        say(m.ms != null ? tr('arrived', { t: fmtTime(m.ms) }) : tr('invalidTime'), '#1f8a4c');
       } else if (racing()) {
-        say(who + ' è arrivato' + (m.ms != null ? ': ' + fmtTime(m.ms) : ''), '#13233a');
+        say(m.ms != null ? tr('otherArrivedTime', { n: who, t: fmtTime(m.ms) }) : tr('otherArrived', { n: who }), '#13233a');
       }
     } else if (m.t === 'results') {
-      net.results = m.results; net.phase = 'results';
+      net.results = m.results; net.phase = 'results'; net.awards = m.awards || null;
+      const mine = m.results.find(r => r.id === myId);
+      if (mine && mine.total != null) { myTotal = mine.total; renderMyPts(); }
       endRaceView();
     } else if (m.t === 'left') {
       removeRemote(m.id);
     } else if (m.t === 'full') {
-      menuError('La sfida è piena (massimo 8 giocatori).');
+      menuError(tr('errFull'));
     } else if (m.t === 'voice') {
       playVoice(m);
     } else if (m.t === 'voiceOk') {
       voice.next = m.next;
-      say('Vocale inviato', '#1f8a4c');
+      say(tr('voiceSent'), '#1f8a4c');
     } else if (m.t === 'voiceWait') {
       voice.next = m.next;
-      say('Prossimo vocale tra ' + fmtWait(m.next - m.now), '#13233a');
+      say(tr('voiceWait', { t: fmtWait(m.next - m.now) }), '#13233a');
+    } else if (m.t === 'drop') {
+      if (mode === 'race' || mode === 'finished') addHazard({ hid: m.hid, owner: m.id, kind: m.kind, x: m.x, z: m.z });
+    } else if (m.t === 'hit') {
+      removeHazard(m.hid);
+      if (m.owner === myId) say(tr(m.kind === 'bomb' ? 'hitYourBomb' : 'hitYourBanana', { n: m.name || tr('someone') }), '#ff5a1f');
     }
   }
 
   function renderLobby() {
+    const pub = net.pub;
+    $('lobbyShare').hidden = pub;
+    $('lobbyPublic').hidden = !pub;
+    $('lobbyBrand').textContent = pub ? tr('onlineBrand') : tr('lobbyBrand');
     $('lobbyCode').textContent = net.code || '—';
     const link = location.origin + location.pathname + '?sfida=' + (net.code || '');
     $('linkText').textContent = link;
@@ -1703,27 +2722,51 @@
     for (const p of net.players) {
       const li = document.createElement('li');
       const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[p.color % PALETTE.length];
-      const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = p.name + (p.id === myId ? ' (tu)' : '');
+      const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = p.name + (p.id === myId ? tr('you') : '');
       li.append(dot, nm);
-      if (p.id === net.hostId) { const h = document.createElement('span'); h.className = 'pill host'; h.textContent = 'Organizza'; li.append(h); }
-      const r = document.createElement('span'); r.className = 'pill' + (p.ready ? ' ok' : ''); r.textContent = p.ready ? 'Pronto' : 'In attesa';
+      if (!pub && p.id === net.hostId) { const h = document.createElement('span'); h.className = 'pill host'; h.textContent = tr('host'); li.append(h); }
+      const r = document.createElement('span'); r.className = 'pill' + (p.ready ? ' ok' : ''); r.textContent = p.ready ? tr('ready') : tr('waiting');
       li.append(r);
       ul.append(li);
     }
-    const isHost = net.hostId === myId;
+    const isHost = !pub && net.hostId === myId;
+    // durata della gara: la sceglie chi organizza (nelle sale pubbliche è sempre 5 minuti)
+    $('durBox').hidden = pub;
+    document.querySelectorAll('[data-min]').forEach(b => {
+      b.setAttribute('aria-pressed', String(+b.dataset.min === net.minutes));
+      b.disabled = !isHost;
+    });
+    $('durLabel').textContent = tr('durationLabel') + (isHost ? '' : ' · ' + tr('durationHost'));
     const mine = net.players.find(p => p.id === myId);
-    $('btnReady').textContent = mine && mine.ready ? 'Non sono pronto' : 'Sono pronto';
+    $('btnReady').textContent = mine && mine.ready ? tr('notReady') : tr('imReady');
     $('btnGo').hidden = !isHost;
     const busy = net.phase === 'countdown' || net.phase === 'racing';
     $('btnGo').disabled = busy;
+    $('btnLeave').textContent = pub ? tr('leaveOnline') : tr('leaveChallenge');
+    renderLobbyStatus();
+  }
+  function renderLobbyStatus() {
     const n = net.players.length, ready = net.players.filter(p => p.ready).length;
+    const busy = net.phase === 'countdown' || net.phase === 'racing';
+    const isHost = !net.pub && net.hostId === myId;
     let status;
-    if (!net.ws || net.ws.readyState !== 1) status = 'Collegamento al server…';
-    else if (busy && !amIn(net.racers)) status = 'C\'è una gara in corso: entri nella prossima.';
-    else if (n < 2) status = 'Condividi il link: la gara si può fare anche da soli, ma è meglio in compagnia.';
-    else status = n + ' giocatori · ' + ready + ' pronti. ' + (isHost ? 'Quando volete, premi Parti.' : 'Parte quando l\'organizzatore preme Parti.');
+    if (!net.ws || net.ws.readyState !== 1) status = tr('connecting');
+    else if (busy && !amIn(net.racers)) status = tr('raceRunning');
+    else if (net.pub) {
+      const left = net.autoAt ? Math.max(0, Math.ceil((net.autoAt - serverNow()) / 1000)) : 0;
+      status = n < 2 ? tr('pubWaiting') : (left ? tr('pubStartsIn', { n, s: left }) : tr('pubStarting', { n }));
+    }
+    else if (n < 2) status = tr('shareLink');
+    else status = tr('lobbyCount', { n, r: ready }) + ' ' + (isHost ? tr('pressGo') : tr('waitHost'));
     $('lobbyStatus').textContent = status;
   }
+  // il conto alla rovescia delle sale pubbliche si aggiorna da solo
+  setInterval(() => {
+    if (!net.pub) return;
+    if (mode === 'lobby') renderLobbyStatus();
+    else if (mode === 'results') renderResultsStatus();
+  }, 500);
+  document.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => net.send({ t: 'settings', minutes: +b.dataset.min })));
   $('btnReady').addEventListener('click', () => {
     const mine = net.players.find(p => p.id === myId);
     net.send({ t: 'ready', ready: !(mine && mine.ready) });
@@ -1732,8 +2775,8 @@
   $('btnRematch').addEventListener('click', () => net.send({ t: 'start' }));
   $('btnCopy').addEventListener('click', async () => {
     const link = $('linkText').textContent;
-    try { await navigator.clipboard.writeText(link); $('btnCopy').textContent = 'Link copiato'; setTimeout(() => ($('btnCopy').textContent = 'Copia il link'), 1800); }
-    catch (e) { const r = document.createRange(); r.selectNodeContents($('linkText')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $('btnCopy').textContent = 'Seleziona e copia il link qui sotto'; }
+    try { await navigator.clipboard.writeText(link); $('btnCopy').textContent = tr('linkCopied'); setTimeout(() => ($('btnCopy').textContent = tr('copyLink')), 1800); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($('linkText')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $('btnCopy').textContent = tr('copyManual'); }
   });
   $('btnLeave').addEventListener('click', toMenu);
   $('btnResLeave').addEventListener('click', toMenu);
@@ -1742,12 +2785,13 @@
     net.close();
     history.replaceState(null, '', location.pathname);
     mode = 'menu';
-    me.setColor(PALETTE[0]);
+    me.setColor(PALETTE[0], myJersey());
     reset((Math.random() * 2 ** 31) | 0, null, false);
     hudLabels();
     setBanner('');
     show('menu');
     loadBoard();
+    loadMe();
   }
 
   function beginRace(late) {
@@ -1756,7 +2800,7 @@
     const n = net.racers.length;
     const x0 = center(0) + (slot - (n - 1) / 2) * 2.6;
     mode = 'countdown';
-    me.setColor(PALETTE[net.myColor % PALETTE.length]);
+    me.setColor(PALETTE[net.myColor % PALETTE.length], myJersey());
     reset(net.seed, x0, true);
     hudLabels();
     show(null);
@@ -1767,12 +2811,14 @@
       // rientro durante la gara: si riparte dal via, il tempo corre già
       mode = 'race';
     }
+    say(tr('raceLength', { m: net.minutes || 5, d: fmtLen(raceLen) }), '#13233a');
     clearInterval(net.posTimer);
     net.posTimer = setInterval(() => {
       if (!racing()) return;
-      net.send({ t: 'pos', x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), a: +P.ang.toFixed(3), s: +P.spin.toFixed(2), f: +P.flip.toFixed(2), g: P.grab > 0.5 ? 1 : 0, v: +P.speed.toFixed(2), c: P.crash > 0 ? 1 : 0 });
+      net.send({ t: 'pos', x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), a: +P.ang.toFixed(3), s: +P.spin.toFixed(2), f: +P.flip.toFixed(2), g: P.grab > 0.5 ? 1 : 0, v: +P.speed.toFixed(2), c: P.crash > 0 ? 1 : 0, k: +(tuckS - brakeS).toFixed(2), ...myStats() });
     }, 100);
   }
+  const myStats = () => ({ top: +maxSpeed.toFixed(1), tk: tricksN, p: Math.max(0, Math.round(bonus)) });
   let lastCount = -1;
   function raceClock() {
     const cnt = $('count');
@@ -1780,7 +2826,7 @@
       const left = net.startAt - serverNow();
       if (left <= 0) {
         mode = 'race';
-        cnt.hidden = false; cnt.innerHTML = '<span>VIA!</span>';
+        cnt.hidden = false; cnt.innerHTML = '<span>' + tr('go') + '</span>';
         beep(true);
         setTimeout(() => { if (mode !== 'countdown') cnt.hidden = true; }, 800);
       } else {
@@ -1788,11 +2834,12 @@
         if (n !== lastCount) { lastCount = n; cnt.hidden = false; cnt.innerHTML = '<span>' + n + '</span>'; if (n <= 3) beep(false); }
       }
     }
+    if (mode === 'race' && !near500 && raceLen - distM() < 500) { near500 = true; say(tr('finishNear'), '#1f8a4c'); }
     if (mode === 'race' && -P.z >= raceLen) {
       mode = 'finished';
-      net.send({ t: 'finish' });
-      say('Traguardo!', '#1f8a4c');
-      setBanner('Sei arrivato. In attesa degli altri…');
+      net.send({ t: 'finish', ...myStats() });
+      say(tr('finishLine'), '#1f8a4c');
+      setBanner(tr('waitOthers'));
     }
   }
   function endRaceView() {
@@ -1801,33 +2848,84 @@
     setBanner('');
     mode = 'results';
     hideRemotes();
+    clearHazards();
     hudLabels();
     renderResults();
     show('raceResults');
   }
   function renderResults() {
-    $('resRound').textContent = 'Sfida ' + (net.code || '') + ' · gara ' + (net.round || 1);
+    $('resRound').textContent = (net.pub ? tr('onlineBrand') : tr('challenge') + ' ' + (net.code || '')) + ' · ' + tr('raceN', { n: net.round || 1 }) + ' · ' + (net.minutes || 5) + ' min';
     const ul = $('resList');
     ul.innerHTML = '';
     net.results.forEach((r, i) => {
       const li = document.createElement('li');
-      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = r.ms != null ? (i + 1) + '°' : '–';
+      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = r.ms != null ? (i === 0 ? '🏆' : (i + 1) + '°') : '–';
       const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(r.color || 0) % PALETTE.length];
-      const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = r.name + (r.id === myId ? ' (tu)' : '');
-      const tm = document.createElement('span'); tm.className = 'time'; tm.textContent = r.ms != null ? fmtTime(r.ms) : 'Non arrivato';
+      const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = r.name + (r.id === myId ? tr('you') : '');
+      const tm = document.createElement('span'); tm.className = 'time'; tm.textContent = r.ms != null ? fmtTime(r.ms) : tr('dnf');
       li.append(pos, dot, nm, tm);
+      if (r.earned != null) { const e = document.createElement('span'); e.className = 'earned'; e.textContent = '+' + fmt(r.earned); li.append(e); }
       ul.append(li);
     });
-    const isHost = net.hostId === myId;
+    // premi: chi ha toccato la velocità più alta e chi ha fatto più acrobazie
+    const aw = $('awards');
+    aw.innerHTML = '';
+    const award = (label, a, value) => {
+      if (!a) return;
+      const d = document.createElement('div');
+      const k = document.createElement('span'); k.className = 'k'; k.textContent = label;
+      const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(a.color || 0) % PALETTE.length];
+      const n = document.createElement('span'); n.textContent = a.name + (a.id === myId ? tr('you') : '');
+      const v = document.createElement('b'); v.textContent = value; v.style.marginLeft = 'auto';
+      d.append(k, dot, n, v);
+      aw.append(d);
+    };
+    const A = net.awards || {};
+    if (A.fastest && A.fastest.top > 0) award('⚡ ' + tr('awardSpeed'), A.fastest, Math.round(kmh(A.fastest.top)) + ' km/h');
+    if (A.tricks && A.tricks.tk > 0) award('🤸 ' + tr('awardTricks'), A.tricks, String(A.tricks.tk));
+    aw.hidden = !aw.children.length;
+    const mine = net.results.find(r => r.id === myId);
+    $('resMine').hidden = !mine || mine.earned == null;
+    if (mine && mine.earned != null) $('resMine').innerHTML = tr('earnedLine', { e: '<span>+' + fmt(mine.earned) + '</span>', t: fmt(mine.total ?? myTotal) });
+    const isHost = !net.pub && net.hostId === myId;
     $('btnRematch').hidden = !isHost;
-    const host = net.players.find(p => p.id === net.hostId);
-    $('resStatus').textContent = isHost ? 'Premi Rivincita per una nuova pista con gli stessi giocatori.' : 'In attesa che ' + (host ? host.name : 'l\'organizzatore') + ' lanci la rivincita.';
+    renderResultsStatus();
+  }
+  function renderResultsStatus() {
+    let txt;
+    if (net.pub) {
+      const left = net.autoAt ? Math.max(0, Math.ceil((net.autoAt - serverNow()) / 1000)) : 0;
+      txt = net.players.length < 2 ? tr('pubWaiting') : (left ? tr('nextRaceIn', { s: left }) : tr('pubStarting', { n: net.players.length }));
+    } else {
+      const isHost = net.hostId === myId;
+      const host = net.players.find(p => p.id === net.hostId);
+      txt = isHost ? tr('rematchHint') : tr('waitRematch', { n: host ? host.name : tr('hostName') });
+    }
+    $('resStatus').textContent = txt;
+  }
+
+  // ---------- punti collezionati (li tiene il server, legati a questo dispositivo) ----------
+  let myTotal = +(store.get('cyf.points') || 0);
+  function renderMyPts() {
+    store.set('cyf.points', String(myTotal));
+    const el = $('myPts');
+    el.hidden = false;
+    el.innerHTML = tr('myPoints', { p: '<span>' + fmt(myTotal) + '</span>' });
+  }
+  async function loadMe() {
+    try {
+      const res = await fetch('/api/me?id=' + encodeURIComponent(myId), { cache: 'no-store' });
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      myTotal = d.points || 0;
+    } catch (e) {}
+    renderMyPts();
   }
 
   // ---------- messaggi vocali (solo in sfida, uno ogni 3 minuti: il limite lo controlla il server) ----------
   const VOICE_MAX_S = 8;
   const voice = { rec: null, stream: null, chunks: [], recording: false, startT: 0, timer: null, next: 0, mime: '' };
-  const btnVoice = $('btnVoice'), voiceNow = $('voiceNow');
+  const btnVoice = $('btnVoice'), voiceNow = $('voiceNow'), voiceLbl = $('voiceLbl');
   const online = () => !!(net.ws && net.ws.readyState === 1) && (mode === 'lobby' || mode === 'results' || racing());
   const fmtWait = ms => { const s2 = Math.ceil(ms / 1000); return Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0'); };
   function updateVoiceBtn() {
@@ -1837,13 +2935,13 @@
     const wait = voice.next - serverNow();
     btnVoice.classList.toggle('rec', voice.recording);
     if (voice.recording) {
-      btnVoice.textContent = 'Invia · ' + Math.max(0, Math.ceil(VOICE_MAX_S - (performance.now() - voice.startT) / 1000)) + ' s';
+      voiceLbl.textContent = tr('voiceSend') + ' ' + Math.max(0, Math.ceil(VOICE_MAX_S - (performance.now() - voice.startT) / 1000));
       btnVoice.disabled = false;
     } else if (wait > 0) {
-      btnVoice.textContent = 'Vocale tra ' + fmtWait(wait);
+      voiceLbl.textContent = fmtWait(wait);
       btnVoice.disabled = true;
     } else {
-      btnVoice.textContent = isPhone ? 'Parla' : 'Parla (V)';
+      voiceLbl.textContent = isPhone ? tr('voiceTalk') : tr('voiceTalk') + ' (V)';
       btnVoice.disabled = false;
     }
   }
@@ -1864,12 +2962,12 @@
     if (!online()) return;
     if (voice.recording) { stopVoice(); return; }
     const wait = voice.next - serverNow();
-    if (wait > 0) { say('Prossimo vocale tra ' + fmtWait(wait), '#13233a'); return; }
+    if (wait > 0) { say(tr('voiceWait', { t: fmtWait(wait) }), '#13233a'); return; }
     const mime = pickMime();
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !mime) { say('Questo browser non registra audio', '#d8302a'); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !mime) { say(tr('voiceNoRec'), '#d8302a'); return; }
     try {
       voice.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-    } catch (e) { say('Microfono non disponibile', '#d8302a'); return; }
+    } catch (e) { say(tr('voiceNoMic'), '#d8302a'); return; }
     voice.chunks = [];
     voice.mime = mime;
     try { voice.rec = new MediaRecorder(voice.stream, { mimeType: mime, audioBitsPerSecond: 24000 }); }
@@ -1899,15 +2997,15 @@
     const fr = new FileReader();
     fr.onload = () => {
       const data = String(fr.result).split(',')[1] || '';
-      if (data.length > 200000) { say('Vocale troppo lungo', '#d8302a'); return; }
+      if (data.length > 200000) { say(tr('voiceTooLong'), '#d8302a'); return; }
       net.send({ t: 'voice', mime: type, data, dur: Math.round(dur * 10) / 10 });
     };
     fr.readAsDataURL(blob);
   }
   let voicePlaying = null;
   function playVoice(m) {
-    const who = m.name || 'Qualcuno';
-    if (muted) { say(who + ' ha mandato un vocale (audio spento)', '#13233a'); return; }
+    const who = m.name || tr('someone');
+    if (muted) { say(tr('voiceMuted', { n: who }), '#13233a'); return; }
     try {
       const bin = atob(m.data), bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -1928,6 +3026,115 @@
   // ---------- donazioni ----------
   const DONATE_URL = (window.CYF && window.CYF.donateUrl) || '';
   document.querySelectorAll('[data-donate]').forEach(a => { if (DONATE_URL) { a.href = DONATE_URL; a.hidden = false; } });
+
+  // ---------- banane e bombe: si pagano con i punti della gara e fanno cadere gli altri ----------
+  const COST = { banana: 50, bomb: 150 };
+  const HAZ_GEO = {
+    // buccia di banana: arco giallo con le punte scure, appoggiato sulla pista
+    banana: merge([
+      { geo: new THREE.TorusGeometry(0.34, 0.085, 10, 18, 2.0).rotateZ(Math.PI / 2 - 1.0).rotateX(Math.PI / 2), color: '#f4d03f', y: 0.09 },
+      { geo: new THREE.TorusGeometry(0.34, 0.06, 8, 18, 2.0).rotateZ(Math.PI / 2 - 1.0).rotateX(Math.PI / 2), color: '#e5b822', y: 0.15 },
+      { geo: new THREE.SphereGeometry(0.06, 8, 6), color: '#5a3d1e', x: 0.34 * Math.cos(Math.PI / 2 - 1.0), y: 0.1, z: -0.34 * Math.sin(Math.PI / 2 - 1.0) },
+      { geo: new THREE.CylinderGeometry(0.03, 0.04, 0.16, 6), color: '#6b4a24', x: 0.34 * Math.cos(Math.PI / 2 + 1.0), y: 0.12, z: -0.34 * Math.sin(Math.PI / 2 + 1.0) }
+    ]),
+    bomb: merge([
+      { geo: new THREE.SphereGeometry(0.42, 20, 14), color: '#1d1f24', y: 0.42 },
+      { geo: new THREE.CylinderGeometry(0.13, 0.15, 0.14, 12), color: '#3a3d44', y: 0.86 },
+      { geo: new THREE.CylinderGeometry(0.025, 0.025, 0.28, 6), color: '#c9b48a', y: 1.05, x: 0.04 }
+    ])
+  };
+  HAZ_GEO.banana.scale(1.7, 1.7, 1.7);
+  const sparkMat = new THREE.MeshBasicMaterial({ color: lin('#ff3b1f') });
+  const sparkGeo = new THREE.SphereGeometry(0.08, 8, 6);
+  const hazards = new Map();
+  let hazN = 0;
+  function addHazard(h, from) {
+    if (hazards.has(h.hid)) return;
+    const mesh = addMesh(HAZ_GEO[h.kind], vcMat, h.x, h.z, { ry: Math.random() * TAU });
+    if (h.kind === 'bomb') { const sp = new THREE.Mesh(sparkGeo, sparkMat); sp.position.set(0.04, 1.2, 0); mesh.add(sp); h.spark = sp; }
+    h.mesh = mesh;
+    h.t = 0;
+    // lancio: vola dal rider al punto scelto
+    if (from) { h.fly = { x0: from.x, z0: from.z, y0: from.y, dur: 0.55 }; h.armed = false; }
+    else h.armed = true;
+    hazards.set(h.hid, h);
+    placeHazard(h);
+  }
+  function placeHazard(h) {
+    if (h.fly && h.t < h.fly.dur) {
+      const k = h.t / h.fly.dur;
+      const x = h.fly.x0 + (h.x - h.fly.x0) * k, z = h.fly.z0 + (h.z - h.fly.z0) * k;
+      h.mesh.position.set(x, hgt(x, z) + h.fly.y0 * (1 - k) + Math.sin(k * Math.PI) * 4, z);
+      h.mesh.rotation.y += 0.4;
+    } else {
+      h.mesh.position.set(h.x, hgt(h.x, h.z), h.z);
+      h.armed = true;
+    }
+  }
+  function removeHazard(hid) {
+    const h = hazards.get(hid);
+    if (!h) return;
+    world.remove(h.mesh);
+    hazards.delete(hid);
+  }
+  function clearHazards() { for (const hid of [...hazards.keys()]) removeHazard(hid); }
+  function updateHazards(dt) {
+    for (const [, h] of hazards) {
+      h.t += dt;
+      if (h.fly) placeHazard(h);
+      if (h.spark) h.spark.visible = Math.floor(h.t * 4) % 2 === 0;
+    }
+  }
+  function collideHazards() {
+    if (invuln > 0 || P.crash > 0) return;
+    for (const [hid, h] of hazards) {
+      if (!h.armed || h.owner === myId) continue;
+      const dx = h.x - P.x, dz = h.z - P.z, d2 = dx * dx + dz * dz;
+      const hit = h.kind === 'bomb' ? (d2 < 2.4 * 2.4 && P.y < 1.6) : (d2 < 1.0 && P.y < 0.7);
+      if (!hit) continue;
+      if (h.kind === 'bomb') { spray(h.x, 0.5, h.z, 90, 7, 8); sparkle(h.x, hgt(h.x, h.z) + 0.6, h.z, 80, true); thump(2); }
+      removeHazard(hid);
+      net.send({ t: 'hit', hid, owner: h.owner, kind: h.kind });
+      crash(tr(h.kind === 'bomb' ? 'crashBomb' : 'crashBanana'));
+      return;
+    }
+  }
+  // lascia l'oggetto dietro di sé, oppure lo lancia nel punto indicato (solo banane)
+  function useItem(kind, target) {
+    if (mode !== 'race' || !net.ws) { if (mode === 'solo') say(tr('itemsRaceOnly'), '#13233a'); return; }
+    if (bonus < COST[kind]) { say(tr('needPoints', { p: COST[kind] }), '#d8302a'); return; }
+    if (performance.now() - (useItem.last || 0) < 950) return;
+    useItem.last = performance.now();
+    bonus -= COST[kind];
+    const hid = myId + '-' + net.round + '-' + (++hazN);
+    let x = P.x - Math.sin(P.ang) * 3, z = P.z + Math.cos(P.ang) * 3;
+    if (target) { x = target.x; z = target.z; }
+    addHazard({ hid, owner: myId, kind, x, z }, target ? { x: P.x, z: P.z, y: P.y + 1 } : null);
+    net.send({ t: 'drop', kind, x: +x.toFixed(2), z: +z.toFixed(2), hid });
+    say(tr(kind === 'bomb' ? 'bombDropped' : (target ? 'bananaThrown' : 'bananaDropped')) + '  −' + COST[kind], '#8a6d3b');
+  }
+  $('btnBanana').addEventListener('click', () => useItem('banana'));
+  $('btnBomb').addEventListener('click', () => useItem('bomb'));
+  // doppio clic (o doppio tocco) sulla pista: la banana vola nel punto indicato, sempre davanti al rider
+  const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let lastTap = { t: 0, x: 0, y: 0 };
+  cvs.addEventListener('pointerdown', e => {
+    const now = performance.now();
+    const dbl = now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40;
+    lastTap = dbl ? { t: 0, x: 0, y: 0 } : { t: now, x: e.clientX, y: e.clientY };
+    if (!dbl || mode !== 'race') return;
+    const r = cvs.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    const hit = raycaster.intersectObject(ground)[0];
+    let x, z;
+    if (hit) { const p = world.worldToLocal(hit.point.clone()); x = p.x; z = p.z; }
+    else { z = P.z - 45; x = P.x + ndc.x * 14; }
+    z = clamp(z, P.z - 70, P.z - 8);
+    const c = center(z);
+    x = clamp(x, c - 19, c + 19);
+    useItem('banana', { x, z });
+  });
 
   // ---------- remote riders ----------
   const remotes = new Map();
@@ -1953,6 +3160,7 @@
     if (!r) {
       const color = PALETTE[(info.color || 0) % PALETTE.length];
       const model = makeRider(color);
+      model.setColor(color, JERSEYS[info.j] ? info.j : '');
       model.setBoard(isCity() ? 'skate' : 'snow');
       const label = nameSprite(info.name || 'Rider', color);
       label.position.y = 2.3;
@@ -1971,7 +3179,7 @@
     const info = net.racers.find(x => x.id === m.id);
     if (!info) return;
     const r = remotes.get(m.id) || remoteFor(m.id, info);
-    r.tx = m.x; r.tz = m.z; r.ty = m.y; r.ta = m.a; r.s = m.s; r.f = m.f || 0; r.g = m.g ? 1 : 0; r.v = m.v; r.c = m.c; r.last = performance.now(); r.has = true;
+    r.tx = m.x; r.tz = m.z; r.ty = m.y; r.ta = m.a; r.s = m.s; r.f = m.f || 0; r.g = m.g ? 1 : 0; r.v = m.v; r.c = m.c; r.k = m.k || 0; r.last = performance.now(); r.has = true;
   }
   function updateRemotes(dt) {
     const now = performance.now();
@@ -1986,19 +3194,18 @@
       g.rotation.y = -r.a;
       r.gs = (r.gs || 0) + ((r.g || 0) - (r.gs || 0)) * Math.min(1, 9 * dt);
       bodyTurn(r.model.body, r.c ? (now / 120) % TAU : (r.f || 0), r.s, 0);
-      r.model.pose(Math.min(1, 0.35 + r.gs * 0.45), r.y > 0.3 ? 1 : 0.3, 0, r.gs);
+      r.ks = (r.ks || 0) + ((r.y > 0.3 ? 0 : (r.k || 0)) - (r.ks || 0)) * Math.min(1, 8 * dt);
+      r.model.pose(Math.min(1, 0.35 + r.gs * 0.45 + Math.max(0, r.ks) * 0.55), r.y > 0.3 ? 1 : 0.3, 0, r.gs, Math.max(0, -r.ks));
     }
   }
   function hideRemotes() { for (const [, r] of remotes) r.model.group.visible = false; }
   function removeRemote(id) { const r = remotes.get(id); if (r) { world.remove(r.model.group); remotes.delete(id); } }
   function clearRemotes() { for (const id of [...remotes.keys()]) removeRemote(id); }
 
-  function racePlace() {
-    const me0 = { id: myId, d: -P.z, ms: net.finished.get(myId) };
+  function standings() {
     const list = net.racers.map(r => {
-      if (r.id === myId) return me0;
-      const rm = remotes.get(r.id);
-      return { id: r.id, d: rm ? -rm.tz : 0, ms: net.finished.get(r.id) };
+      const rm = r.id === myId ? null : remotes.get(r.id);
+      return { id: r.id, name: r.name, color: r.id === myId ? net.myColor : r.color, d: r.id === myId ? -P.z : (rm ? -rm.tz : 0), ms: net.finished.get(r.id) };
     });
     list.sort((a, b) => {
       const fa = a.ms != null, fb = b.ms != null;
@@ -2006,7 +3213,31 @@
       if (fa !== fb) return fa ? -1 : 1;
       return b.d - a.d;
     });
-    return { place: list.findIndex(x => x.id === myId) + 1, of: list.length };
+    return list;
+  }
+  function racePlace() {
+    const list = standings();
+    return { place: list.findIndex(x => x.id === myId) + 1, of: list.length, list };
+  }
+  // classifica dal vivo in alto a destra: posizione, nome e distacco dal primo (o il tempo, per chi è arrivato)
+  function renderLive(list) {
+    const ol = $('liveList');
+    ol.innerHTML = '';
+    const lead = list.find(x => x.ms == null);
+    const leadD = list.length ? (list[0].ms != null ? raceLen : list[0].d) : 0;
+    list.slice(0, 8).forEach((r, i) => {
+      const li = document.createElement('li');
+      if (r.id === myId) li.className = 'me';
+      const pos = document.createElement('span'); pos.textContent = (i + 1) + '°';
+      const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(r.color || 0) % PALETTE.length];
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.name + (r.id === myId ? tr('you') : '');
+      const gap = document.createElement('span'); gap.className = 'gap';
+      gap.textContent = r.ms != null ? fmtTime(r.ms) : (i === 0 ? fmtLen(Math.max(0, raceLen - r.d)) : '−' + fmtLen(Math.max(0, leadD - r.d)));
+      li.append(pos, dot, nm, gap);
+      ol.append(li);
+    });
+    $('liveTitle').textContent = tr('liveTitle');
+    void lead;
   }
 
   // ---------- render ----------
@@ -2067,13 +3298,13 @@
     sun.position.copy(v3).add(SUN_OFFSET);
     sky.position.copy(camera.position);
     ranges.position.copy(camera.position);
-    bay.position.copy(camera.position);
-    rome.position.copy(camera.position);
+    const skyG = builtSky[theme];
+    if (skyG) skyG.position.copy(camera.position);
     updateTrail();
   }
 
   // ---------- HUD ----------
-  let hudT = 0;
+  let hudT = 0, liveT = 1;
   function hud(dt) {
     hudT += dt;
     if (hudT < 0.08) return;
@@ -2083,8 +3314,13 @@
       const el = mode === 'countdown' ? 0 : (net.finished.get(myId) ?? Math.max(0, serverNow() - net.startAt));
       $('v1').textContent = fmtTime(el);
       const pl = racePlace();
-      $('v2').textContent = pl.place + '° di ' + pl.of;
-      $('v4').textContent = fmt(Math.max(0, raceLen - distM())) + ' m';
+      $('v2').textContent = tr('placeOf', { p: pl.place, n: pl.of });
+      $('v4').textContent = fmtLen(Math.max(0, raceLen - distM()));
+      $('v5').textContent = fmt(bonus);
+      $('btnBanana').disabled = mode !== 'race' || bonus < COST.banana;
+      $('btnBomb').disabled = mode !== 'race' || bonus < COST.bomb;
+      liveT += 0.08;
+      if (liveT > 0.25) { liveT = 0; renderLive(pl.list); }
     } else {
       $('v1').textContent = fmt(score());
       $('v2').textContent = fmt(Math.floor(distM())) + ' m';
@@ -2099,7 +3335,7 @@
 
   async function loadBoard() {
     try {
-      const res = await fetch('/api/leaderboard', { cache: 'no-store' });
+      const res = await fetch('/api/leaderboard?min=5', { cache: 'no-store' });
       if (!res.ok) throw new Error();
       const rows = await res.json();
       const ol = $('board');
@@ -2138,8 +3374,37 @@
     requestAnimationFrame(frame);
   }
 
+  // testi della pagina: data-i18n (testo), data-i18n-html (con grassetti), data-i18n-ph (segnaposto), data-i18n-title, data-i18n-aria
+  function applyLang(l) {
+    lang = LANGS.includes(l) ? l : 'it';
+    store.set('cyf.lang', lang);
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = tr(el.dataset.i18nHtml); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = tr(el.dataset.i18nPh); });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = tr(el.dataset.i18nTitle); });
+    document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', tr(el.dataset.i18nAria)); });
+    document.querySelectorAll('[data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+    document.title = tr('pageTitle');
+    hudLabels();
+    setMuted(muted);
+    renderMyPts();
+    if (mode === 'lobby') renderLobby();
+    if (mode === 'results') renderResults();
+    updateVoiceBtn();
+  }
+  document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => applyLang(b.dataset.lang)));
+  const selJersey = $('selJersey');
+  selJersey.value = myJersey();
+  selJersey.addEventListener('change', () => {
+    store.set('cyf.jersey', JERSEYS[selJersey.value] ? selJersey.value : '');
+    me.setColor(PALETTE[(net.myColor || 0) % PALETTE.length], myJersey());
+  });
   resize();
   applyTheme(theme);
+  applyLang(lang);
+  me.setColor(PALETTE[0], myJersey());
+  loadMe();
   reset((Math.random() * 2 ** 31) | 0, null, false);
   hudLabels();
   loadBoard();
@@ -2147,7 +3412,7 @@
   if (invite) {
     inCode.value = invite.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
     if (inName.value.trim()) connect(inCode.value);
-    else { menuError(''); inName.focus(); $('btnJoin').textContent = 'Entra nella sfida'; }
+    else { menuError(''); inName.focus(); $('btnJoin').textContent = tr('joinChallenge'); }
   }
   requestAnimationFrame(frame);
 })();
