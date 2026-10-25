@@ -36,6 +36,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
       const color = PALETTE[(info.color || 0) % PALETTE.length];
       const model = makeRider(color);
       model.setColor(color, JERSEYS[info.j] ? info.j : '');
+      model.setLook(id);   // gli stessi capelli che vede lui (R-220)
       model.setBoard(stato.isCity() ? 'skate' : 'snow');
       const label = nameSprite(info.name || 'Rider', color);
       label.position.y = 2.3;

@@ -1,14 +1,15 @@
 // modulo: rider
 // dipende da: base
 // Il modello del rider (lo stesso per te e per gli avversari): forme arrotondate, giacca con lo stemma CYF e la maglia
-// della città (JERSEYS), tavola da neve o skateboard, posa (pose) che segue curva, salto, grab e switch.
+// della città o il colore scelto (JERSEYS), capelli a caso tra 6 acconciature (setLook), tavola da neve o skateboard,
+// posa (pose) che segue curva, salto, grab e switch.
 // Solo modello e animazione: niente fisica, niente stato di gioco.
 window.PN = window.PN || {};
 PN.rider = (() => {
   const { TAU, lin, store } = PN.base;
   // ---------- riders (local and remote share the same model) ----------
   const RM = c => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.7, metalness: 0 });
-  const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), helmet: RM('#eef2f6'), helmetPad: RM('#2b2f36'), helmetIn: Object.assign(RM('#eef2f6'), { side: THREE.DoubleSide }), boot: RM('#1b1b1b'), skin: RM('#dfae8c'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
+  const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), boot: RM('#1b1b1b'), skin: RM('#dfae8c'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
   // skateboard (R-217): ruote da 9 cm di diametro e 4 cm di larghezza, da cruiser, con il mozzo scuro e il cuscinetto
   const WHEEL_R = 0.045, WHEEL_W = 0.04;
   const SKATE = {
@@ -20,7 +21,7 @@ PN.rider = (() => {
   // la tavola da skate sta sopra le ruote: rispetto alla tavola da neve il rider sale di LIFT
   const DECK_Y = WHEEL_R * 2 + 0.006, LIFT = DECK_Y + 0.012 - 0.068;
   // in città il rider è vestito da skater (R-218): viso scoperto, mani nude, scarpe da skate
-  const STREET = { sole: RM('#f2f1ec'), shoe: RM('#2b2f36'), lace: RM('#e8e6df'), eye: RM('#f6f4ef'), iris: RM('#4a3426'), brow: RM('#4a3628'), lip: RM('#b07468'), hair: RM('#2e221a') };
+  const STREET = { sole: RM('#f2f1ec'), shoe: RM('#2b2f36'), lace: RM('#e8e6df'), eye: RM('#f6f4ef'), iris: RM('#4a3426'), brow: RM('#4a3628'), lip: RM('#b07468') };
   const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
   const PIVOT = new THREE.Vector3();
   // ruota il corpo attorno al baricentro (circa 0,6 m sopra la tavola), non attorno ai piedi
@@ -57,13 +58,8 @@ PN.rider = (() => {
     // bacino con i pantaloni larghi: unisce le due cosce, niente fessura da manichino
     pelvis: new THREE.SphereGeometry(0.15, 22, 14).scale(0.78, 0.62, 1.14),
     collar: new THREE.TorusGeometry(0.062, 0.026, 8, 20).rotateX(Math.PI / 2),
-    // testa a uovo, casco, occhiali avvolgenti con elastico
+    // testa a uovo, maschera da neve avvolgente con elastico
     head: lathe([[0.001, -0.125], [0.05, -0.12], [0.08, -0.095], [0.098, -0.04], [0.104, 0.02], [0.1, 0.08], [0.074, 0.125], [0.001, 0.142]], 24).scale(1.08, 1, 0.9),
-    // casco che copre anche le orecchie, con i paraorecchie e la visiera sul retro
-    // calotta intera sopra, e sotto un guscio aperto davanti per il viso (il davanti della testa è +x)
-    helmet: new THREE.SphereGeometry(0.146, 28, 10, 0, TAU, 0, Math.PI * 0.36).scale(1.1, 0.98, 1.0),
-    helmetSide: new THREE.SphereGeometry(0.146, 28, 12, Math.PI + 0.95, TAU - 1.9, Math.PI * 0.34, Math.PI * 0.3).scale(1.1, 0.98, 1.0),
-    earpad: new THREE.SphereGeometry(0.05, 14, 10).scale(1, 1.15, 0.45),
     goggle: new THREE.CylinderGeometry(0.128, 0.128, 0.064, 26, 1, false, Math.PI / 2 - 1.0, 2.0).scale(1.1, 1, 0.98),
     goggleFrame: new THREE.CylinderGeometry(0.131, 0.131, 0.076, 26, 1, true, Math.PI / 2 - 1.05, 2.1).scale(1.1, 1, 0.98),
     strap: new THREE.TorusGeometry(0.15, 0.012, 6, 32).rotateX(Math.PI / 2).scale(1.1, 1, 0.99),
@@ -94,21 +90,51 @@ PN.rider = (() => {
     hanger: new THREE.CylinderGeometry(0.013, 0.013, 0.17, 10).rotateZ(Math.PI / 2),
     baseplate: new THREE.CylinderGeometry(0.03, 0.036, 0.034, 12),
     kingpin: new THREE.CylinderGeometry(0.02, 0.024, 0.03, 10),
-    // in città (R-218): casco da skate tondo che lascia scoperta la fronte, viso, scarpe da skate
-    skateHelmet: new THREE.SphereGeometry(0.138, 30, 14, 0, TAU, 0, Math.PI * 0.52).scale(1.07, 1.0, 0.97),
+    // in città (R-218): viso e scarpe da skate
     // occhi a mandorla piccoli con l'iride grande (come quelli veri: il bianco si vede poco), sopracciglia sottili, labbra
     eye: new THREE.SphereGeometry(0.012, 14, 10).scale(0.5, 0.62, 1),
     iris: new THREE.SphereGeometry(0.0068, 12, 8).scale(0.45, 1, 1),
     brow: new THREE.CylinderGeometry(0.0032, 0.0032, 0.032, 8).rotateX(Math.PI / 2),
     mouth: new THREE.CylinderGeometry(0.0035, 0.0035, 0.036, 8).rotateX(Math.PI / 2),
     ear: new THREE.SphereGeometry(0.026, 12, 10).scale(0.55, 1.15, 0.45),
-    hair: new THREE.SphereGeometry(0.108, 24, 10, -Math.PI * 0.5, Math.PI, Math.PI * 0.3, Math.PI * 0.28).scale(1.07, 1.0, 0.93),   // solo dietro e ai lati, sotto il casco
     sole: roundedSlab(0.1, 0.258, 0.045, 0.02),
     shoe: lathe([[0.001, 0], [0.052, 0], [0.056, 0.03], [0.05, 0.06], [0.034, 0.075], [0.001, 0.08]], 20).scale(2.35, 1, 0.92),
     lace: new THREE.BoxGeometry(0.06, 0.006, 0.05),
     hand: new THREE.SphereGeometry(0.052, 16, 12).scale(0.75, 1.25, 0.95)
   };
   // maglie delle città: solo i colori tradizionali, senza nomi o stemmi delle squadre
+  // ---------- capelli (R-220): niente casco, sei acconciature, tre maschili e tre femminili ----------
+  // Coordinate della testa: il davanti è +x, la cima della testa è a y = 0,142, raggio ~0,11. La calotta copre la
+  // testa ed è inclinata all'indietro (la fronte resta scoperta); le acconciature lunghe hanno una "tenda" aperta davanti.
+  // la calotta deve superare la cima della testa (y = 0,142): centro a y = 0,03 e un po' più alta che larga
+  const cap = (r, th, rot) => { const g = new THREE.SphereGeometry(r, 30, 14, 0, TAU, 0, Math.PI * th).scale(1.08, 1.06, 0.93); g.rotateZ(rot); g.translate(-0.006, 0.03, 0); return g; };
+  // tenda: capelli che scendono dietro e ai lati, aperti davanti (gap di 0,6π attorno a +x), dall'altezza y0 per h metri;
+  // profilo morbido: aderente alla testa in alto, un po' gonfio a metà, le punte che rientrano
+  const curtain = (rt, rb, h, y0) => {
+    const pts = [[rt, 0], [rt * 1.06, -h * 0.25], [rb, -h * 0.6], [rb * 0.96, -h * 0.9], [rb * 0.82, -h]].map(([r, y]) => new THREE.Vector2(r, y));
+    const g = new THREE.LatheGeometry(pts, 28, Math.PI * 0.8, Math.PI * 1.4).scale(1.05, 1, 0.95); g.translate(-0.012, y0, 0); return g;
+  };
+  const HAIR_STYLES = [
+    { name: 'corti', female: false, parts: () => [cap(0.117, 0.56, 0.45)] },
+    { name: 'rasati', female: false, parts: () => [cap(0.1135, 0.53, 0.5)] },
+    { name: 'ciuffo', female: false, parts: () => { const q = new THREE.SphereGeometry(0.06, 18, 10).scale(1.25, 0.55, 1.45); q.rotateZ(-0.35); q.translate(0.055, 0.13, 0); return [cap(0.117, 0.56, 0.45), q]; } },
+    { name: 'lunghi', female: true, parts: () => [cap(0.119, 0.6, 0.4), curtain(0.112, 0.132, 0.32, 0.06)] },
+    { name: 'coda', female: true, parts: () => {
+      const knot = new THREE.SphereGeometry(0.036, 14, 10); knot.translate(-0.125, 0.04, 0);
+      const tail = new THREE.CylinderGeometry(0.032, 0.012, 0.22, 14); tail.rotateZ(-0.3); tail.translate(-0.16, -0.06, 0);
+      return [cap(0.118, 0.58, 0.4), knot, tail]; } },
+    { name: 'caschetto', female: true, parts: () => [cap(0.119, 0.6, 0.4), curtain(0.114, 0.124, 0.17, 0.05)] }
+  ];
+  const HAIR_COLORS = ['#1f1a17', '#3b2a1f', '#6b4a30', '#c9a25e', '#8a4a2a'];   // nero, castano scuro, castano, biondo, ramato
+  const hairGeo = HAIR_STYLES.map(() => null), hairMat = {};
+  const hairMaterial = c => hairMat[c] || (hairMat[c] = new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
+  // acconciatura e colore scelti "a caso" ma sempre uguali per lo stesso giocatore: si parte dal suo codice (S-32)
+  function lookOf(id) {
+    let h = 2166136261;
+    for (const ch of String(id || '')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+    return { style: h % HAIR_STYLES.length, color: (h >>> 8) % HAIR_COLORS.length };
+  }
+
   const JERSEYS = {
     napoli: { body: ['#1e8fd6'], sleeves: '#1e8fd6' },
     roma: { body: ['#8e2434'], sleeves: '#e8a21a' },
@@ -117,7 +143,12 @@ PN.rider = (() => {
     'torino-granata': { body: ['#7f2231'], sleeves: '#7f2231' },
     'torino-bianconera': { body: ['#f4f4f4', '#15151a'], sleeves: '#f4f4f4' },
     palermo: { body: ['#e7a4bd', '#15151a'], sleeves: '#15151a' },
-    bologna: { body: ['#8e2434', '#1b2a6b'], sleeves: '#1b2a6b' }
+    bologna: { body: ['#8e2434', '#1b2a6b'], sleeves: '#1b2a6b' },
+    // colori a scelta del giocatore (R-221): giacca e maniche dello stesso colore
+    'colore-arancione': { body: ['#ff5a1f'], sleeves: '#ff5a1f', color: true }, 'colore-blu': { body: ['#2f7fd0'], sleeves: '#2f7fd0', color: true },
+    'colore-verde': { body: ['#1f8a4c'], sleeves: '#1f8a4c', color: true }, 'colore-giallo': { body: ['#e2b007'], sleeves: '#e2b007', color: true },
+    'colore-viola': { body: ['#9b4dca'], sleeves: '#9b4dca', color: true }, 'colore-rosso': { body: ['#e2352b'], sleeves: '#e2352b', color: true },
+    'colore-nero': { body: ['#23262c'], sleeves: '#23262c', color: true }, 'colore-bianco': { body: ['#eceff2'], sleeves: '#eceff2', color: true }
   };
   const myJersey = () => { const v = store.get('cyf.jersey') || ''; return JERSEYS[v] ? v : ''; };
   // la giacca è una texture per colore o maglia, con lo stemma CYF sui fianchi, sul petto e sulla schiena (R-216, al posto delle ali)
@@ -250,26 +281,33 @@ PN.rider = (() => {
     mesh(G.neck, SHARED.skin, headG).position.y = -0.15;
     mesh(G.head, SHARED.skin, headG);
     mesh(G.nose, SHARED.skin, headG).position.set(0.112, -0.005, 0);
-    const snowHead = [
-      mesh(G.gaiter, jacketDark, headG),
-      mesh(G.helmet, SHARED.helmet, headG), mesh(G.helmetSide, SHARED.helmetIn, headG),
-      ...[-1, 1].map(s => { const e = mesh(G.earpad, SHARED.helmetPad, headG); e.position.set(-0.02, -0.035, s * 0.14); return e; }),
-      mesh(G.strap, SHARED.glove, headG), mesh(G.goggleFrame, SHARED.glove, headG), mesh(G.goggle, SHARED.goggle, headG)
-    ];
-    snowHead[1].position.set(-0.012, 0, 0); snowHead[2].position.set(-0.012, 0, 0);
-    snowHead[5].position.y = 0.022; snowHead[6].position.set(0.002, 0.024, 0); snowHead[7].position.set(0.006, 0.024, 0);
-    snowOnly.push(...snowHead);
-    // viso (il davanti della testa è +x): occhi con l'iride, sopracciglia, bocca, orecchie; casco da skate inclinato
-    // all'indietro che lascia la fronte scoperta, capelli corti sotto il bordo
-    const sk = mesh(G.skateHelmet, SHARED.helmet, headG); sk.position.set(-0.016, 0.022, 0); sk.rotation.z = 0.34;
-    const hair = mesh(G.hair, STREET.hair, headG); hair.position.set(-0.008, 0, 0); hair.rotation.z = 0.25;
-    streetOnly.push(sk, hair);
+    // sulla neve: scaldacollo e maschera con l'elastico sopra i capelli (niente casco dalla 0.12.2, R-220)
+    const gaiter = mesh(G.gaiter, jacketDark, headG);
+    const strap = mesh(G.strap, SHARED.glove, headG); strap.position.y = 0.03; strap.scale.set(0.78, 1, 0.78);
+    const gFrame = mesh(G.goggleFrame, SHARED.glove, headG); gFrame.position.set(-0.004, 0.026, 0); gFrame.scale.setScalar(0.9);
+    const goggle = mesh(G.goggle, SHARED.goggle, headG); goggle.position.set(0, 0.026, 0); goggle.scale.setScalar(0.9);
+    snowOnly.push(gaiter, strap, gFrame, goggle);
+    // capelli: un gruppo che si ricostruisce con setLook(codice del giocatore)
+    const hairG = new THREE.Group();
+    headG.add(hairG);
+    let lookNow = '';
+    function setLook(id) {
+      const L2 = lookOf(id), key = L2.style + ':' + L2.color;
+      if (key === lookNow) return L2;
+      lookNow = key;
+      while (hairG.children.length) hairG.remove(hairG.children[0]);
+      if (!hairGeo[L2.style]) hairGeo[L2.style] = HAIR_STYLES[L2.style].parts();
+      for (const g of hairGeo[L2.style]) mesh(g, hairMaterial(HAIR_COLORS[L2.color]), hairG);
+      return L2;
+    }
+    setLook('');
+    // viso (il davanti della testa è +x): occhi con l'iride, sopracciglia, bocca; le orecchie si vedono sempre
     for (const s of [-1, 1]) {
       const eye = mesh(G.eye, STREET.eye, headG); eye.position.set(0.107, 0.022, s * 0.036);
       const iris = mesh(G.iris, STREET.iris, headG); iris.position.set(0.1118, 0.0215, s * 0.036);
       const brow = mesh(G.brow, STREET.brow, headG); brow.position.set(0.1105, 0.043, s * 0.037); brow.rotation.x = s * 0.18;
       const ear = mesh(G.ear, SHARED.skin, headG); ear.position.set(-0.004, 0.005, s * 0.094);
-      streetOnly.push(eye, iris, brow, ear);
+      streetOnly.push(eye, iris, brow);
     }
     const mouth = mesh(G.mouth, STREET.lip, headG); mouth.position.set(0.101, -0.058, 0);
     streetOnly.push(mouth);
@@ -353,7 +391,7 @@ PN.rider = (() => {
     }
     pose(0.3, 0.2, 0);
     setBoard('snow');
-    return { group, body, pose, setColor, setBoard };
+    return { group, body, pose, setColor, setBoard, setLook };
   }
-  return { JERSEYS, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
+  return { JERSEYS, HAIR_STYLES, lookOf, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
 })();

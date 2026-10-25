@@ -203,8 +203,8 @@ with sync_playwright() as p:
         return { wh, navy, orange }; };
       // ali bianche: prima occupavano tutta la larghezza del fianco; ora fuori dallo stemma c'è solo la maglia
       return { opts: opts.length, saved: D.store.get('cyf.jersey'), side: zone(0.02, 0.55, 36, 80), side2: zone(0.5, 0.55, 100, 80), back: zone(0.75, 0.57, 130, 110), chest: zone(0.283, 0.62, 60, 48),
-               oldWing: zone(0.17, 0.5, 30, 30), keys: Object.keys(D.JERSEYS).length }; }""")
-    check(r['opts'] == 9 and r['keys'] == 8 and r['saved'] == 'roma', '8 maglie delle città nel menu + colore assegnato; la scelta resta salvata', json.dumps(r))
+               oldWing: zone(0.17, 0.5, 30, 30), keys: Object.keys(D.JERSEYS).filter(k => !D.JERSEYS[k].color).length, colors: Object.keys(D.JERSEYS).filter(k => D.JERSEYS[k].color).length }; }""")
+    check(r['opts'] == 17 and r['keys'] == 8 and r['colors'] == 8 and r['saved'] == 'roma', '8 maglie delle città e 8 colori nel menu + colore assegnato (R-221); la scelta resta salvata', json.dumps(r))
     full = lambda z: z['wh'] > 30 and z['navy'] > 30 and z['orange'] > 30
     check(full(r['side2']) and full(r['back']) and full(r['chest']) and r['side']['wh'] > 30, 'stemma CYF (scudo bianco, bordo e scritta blu, fascia arancione) sui due fianchi, sulla schiena e sul petto', json.dumps(r))
     check(r['oldWing']['wh'] == 0, 'niente più ali bianche sul fianco', json.dumps(r['oldWing']))

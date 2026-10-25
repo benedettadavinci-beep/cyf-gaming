@@ -64,7 +64,7 @@ const prefixes = [...game.matchAll(/\btr\('([a-z]+_)'\s*\+/g)].map(m => m[1]);
 for (const m of game.matchAll(/\b(tallCrash|lowCrash|markerCrash):\s*'([A-Za-z0-9_]+)'/g)) use(m[2], 'CITY_CFG.' + m[1]);
 for (const m of game.matchAll(/\b(fa|fb):\s*'([A-Za-z0-9_]+)'/g)) for (const p of prefixes.length ? prefixes : ['food_']) if (p === 'food_') use(p + m[2], 'CITY_CFG.' + m[1]);
 // attributi della pagina
-for (const m of html.matchAll(/data-i18n(?:-html|-ph|-title|-aria)?="([^"]+)"/g)) use(m[1], 'index.html');
+for (const m of html.matchAll(/data-i18n(?:-html|-ph|-title|-aria|-label)?="([^"]+)"/g)) use(m[1], 'index.html');
 const missing = [...used].filter(([k]) => !(k in L.it));
 ok(used.size > 100, 'testi trovati nel codice (' + jsFiles.length + ' file)', String(used.size));
 ok(!missing.length, 'tutti i testi usati esistono in italiano (e quindi, per C2, nelle 4 lingue)', missing.slice(0, 15).map(([k, w]) => k + ' (' + w + ')').join(', '));

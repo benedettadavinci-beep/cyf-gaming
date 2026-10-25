@@ -238,6 +238,9 @@
 
   function jump() {
     if ((mode !== 'solo' && mode !== 'race') || P.air || P.crash > 0) return;
+    // salto premuto mentre si sale sulla rampa: si stacca dalla rampa da dov'è il rider (R-219). Prima il rider restava
+    // "sulla rampa" anche in aria e l'atterraggio non scattava mai: sprofondava sotto terra all'infinito
+    P.onRamp = null;
     P.air = true; P.vy = 6.4; P.ramp = false; squash = 0.6; startAir();
     spray(P.x, 0, P.z, 12, 2.5);
   }
@@ -343,7 +346,8 @@
         P.spin += clamp(ts - P.spin, -7 * dt * k, 7 * dt * k);
         P.flip += clamp(tf - P.flip, -9 * dt * kf, 9 * dt * kf);
       }
-      if (P.y <= 0 && !P.onRamp) land();
+      // in aria non si è mai sulla rampa: se succede lo stesso (stato incoerente), si atterra comunque (R-219)
+      if (P.y <= 0) { P.onRamp = null; land(); }
     }
 
     const g0 = hgt(P.x, P.z);
@@ -459,6 +463,7 @@
 
   // ---------- online ----------
   const myId = store.get('cyf.id') || (() => { const v = 'p' + Math.random().toString(36).slice(2, 12); store.set('cyf.id', v); return v; })();
+  me.setLook(myId);   // capelli a caso ma sempre uguali per questo giocatore (R-220)
   const inName = $('inName'), inCode = $('inCode');
   inName.value = store.get('cyf.name') || '';
   const ALPH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -862,6 +867,7 @@
     document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = tr(el.dataset.i18nPh); });
     document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = tr(el.dataset.i18nTitle); });
     document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', tr(el.dataset.i18nAria)); });
+    document.querySelectorAll('[data-i18n-label]').forEach(el => { el.label = tr(el.dataset.i18nLabel); });   // gruppi dei menu
     document.querySelectorAll('[data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
     document.title = tr('pageTitle');
     hudLabels();

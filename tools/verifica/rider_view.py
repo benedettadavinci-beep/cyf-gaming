@@ -9,7 +9,7 @@ REPO = os.environ.get('CYF_REPO', os.path.join(os.path.dirname(os.path.abspath(_
 GAME = open(os.path.join(REPO, 'public', 'pista-nera', 'game.js'), encoding='utf-8').read()
 hook = "  applyLang(lang);\n"
 assert GAME.count(hook) == 1
-GAME = GAME.replace(hook, hook + "  window.__dbg = { camera, me, rider, scene, renderer, world, THREE, pose: (...a) => me.pose(...a) };\n")
+GAME = GAME.replace(hook, hook + "  window.__dbg = { camera, me, rider, scene, renderer, world, THREE, pose: (...a) => me.pose(...a), HAIR_STYLES: PN.rider.HAIR_STYLES, lookOf: PN.rider.lookOf };\n")
 
 SHOTS = [  # nome, posizione camera relativa al rider, punto guardato (y)
     ('dietro', (0.0, 1.7, 3.0), 0.85),      # come in gioco: alle spalle, un po' sopra
