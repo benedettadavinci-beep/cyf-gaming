@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.9.3 · aggiornato al 25 ottobre 2026, ore 09:00 · nuova sezione 11: struttura del software, cancello dei test e diagnosi"
+subtitle: "Versione 0.10.0 · aggiornato al 25 ottobre 2026, ore 09:30 · nuova sezione 12: la pista è la strada famosa della città (processo P-01), meno ostacoli, più curve"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -79,7 +79,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-302 | Napoli: strade al posto della neve, mare, Vesuvio sullo sfondo; rocce lasciate; pizze e caffè al posto dei cristalli | 24/10/2026 | Fatto | |
 | R-303 | Roma: in fondo allo scenario si vede il Colosseo; piatti di carbonara e carciofi al posto di pizza e caffè | 24/10/2026 | Fatto | Strada in sampietrini, palazzi romani, cupole e pini sullo sfondo |
 | R-304 | In tutti gli scenari i testi dicono "albero" (non "abete") | 24/10/2026 | Fatto | A Napoli sono palme, a Roma pini; gli ostacoli che non sono alberi dicono il loro nome (Lampione!, Fioriera!…) |
-| R-305 | La pista è troppo rettilinea: servono curve naturali, non troppo complicate | 24/10/2026 | Fatto | Tre onde sovrapposte danno curve ampie e dolci; la pista resta uguale per tutti nella stessa gara |
+| R-305 | La pista è troppo rettilinea: servono curve naturali, non troppo complicate | 24/10/2026 | Fatto | Tre onde sovrapposte danno curve ampie e dolci; la pista resta uguale per tutti nella stessa gara. Dalla 0.10.0 le curve sono più frequenti e più spinte (R-311) |
 | R-306 | Tutte le altre città della tabella "CYF-elementi-per-citta.xlsx" (cartella sul Desktop) | 24/10/2026 | Fatto | Milano, Parigi, Londra, Francoforte, Madrid, Lisbona, Zagabria, Berlino, Zurigo, New York: ostacoli, bonus, rampe, porte, paletti, strada, palazzi, monumenti e, dalla 0.9.1, anche gli oggetti ai lati della tabella (tram arancione a Milano, cabine rosse e bus a due piani a Londra, tram giallo a Lisbona, ombrelloni rossi a Zagabria, tratti del Muro a Berlino, tram blu e bianco a Zurigo, taxi a New York), doppie linee gialle al marciapiede a Londra, marciapiedi a mosaico a Berlino, fiume Meno a Francoforte. Tabella verificata riga per riga il 25/10 (sezione 10) |
 
 # 5. Grafica e qualità
@@ -111,7 +111,7 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-02 | In città la strada è chiusa dai palazzi: chi va contro il muro rimbalza e rallenta ("Muro!"), senza perdere vite | 24/10/2026 | Da confermare |
 | S-03 | In città le rocce sono di pietra, senza neve sopra | 24/10/2026 | Da confermare |
 | S-04 | Il messaggio vocale dura al massimo circa 8 secondi | 24/10/2026 | Da confermare |
-| S-05 | La pista è identica in tutti gli scenari, così i tempi restano confrontabili | 24/10/2026 | Da confermare |
+| S-05 | La pista è identica in tutti gli scenari, così i tempi restano confrontabili | 24/10/2026 | Da confermare | Dalla 0.10.0 vale per la sequenza di ostacoli, bonus, rampe e porte e per la larghezza giocabile; quello che c'è ai lati cambia città per città (R-307) |
 | S-06 | Per bombe e banane si spendono i punti guadagnati nella gara in corso; quelli che restano a fine gara si aggiungono ai punti collezionati (R-112) | 24/10/2026 | Da confermare |
 | S-07 | La freccia su a terra non fa più saltare, perché ora frena (R-207): si salta con la barra spaziatrice. In aria le frecce su e giù restano per i salti mortali | 24/10/2026 | Da confermare |
 | S-08 | Lunghezza della gara = minuti × 40 m/s (velocità media stimata): 5 min ≈ 12 km, 10 ≈ 24, 15 ≈ 36. Fuori tempo massimo al doppio dei minuti scelti | 24/10/2026 | Da confermare |
@@ -129,6 +129,7 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-20 | Rotellina: ▲ (dito in alto) accelera e ▼ frena, come un joystick; sulla tastiera resta freccia giù = accelera, freccia su = frena (R-206, R-207) | 24/10/2026 | Da confermare |
 | S-21 | Sul telefono l'interruttore dell'audio è in alto accanto al microfono, i messaggi del vocale ("sta parlando…") compaiono a metà schermo; su PC il microfono è in alto a sinistra e i comandi touch non si vedono | 24/10/2026 | Da confermare |
 | S-22 | I vocali viaggiano in WAV a 11-12 kHz (qualità da telefonata, circa 25 KB al secondo) invece che in Opus compresso: pesa di più ma si registra e si riproduce su ogni telefono senza dipendere dal browser | 25/10/2026 | Da confermare |
+| S-23 | Strade scelte dove le fonti ne indicano più d'una: Milano corso Vittorio Emanuele II (è pedonale e sbocca sul Duomo, che è il simbolo richiesto; via Montenapoleone e corso Garibaldi non portano a un simbolo); New York Broadway (la fonte la chiama la più famosa); Lisbona tiene il tram giallo anche se l'Avenida da Liberdade non lo ha, perché è l'elemento della tabella delle città (R-306) | 25/10/2026 | Da confermare |
 
 # 8. Idee per il futuro (da confermare)
 
@@ -241,6 +242,45 @@ Raccomandazioni del 25/10/2026 per far sì che, man mano che il gioco cresce, le
 
 **Come si fa il debug da oggi.** (1) Un amico dice che qualcosa non va: gli si chiede di toccare 5 volte il numero di versione nel menu e premere "Invia", poi di dire il codice; Claude legge la sua diagnosi su `/api/errors`. (2) Errori che nessuno segnala: arrivano da soli su `/api/errors` e il controllo notturno li riassume. (3) Prima di ogni pubblicazione: `npm test` in locale o il cancello su GitHub.
 
+# 12. La pista è la strada famosa della città
+
+Richiesta del 25/10/2026. Il processo da seguire per ogni città, oggi e per le città future, è **P-01**; il risultato della sua applicazione è la tabella qui sotto, con le fonti consultate.
+
+**P-01 · Processo (vale per ogni città, anche quelle future).**
+1. Chiedere a internet qual è la strada più famosa della città.
+2. Chiedere quali sono le sue caratteristiche: cosa c'è a destra e a sinistra (mare, alberi, palazzi, fori), fondo stradale, mezzi presenti (auto, tram, bus, taxi), larghezza.
+3. Dimensionare la pista in funzione di quelle caratteristiche: i lati della strada nel gioco riproducono i lati della strada vera.
+4. Chiedere a internet qual è il simbolo della città e metterlo in fondo alla strada, dritto davanti al giocatore, come traguardo visivo (Colosseo a Roma, Vesuvio a Napoli, Duomo a Milano).
+5. Le piste devono restare di difficoltà e lunghezza simili: cambia la scenografia, non la gara.
+6. Prima si aggiorna questo file, poi il software.
+
+| ID | Richiesta | Data | Stato | Come funziona oggi |
+|---|---|---|---|---|
+| R-307 | La pista di ogni città è la sua strada più famosa, con i suoi lati veri (processo P-01) | 25/10/2026 | Fatto | Tabella qui sotto. La pista è "in funzione della strada": i lati (mare, fori, file di alberi, palazzi, tram, taxi, bus) sono quelli della strada vera; la corsia giocabile resta larga uguale in tutte le città |
+| R-308 | In fondo alla strada il simbolo della città, cercato su internet, dritto davanti al giocatore | 25/10/2026 | Fatto | Vesuvio, Colosseo, Duomo, Tour Eiffel, Big Ben, Römer con lo skyline dietro, Puerta de Alcalá, Torre di Belém, Cattedrale di Zagabria, Porta di Brandeburgo, Grossmünster, Statua della Libertà. Gli altri monumenti restano ai lati |
+| R-309 | Le piste delle città devono avere lunghezza e difficoltà simili: giocando non si deve sentire che sono molto diverse | 25/10/2026 | Fatto | La lunghezza è la stessa per tutte (dipende solo dalla durata scelta, R-108). La sequenza di ostacoli, bonus, rampe e porte è identica in tutte le città con lo stesso seed (S-05): cambiano solo i lati e lo sfondo |
+| R-310 | Ridurre del 35% gli elementi che interrompono o che vanno schivati (rocce, alberi e simili) | 25/10/2026 | Fatto | Ostacoli alti e bassi −35% esatto (prima erano il 58% degli elementi di una fila, ora il 37,7%; il resto della fila resta vuoto). Bonus, rampe e porte invariati |
+| R-311 | Qualche curva in più, un po' più spinta | 25/10/2026 | Fatto | Le tre onde della pista sono più corte (una curva ogni 230 m invece di 250, poi 105 e 46) e più ampie (27 + 12 + 4,5 m invece di 22 + 10 + 4); pendenza laterale massima 0,33 invece di 0,27, sempre sotto il limite di 0,35 della prova automatica |
+
+**Strade scelte (P-01 applicato il 25/10/2026).** Dove le fonti indicano più strade, la scelta è segnata come S-23 nella sezione 7.
+
+| Città | Strada più famosa (fonte) | Caratteristiche della strada vera | Nel gioco: lato sinistro · lato destro · mezzi | Simbolo in fondo (fonte) |
+|---|---|---|---|---|
+| Napoli | Via Partenope / Lungomare Caracciolo ([napolike](https://www.napolike.it/point/via-partenope-napoli), [FAI](https://fondoambiente.it/luoghi/lungomare-liberato)) | Passeggiata sul golfo: mare da un lato fino a Castel dell'Ovo, palazzi storici e alberghi dall'altro | Palazzi e palme · mare con il parapetto · qualche auto parcheggiata | Vesuvio sul golfo (già nel gioco) |
+| Roma | Via dei Fori Imperiali ([Turismo Roma](https://www.turismoroma.it/it/luoghi/dei-fori-imperiali)) | "Ampia passeggiata" con due file di pini ai lati, i resti dei fori lungo il percorso e il Colosseo come traguardo visivo | Pini e ruderi (colonne, muri bassi) su entrambi i lati, niente palazzi · sampietrini | Colosseo (fonte: idem) |
+| Milano | Corso Vittorio Emanuele II (pedonale, sbocca sul Duomo); le fonti citano anche via Montenapoleone ([NH](https://www.nh-hotels.com/it/guide-di-viaggio/milano/via-monte-napoleone)) e corso Garibaldi ([idealista](https://www.idealista.it/news/node/278620)) → S-23 | Via pedonale elegante, palazzi con portici e vetrine, lampioni, niente auto né tram | Palazzi con portici su entrambi i lati · nessun mezzo (il tram viene tolto) | Duomo (già nel gioco) |
+| Parigi | Champs-Élysées ([A View on Cities](https://aviewoncities.com/paris/champs-elysees)) | Quasi 2 km, circa 70 m di larghezza, file di alberi ai lati, palazzi, caffè e boutique; termina all'Arco di Trionfo | File di platani davanti ai palazzi haussmanniani su entrambi i lati · auto parcheggiate | Tour Eiffel in fondo; Arco di Trionfo a lato (fonte: idem) |
+| Londra | Oxford Street ([Candace Abroad](https://candaceabroad.com/famous-streets-in-london/), [Wikipedia](https://Wikipedia.com/wiki/Oxford_Street)) | 1,9 km, la via dei negozi più trafficata d'Europa: bus rossi a due piani, taxi neri, palazzi vittoriani | Palazzi di mattoni con vetrine · bus rossi, taxi neri, cabine rosse · doppie linee gialle | Big Ben (già nel gioco, ora in fondo) |
+| Francoforte | Römerberg, la piazza del Römer con le case a graticcio ([phototravellers](https://phototravellers.de/frankfurt-sehenswuerdigkeiten)); la Zeil è la via dei negozi | Case a graticcio (legno a vista, "Fachwerk") colorate, strette e alte, ciottoli | Case a graticcio su entrambi i lati · nessun mezzo | Römer (le tre case a gradoni) con lo skyline dei grattacieli dietro (fonte: idem) |
+| Madrid | Gran Vía ([Felices Vacaciones](https://blog.felicesvacaciones.es/como-se-llama-la-calle-mas-famosa-de-madrid), [Barceló](https://www.barcelo.com/guia-turismo/es/espana/madrid/que-ver/gran-via-madrid/)) | Grande arteria con palazzi monumentali, negozi, cinema e teatri, molto traffico | Palazzi monumentali alti su entrambi i lati · taxi bianchi con la riga rossa | Puerta de Alcalá ([Mirador Madrid](https://www.miradormadrid.com/?p=1182), [Visit Madrid](https://www.visitmadrid.es/donde-ir-comunidad-madrid/ver-madrid-imprescindibles/fuente-cibeles-puerta-alcala-simbolos-madrid)) |
+| Lisbona | Avenida da Liberdade ([A View on Cities](https://aviewoncities.com/lisbon/avenida-da-liberdade), [Time Out](https://www.timeout.pt/lisboa/pt/atraccoes/avenida-da-liberdade)) | Circa 90 m di larghezza, alberi che fanno ombra, marciapiedi a mosaico (calçada), grandi alberghi e palazzi | File di jacaranda davanti ai palazzi su entrambi i lati · calçada · il tram giallo resta (S-23) | Torre di Belém ([Visit Lisboa](https://www.visitlisboa.com/pt-pt/locais/torre-de-belem)); il ponte 25 de Abril a lato |
+| Zagabria | Ilica ([Wikipedia](https://en.wikipedia.org/wiki/Ilica_(street)), [Love Zagreb](https://www.lovezagreb.hr/topics/neighbors-guide/zagrebs-fifth-avenue-and-oxford-street)) | 5,6 km, prima strada asfaltata della città per il tram elettrico (1910), palazzi austro-ungarici, termina in piazza Ban Jelačić | Palazzi austro-ungarici su entrambi i lati · tram blu · ombrelloni del Dolac | Cattedrale con le due guglie in fondo; San Marco con il tetto a scacchi a lato ([Wikipedia](https://en.wikipedia.org/wiki/St._Mark%27s_Church,_Zagreb)) |
+| Berlino | Unter den Linden ([Wikipedia](https://en.wikipedia.org/wiki/Unter_den_Linden), [visitBerlin](https://www.visitberlin.de/de/node/2261715)) | 1.480 m per 60 m: passeggiata centrale con file di tigli e una carreggiata per lato; palazzi neoclassici; termina alla Porta di Brandeburgo | Doppia fila di tigli davanti ai palazzi su entrambi i lati · marciapiedi a mosaico · tratti del Muro | Porta di Brandeburgo in fondo, dove finisce davvero la strada (fonte: idem) |
+| Zurigo | Bahnhofstrasse ([MySwitzerland](https://www.myswitzerland.com/de-de/erlebnisse/bahnhofstrasse/)) | 1,4 km dalla stazione al lago, quasi senza auto, tram, negozi di lusso, tigli | Palazzi eleganti con tigli su entrambi i lati · tram blu e bianco · nessuna auto | Grossmünster con le due torri; dietro il lago e le Alpi ([Audiala](https://audiala.com/de/schweiz/zurich/grossmunster)) |
+| New York | Broadway, "forse la strada più famosa della Grande Mela" ([Free Tours by Foot](https://freetoursbyfoot.com/famous-new-york-streets/)); la Fifth Avenue è l'alternativa → S-23 | Grattacieli, Times Square, taxi gialli | Grattacieli alti (fino a 60 m) su entrambi i lati · taxi gialli · idranti | Statua della Libertà in fondo; Manhattan e il ponte di Brooklyn ai lati ([Free Tours by Foot](https://freetoursbyfoot.com/famous-new-york-streets/)) |
+
+**Nota sulla neve.** Lo scenario "Neve" non è una città e non segue P-01: resta la pista nera alpina con il bosco.
+
 # Storico delle versioni
 
 | Versione | Data | Cosa è cambiato |
@@ -257,4 +297,5 @@ Raccomandazioni del 25/10/2026 per far sì che, man mano che il gioco cresce, le
 | 0.9.0 | 24/10/2026 | Rotellina sul telefono (curva, accelera, frena), Salta a sinistra, microfono in alto sempre visibile, omino più umano, messaggi a schermo che vanno a capo, riga dei risultati più compatta |
 | 0.9.1 | 25/10/2026 | Verifica completa dei requisiti (sezione 10). Città completate come da tabella: oggetti ai lati (tram, cabine, bus, taxi, ombrelloni, Muro), linee gialle a Londra, marciapiedi a Berlino, fiume Meno, porte e rampa a scacchi a Zagabria, rampe di Madrid e Berlino; banane accettate anche durante il conto alla rovescia |
 | 0.9.2 | 25/10/2026 | Microfono su tutti i telefoni (R-213): registrazione con Web Audio e vocali in WAV, riproduzione con doppia via, messaggi chiari se il microfono è negato o il browser dell'app non lo dà |
+| 0.10.0 | 25/10/2026 | La pista è la strada famosa della città (sezione 12, processo P-01): lati veri per 12 città (mare a Napoli, fori e pini a Roma, portici a Milano, platani a Parigi, taxi neri a Londra, case a graticcio a Francoforte, palazzi monumentali a Madrid, jacaranda a Lisbona, tram blu a Zagabria, tigli a Berlino e Zurigo, grattacieli a New York), simbolo della città dritto in fondo alla strada (R-308), ostacoli −35% (R-310), curve più frequenti e più spinte (R-311) |
 | 0.9.3 | 25/10/2026 | Struttura del software (sezione 11): cancello dei test su GitHub a ogni modifica (A-01), prove che segnalano davvero gli errori (A-02), `npm test` e `npm run test:tutto` (A-03), controlli statici (A-04), giro completo nel controllo notturno (A-05), pannello di diagnosi nel gioco con numero di versione nel menu (A-06), errori dei telefoni raccolti su /api/errors (A-07) |
