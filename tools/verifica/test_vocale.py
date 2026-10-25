@@ -1,5 +1,5 @@
 """Vocale da telefono a telefono con microfono finto di Chromium: registrazione Web Audio → WAV → server → riproduzione."""
-import base64, json, os, struct
+import base64, json, os, struct, time
 from playwright.sync_api import sync_playwright
 BASE = os.environ.get('BASE', 'http://127.0.0.1:8787')
 THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/build/three.min.js')), 'rb').read()
@@ -35,12 +35,15 @@ with sync_playwright() as p:
     pb.click('#btnReady'); pb.wait_for_timeout(300); pb.click('#btnReady'); pb.wait_for_timeout(300)
     vis = pa.evaluate("() => ({ hidden: document.getElementById('btnVoice').hidden, label: document.getElementById('voiceLbl').textContent, mr: typeof MediaRecorder })")
     check(not vis['hidden'] and vis['label'] == 'Parla', 'pulsante del microfono presente nella stanza', json.dumps(vis))
-    # registra 1,6 s con il microfono finto e manda
+    # registra ~2 s con il microfono finto e manda; t0/t1 misurano la finestra vera di registrazione
+    # (su una macchina carica i click e le letture arrivano in ritardo e il vocale dura più dei 2 s previsti)
+    t0 = time.monotonic()
     pa.click('#btnVoice'); pa.wait_for_timeout(400)
     rec = pa.evaluate("() => ({ recording: __dbg.voice.recording, rate: __dbg.voice.rate, label: document.getElementById('voiceLbl').textContent, toasts: window.__toasts.join('|') })")
     check(rec['recording'] and rec['rate'] >= 8000, 'registrazione partita con Web Audio (niente MediaRecorder)', json.dumps(rec))
     pa.wait_for_timeout(1600)
     pa.click('#btnVoice')
+    finestra = time.monotonic() - t0
     try:
         pb.wait_for_function("!document.getElementById('voiceNow').hidden", timeout=10000); bubble_seen = True
     except Exception: bubble_seen = False
@@ -57,7 +60,7 @@ with sync_playwright() as p:
         dur = n / rate
         peak = max(abs(struct.unpack('<h', raw[44 + i * 2:46 + i * 2])[0]) for i in range(0, n, 50)) if n else 0
         check(raw[:4] == b'RIFF' and raw[8:12] == b'WAVE' and ch == 1 and bits == 16 and 8000 <= rate <= 16000, f'WAV mono 16 bit a {rate} Hz', f'{len(raw)} byte')
-        check(1.0 <= dur <= 3.0 and abs(dur - got['dur']) < 0.3, f'durata {dur:.2f} s coerente con quella dichiarata ({got["dur"]} s)')
+        check(1.0 <= dur <= finestra + 0.3 and abs(dur - got['dur']) < 0.3, f'durata {dur:.2f} s dentro la finestra di registrazione ({finestra:.2f} s) e coerente con quella dichiarata ({got["dur"]} s)')
         check(peak > 500, 'l\'audio non è muto (il microfono finto genera un tono)', f'picco {peak}')
         check(got['len'] <= 300000, 'dentro il limite del server', str(got['len']))
     check(bubble_seen and who_seen['who'] == 'Voce' and who_seen['playing'], 'sull\'altro telefono il vocale si riproduce (fumetto "Voce está hablando")', json.dumps(who_seen))
