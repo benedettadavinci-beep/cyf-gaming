@@ -175,5 +175,5 @@ PN.vocali = ({ net, audio: AUDIO, say, isOnline, isTraining, serverNow }) => {
     } else viaAudioTag();
   }
 
-  return { voice, fmtWait, updateVoiceBtn, voiceButton, stopVoice, playVoice, mutedIds };
+  return { voice, fmtWait, updateVoiceBtn, voiceButton, stopVoice, playVoice, mutedIds, get playing() { return voicePlaying; } };
 };

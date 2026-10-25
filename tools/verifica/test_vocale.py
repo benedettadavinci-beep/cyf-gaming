@@ -5,9 +5,11 @@ BASE = os.environ.get('BASE', 'http://127.0.0.1:8787')
 THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/build/three.min.js')), 'rb').read()
 REPO = os.environ.get('CYF_REPO', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GAME = open(os.path.join(REPO, 'public', 'pista-nera', 'game.js'), encoding='utf-8').read()
-GAME = GAME.replace("  function playVoice(m) {\n", "  function playVoice(m) { window.__lastVoice = m;\n", 1)
-GAME = GAME.replace("  applyLang(lang);\n", "  applyLang(lang);\n  window.__dbg = { get voice() { return voice; }, get mode() { return mode; }, get playing() { return voicePlaying; }, get ac() { return audio && audio.ac; }, voiceButton, stopVoice };\n  window.__toasts = []; new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => window.__toasts.push(n.textContent)))).observe(document.getElementById('toasts'), { childList: true });\n", 1)
-assert '__lastVoice' in GAME and '__dbg' in GAME
+# dalla 0.12.0 i vocali stanno in moduli/vocali.js: il segnaposto per l'ultimo vocale ricevuto si mette lì
+VOCALI = open(os.path.join(REPO, 'public', 'pista-nera', 'moduli', 'vocali.js'), encoding='utf-8').read()
+VOCALI = VOCALI.replace("  function playVoice(m) {\n", "  function playVoice(m) { window.__lastVoice = m;\n", 1)
+GAME = GAME.replace("  applyLang(lang);\n", "  applyLang(lang);\n  window.__dbg = { get voice() { return voice; }, get mode() { return mode; }, get playing() { return VOCALI.playing; }, get ac() { return AUDIO.audio && AUDIO.audio.ac; }, voiceButton, stopVoice };\n  window.__toasts = []; new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => window.__toasts.push(n.textContent)))).observe(document.getElementById('toasts'), { childList: true });\n", 1)
+assert '__lastVoice' in VOCALI and '__dbg' in GAME
 problems = []
 def check(c, label, extra=''):
     print(('  ✓ ' if c else '  ✗ ') + label + (f'  [{extra}]' if extra else ''))
@@ -15,6 +17,7 @@ def check(c, label, extra=''):
 def local(ctx):
     ctx.route('**/three.min.js', lambda r: r.fulfill(body=THREE, content_type='application/javascript'))
     ctx.route('**/pista-nera/game.js*', lambda r: r.fulfill(body=GAME, content_type='application/javascript'))
+    ctx.route('**/moduli/vocali.js*', lambda r: r.fulfill(body=VOCALI, content_type='application/javascript'))
     ctx.route('**/fonts.g*/**', lambda r: r.abort())
 PHONE = dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True)
 with sync_playwright() as p:
