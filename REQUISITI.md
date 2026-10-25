@@ -232,6 +232,14 @@ Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel
 | R-505 | ✓ | `BUSINESS-PLAN.md` nel repo e Word sul Desktop |
 | S-01 … S-21 | ✓ | Ogni scelta corrisponde al codice (S-12 aggiornata: le porte di Zagabria ora sono a scacchi) |
 
+**Controllo della 0.12.2 (25/10, ore 16:30)**: cancello rapido, `test_gioco.py` (165 controlli), `test_trampolino.py` e `test_comandi.py` superati:
+
+| ID | Esito | Come è stato verificato |
+|---|---|---|
+| R-219 | ✓ | Nuova prova in `test_trampolino.py`: Salta premuto al 20%, 50% e 80% della salita, su rampa normale e gigante, sulla neve e a Napoli. Con il codice di prima 9 casi su 9 finivano 20 m sotto terra; ora 9 su 9 atterrano e il rider non scende mai sotto il terreno |
+| R-220 | ✓ | Foto delle 6 acconciature, davanti e dietro, in città e sulla neve: niente casco, viso scoperto, sulla neve maschera ed elastico sopra i capelli. Stesso codice del giocatore → stessa acconciatura (anche per gli avversari) |
+| R-221 | ✓ | Nel menu 8 maglie delle città e 8 colori, più "Colore assegnato"; la scelta resta salvata (`test_gioco.py`, G5); nomi dei gruppi e dei colori nelle 4 lingue (`controlli.mjs`) |
+
 **Controllo della 0.12.1 (25/10, ore 16)**: cancello rapido, `test_gioco.py` (165 controlli) e `test_trampolino.py` a Napoli e Berlino superati, più le foto del rider prima e dopo:
 
 | ID | Esito | Come è stato verificato |
