@@ -36,6 +36,7 @@ with sync_playwright() as p:
     for pose_name, pose_args in [('normale', '0.35, 0.3, 0, 0, 0'), ('curva', '0.6, 0.6, 0.25, 0, 0'), ('raccolto', '0.95, 0.2, 0, 0, 0')]:
         for name, (dx, dy, dz), ly in SHOTS:
             if pose_name != 'normale' and name not in ('dietro', 'fianco', 'tre-quarti'): continue
+            if os.environ.get('SOLO') and name not in os.environ['SOLO'].split(','): continue   # SOLO=viso,rotelle per poche foto
             data = pg.evaluate("""([dx,dy,dz,ly,pa]) => {
               const D = window.__dbg, T = D.THREE;
               D.me.pose(...pa);
