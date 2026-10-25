@@ -207,7 +207,7 @@ PN.schermate = ({ diag, stato: S }) => {
       $('v4').textContent = fmtLen(Math.max(0, S.raceLen - S.distM()));
       $('v5').textContent = fmt(S.bonus);
       // sempre premibili in gara: senza punti abbastanza sono più chiari e, se premuti, dicono quanti punti servono (R-230)
-      for (const [id, k] of [['btnBanana', 'banana'], ['btnBomb', 'bomb']]) { const b = $(id); b.disabled = S.mode !== 'race'; b.classList.toggle('short', S.bonus < PN.protocollo.COSTI[k]); }
+      for (const [id, k] of [['btnBanana', 'banana'], ['btnBomb', 'bomb'], ['btnBananone', 'bananone']]) { const b = $(id); b.disabled = S.mode !== 'race'; b.classList.toggle('short', S.bonus < PN.protocollo.COSTI[k]); }
       liveT += 0.08;
       if (liveT > 0.25) { liveT = 0; S.renderLive(pl.list); }
     } else {

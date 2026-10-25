@@ -34,6 +34,7 @@ PN.comandi = ({ audio: AUDIO, azioni, stato }) => {
     else if (k === 'v' || k === 'V') { if (!e.repeat) azioni.voiceButton(); }
     else if (k === 'b' || k === 'B') { if (!e.repeat) azioni.useItem('banana'); }
     else if (k === 'n' || k === 'N') { if (!e.repeat) azioni.useItem('bomb'); }
+    else if (k === 'g' || k === 'G') { if (!e.repeat) azioni.useItem('bananone'); }
   });
   window.addEventListener('keyup', e => {
     const k = e.key;

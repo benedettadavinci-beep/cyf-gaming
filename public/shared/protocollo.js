@@ -11,16 +11,18 @@
 // quella del server, il server risponde { t: 'aggiorna' } e chiude: chi ha ancora la pagina vecchia aperta vede
 // "aggiorna la pagina" invece di errori strani.
 globalThis.CYF_PROTOCOLLO = (() => {
-  const VERSIONE = 4;   // 2 (0.13.0): "pronto" e banana lanciata ("throw"); 3 (0.14.0): capelli (h); 4 (0.15.0): pantaloni (p), casco (e), tavola (s)
+  const VERSIONE = 5;   // 2 (0.13.0): "pronto" e banana lanciata ("throw"); 3 (0.14.0): capelli (h); 4 (0.15.0): pantaloni (p), casco (e), tavola (s); 5 (0.16.0): bananone (kind nel "throw")
 
   // città: ogni città ha la sua pista, quindi in una gara tutti corrono nella stessa città (R-118, R-312)
   const SCENE = ['neve', 'napoli', 'roma', 'milano', 'parigi', 'londra', 'francoforte', 'madrid', 'lisbona', 'zagabria', 'berlino', 'zurigo', 'newyork'];
   const cleanScena = s => (SCENE.includes(s) ? s : 'neve');
   const DURATIONS = [5, 10, 15];               // minuti di gara
   const MAX_PLAYERS = 8;
-  const DROP_KINDS = ['banana', 'bomb'];
+  const DROP_KINDS = ['banana', 'bomb', 'bananone'];
+  const THROW_KINDS = ['banana', 'bananone'];   // oggetti che si lanciano al giocatore davanti (R-224, R-231)
   const COSTI = { banana: 50, bomb: 150 };     // punti della gara spesi per lasciare l'oggetto (R-113)
-  const FERMO = { banana: 2, bomb: 4 };        // secondi di fermo per chi viene colpito (R-223, R-224)
+  COSTI.bananone = COSTI.bomb * 10;            // bananone: 10 volte la bomba (R-231)
+  const FERMO = { banana: 2, bomb: 4, bananone: 4 };   // secondi di fermo per chi viene colpito (R-223, R-224, R-231)
 
   // messaggi dal gioco al server: tipo → campi obbligatori con il loro tipo ("n" numero, "s" testo, "b" vero/falso)
   const CLIENT = {
@@ -32,7 +34,7 @@ globalThis.CYF_PROTOCOLLO = (() => {
     start:       {},                                              // solo l'organizzatore
     loaded:      {},                                              // la pista è caricata e disegnata (R-119)
     pronto:      {},                                              // "Sono pronto" durante l'attesa prima del via: alza la mano (R-222)
-    throw:       { target: 's', hid: 's' },                       // banana lanciata al giocatore davanti (R-224)
+    throw:       { target: 's', hid: 's' },                       // banana lanciata al giocatore davanti (R-224); kind facoltativo: 'banana' o 'bananone' (R-231)
     pos:         { x: 'n', z: 'n' },                              // y, a, s, f, g, v, c, k, top, tk, p facoltativi
     finish:      {},                                              // top, tk, p facoltativi
     drop:        { kind: 's', x: 'n', z: 'n', hid: 's' },
@@ -78,6 +80,6 @@ globalThis.CYF_PROTOCOLLO = (() => {
     return null;
   }
 
-  return { VERSIONE, SCENE, cleanScena, DURATIONS, MAX_PLAYERS, DROP_KINDS, COSTI, FERMO, CLIENT, SERVER, valida };
+  return { VERSIONE, SCENE, cleanScena, DURATIONS, MAX_PLAYERS, DROP_KINDS, THROW_KINDS, COSTI, FERMO, CLIENT, SERVER, valida };
 })();
 if (typeof window !== 'undefined') { window.PN = window.PN || {}; window.PN.protocollo = globalThis.CYF_PROTOCOLLO; }

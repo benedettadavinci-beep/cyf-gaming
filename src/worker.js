@@ -446,7 +446,7 @@ export class RaceRoom extends DurableObject {
       this.broadcast({ t: 'drop', id: me.id, name: me.name, kind: m.kind, x: num(m.x, -1e5, 1e5), z: num(m.z, -1e5, 1e5), hid }, ws);
       return;
     }
-    // banana lanciata al giocatore davanti (R-224): il server la inoltra a tutti, il bersaglio si ferma 2 s
+    // banana o bananone lanciati al giocatore davanti (R-224, R-231): il server li inoltra a tutti, il bersaglio si ferma 2 s (banana) o 4 s (bananone)
     if (m.t === 'throw') {
       if (st.phase !== 'racing' || !st.racers.some(r => r.id === me.id)) return;
       const target = cleanId(m.target);
@@ -455,7 +455,8 @@ export class RaceRoom extends DurableObject {
       this.lastDrop.set(me.id, now);
       const hid = String(m.hid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
       if (!hid) return;
-      this.broadcast({ t: 'throw', id: me.id, name: me.name, target, hid }, ws);
+      const kind = PROTO.THROW_KINDS.includes(m.kind) ? m.kind : 'banana';
+      this.broadcast({ t: 'throw', id: me.id, name: me.name, target, hid, kind }, ws);
       return;
     }
     if (m.t === 'hit') {

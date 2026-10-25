@@ -262,6 +262,20 @@ console.log('T4 · banane e bombe (solo in gara, non più di una ogni 0,9 s)');
   await sleep(1000);
   A.send({ t: 'throw', target: A.id, hid: 't2' }); A.send({ t: 'throw', target: 'pNessuno', hid: 't3' });
   ok(!(await B.wait(m => m.t === 'throw' && (m.hid === 't2' || m.hid === 't3'), 800)), 'non si lancia a se stessi né a chi non è in gara');
+  // bananone (R-231): stesso lancio con kind 'bananone'; un tipo sconosciuto diventa una banana
+  await sleep(1000);
+  A.send({ t: 'throw', target: B.id, hid: 't4', kind: 'bananone' });
+  const tb = await B.wait(m => m.t === 'throw' && m.hid === 't4', 2000);
+  ok(tb && tb.kind === 'bananone' && tb.target === B.id, 'bananone lanciato: arriva al bersaglio con il suo tipo', tb && JSON.stringify(tb));
+  await sleep(1000);
+  A.send({ t: 'throw', target: B.id, hid: 't5', kind: 'missile' });
+  const tx = await B.wait(m => m.t === 'throw' && m.hid === 't5', 2000);
+  ok(tx && tx.kind === 'banana', 'tipo di lancio sconosciuto trattato come banana', tx && JSON.stringify(tx));
+  await sleep(1000);
+  A.send({ t: 'drop', kind: 'bananone', x: 1, z: -14, hid: 'h4' });
+  const db = await B.wait(m => m.t === 'drop' && m.hid === 'h4', 2000);
+  ok(db && db.kind === 'bananone', 'bananone sulla pista (nessuno davanti) inoltrato agli altri', db && JSON.stringify(db));
+  ok(PROTO.COSTI.bananone === PROTO.COSTI.bomb * 10 && PROTO.FERMO.bananone === 4, 'bananone: costa 10 volte la bomba e ferma 4 s', JSON.stringify(PROTO.COSTI));
   A.close(); B.close();
 }
 

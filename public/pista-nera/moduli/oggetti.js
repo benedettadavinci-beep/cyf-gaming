@@ -1,6 +1,6 @@
 // modulo: oggetti
 // dipende da: base, lingua, geometria, pista, effetti, audio, protocollo
-// Banane e bombe (R-113): modelli, lancio e posa, urto con il rider, pulsanti e doppio clic sulla pista.
+// Banane, bombe e bananoni (R-113, R-231): modelli, lancio e posa, urto con il rider, pulsanti e doppio clic sulla pista.
 // Si crea con PN.oggetti({ world, ground, camera, cvs, pista, effetti, audio, net, say, crash, stato }) dal gioco:
 // stato dà lo stato del gioco (P, mode, invuln, bonus in lettura e scrittura, myId, remotes, throwAnim()).
 window.PN = window.PN || {};
@@ -29,6 +29,7 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
       { geo: new THREE.CylinderGeometry(0.025, 0.025, 0.28, 6), color: '#c9b48a', y: 1.05, x: 0.04 }
     ])
   };
+  HAZ_GEO.bananone = HAZ_GEO.banana.clone().scale(3.4, 3.4, 3.4);   // bananone: grande il doppio della banana (R-231)
   HAZ_GEO.banana.scale(1.7, 1.7, 1.7);
   const sparkMat = new THREE.MeshBasicMaterial({ color: lin('#ff3b1f') });
   const sparkGeo = new THREE.SphereGeometry(0.08, 8, 6);
@@ -85,12 +86,12 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     for (const [hid, h] of hazards) {
       if (!h.armed || h.chase || h.owner === myId) continue;
       const dx = h.x - P.x, dz = h.z - P.z, d2 = dx * dx + dz * dz;
-      const hit = h.kind === 'bomb' ? (d2 < 2.4 * 2.4 && P.y < 1.6) : (d2 < 1.0 && P.y < 0.7);
+      const hit = h.kind === 'bomb' ? (d2 < 2.4 * 2.4 && P.y < 1.6) : h.kind === 'bananone' ? (d2 < 2.0 * 2.0 && P.y < 1.2) : (d2 < 1.0 && P.y < 0.7);
       if (!hit) continue;
       if (h.kind === 'bomb') { spray(h.x, 0.5, h.z, 90, 7, 8); sparkle(h.x, hgt(h.x, h.z) + 0.6, h.z, 80, true); thump(2); }
       removeHazard(hid);
       net.send({ t: 'hit', hid, owner: h.owner, kind: h.kind });
-      crash(tr(h.kind === 'bomb' ? 'crashBomb' : 'crashBanana'), h.kind === 'bomb' ? STOP.bomb : STOP.banana);   // bomba: fermo 4 s, banana: 2 s (R-223)
+      crash(tr(h.kind === 'bomb' ? 'crashBomb' : h.kind === 'bananone' ? 'crashBananone' : 'crashBanana'), STOP[h.kind] || STOP.banana);   // bomba e bananone: fermo 4 s, banana: 2 s (R-223, R-231)
       return;
     }
   }
@@ -105,16 +106,17 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     return best;
   }
   const nameOf = id => { const x = net.racers.find(q => q.id === id); return x ? x.name : tr('someone'); };
-  // una banana che vola da chi la lancia (codice o io) a chi la riceve: la vedono tutti (R-224)
-  function showThrow(fromId, toId, hid) {
+  // una banana (o un bananone) che vola da chi la lancia (codice o io) a chi la riceve: la vedono tutti (R-224, R-231)
+  function showThrow(fromId, toId, hid, kind) {
     const { P, myId } = stato;
     const pos = id => { if (id === myId) return { x: P.x, z: P.z, y: P.y }; const r = stato.remotes.get(id); return r ? { x: r.x, z: r.z, y: r.y } : null; };
     const a = pos(fromId), b = pos(toId);
     if (!a || !b || hazards.has(hid)) return;
-    const h = { hid, owner: fromId, kind: 'banana', x: b.x, z: b.z, chase: () => pos(toId) || b };
+    const h = { hid, owner: fromId, kind: kind === 'bananone' ? 'bananone' : 'banana', x: b.x, z: b.z, chase: () => pos(toId) || b };
     addHazard(h, { x: a.x, z: a.z, y: a.y + 1.4 });
   }
-  // bomba: si lascia dietro di sé. Banana: si lancia sempre, dal pulsante, dal tasto B o con il doppio tocco (R-224, R-230):
+  // bomba: si lascia dietro di sé. Banana: si lancia sempre, dal pulsante, dal tasto B o con il doppio tocco (R-224, R-230);
+  // bananone: si lancia come la banana, dal pulsante grande o dal tasto G (R-231):
   // al giocatore più vicino davanti se c'è, altrimenti cade sulla pista davanti (nel punto toccato o 30 m più avanti)
   function useItem(kind, target) {
     const { P, mode, myId } = stato;
@@ -124,14 +126,15 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     useItem.last = performance.now();
     stato.bonus -= COST[kind];
     const hid = myId + '-' + net.round + '-' + (++hazN);
-    if (kind === 'banana') {
+    const lancio = PN.protocollo.THROW_KINDS.includes(kind);
+    if (lancio) {
       stato.throwAnim();   // gesto del braccio
       if (!target) { const tz = P.z - 30; target = { x: center(tz) + clamp(P.x - center(P.z), -12, 12), z: tz }; }
       const ah = aheadOf(P);
       if (ah) {
-        net.send({ t: 'throw', target: ah.id, hid });
-        showThrow(myId, ah.id, hid);
-        say(tr('bananaThrownAt', { n: nameOf(ah.id) }) + '  −' + COST[kind], '#8a6d3b');
+        net.send({ t: 'throw', target: ah.id, hid, kind });
+        showThrow(myId, ah.id, hid, kind);
+        say(tr(kind === 'bananone' ? 'bananoneThrownAt' : 'bananaThrownAt', { n: nameOf(ah.id) }) + '  −' + COST[kind], '#8a6d3b');
         return;
       }
     }
@@ -139,10 +142,11 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     if (target) { x = target.x; z = target.z; }
     addHazard({ hid, owner: myId, kind, x, z }, target ? { x: P.x, z: P.z, y: P.y + 1 } : null);
     net.send({ t: 'drop', kind, x: +x.toFixed(2), z: +z.toFixed(2), hid });
-    say(tr(kind === 'bomb' ? 'bombDropped' : (target ? 'bananaThrown' : 'bananaDropped')) + '  −' + COST[kind], '#8a6d3b');
+    say(tr(kind === 'bomb' ? 'bombDropped' : kind === 'bananone' ? 'bananoneThrown' : (target ? 'bananaThrown' : 'bananaDropped')) + '  −' + COST[kind], '#8a6d3b');
   }
   $('btnBanana').addEventListener('click', () => useItem('banana'));
   $('btnBomb').addEventListener('click', () => useItem('bomb'));
+  $('btnBananone').addEventListener('click', () => useItem('bananone'));
   // doppio clic (o doppio tocco) sulla pista: la banana vola nel punto indicato, sempre davanti al rider
   const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2();
   let lastTap = { t: 0, x: 0, y: 0 };

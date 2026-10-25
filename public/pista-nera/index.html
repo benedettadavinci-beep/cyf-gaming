@@ -73,6 +73,7 @@
   .items button small { font-size: 12px; opacity: .8; }
   .items button:disabled { opacity: .45; }
   .items button.short { opacity: .55; }
+  .items button.big b { font-size: 34px; }   /* bananone (R-231): la banana grande */
   .awards { display: grid; gap: 6px; border-top: 1px solid var(--snow-deep); padding-top: 10px; }
   .awards div { display: flex; align-items: center; gap: 8px; font-size: 17px; }
   .awards .k { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); flex: 0 1 9.5em; min-width: 0; }
@@ -228,6 +229,7 @@
     <div class="items" id="items" hidden>
       <button type="button" id="btnBanana" data-i18n-title="bananaTitle"><b>🍌</b><span>50</span><small class="hide-touch">B</small></button>
       <button type="button" id="btnBomb" data-i18n-title="bombTitle"><b>💣</b><span>150</span><small class="hide-touch">N</small></button>
+      <button type="button" id="btnBananone" class="big" data-i18n-title="bananoneTitle"><b>🍌</b><span>1500</span><small class="hide-touch">G</small></button>
     </div>
     <button type="button" class="tjump" id="tJump" data-i18n="jump"></button>
     <button type="button" class="tpronto" id="btnPronto" hidden></button>
@@ -303,6 +305,7 @@
             <kbd>V</kbd><span data-i18n="kVoice"></span>
             <kbd>B</kbd><span data-i18n="kBanana"></span>
             <kbd>N</kbd><span data-i18n="kBomb"></span>
+            <kbd>G</kbd><span data-i18n="kBananone"></span>
             <kbd data-i18n="kDblClick"></kbd><span data-i18n="kThrow"></span>
             <kbd>M</kbd><span data-i18n="kAudio"></span>
           </div>

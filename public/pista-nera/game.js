@@ -247,7 +247,7 @@
     spray(P.x, 0, P.z, 12, 2.5);
   }
 
-  // stop: secondi da fermo dopo la caduta (bomba 4 s, banana 1 s: R-223, R-224); intanto non si può essere colpiti di nuovo
+  // stop: secondi da fermo dopo la caduta (bomba e bananone 4 s, banana 2 s: R-223, R-224, R-231); intanto non si può essere colpiti di nuovo
   function crash(reason, stop = 0) {
     if (invuln > 0 || P.crash > 0 || (mode === 'solo' && lives <= 0)) return;
     if (mode === 'solo') { lives--; renderLives(); }
@@ -680,17 +680,19 @@
     } else if (m.t === 'drop') {
       // anche se questo dispositivo è ancora al conto alla rovescia (telefoni lenti): la gara è già partita sul server
       // la banana lanciata sulla pista (davanti non c'era nessuno) si vede partire dal braccio di chi la lancia e volare
-      const thr = m.kind === 'banana' ? remotes.get(m.id) : null;
+      const thr = PN.protocollo.THROW_KINDS.includes(m.kind) ? remotes.get(m.id) : null;
       if (thr) AVV.playThrow(m.id);
       if (racing()) addHazard({ hid: m.hid, owner: m.id, kind: m.kind, x: m.x, z: m.z }, thr && thr.has ? { x: thr.x, z: thr.z, y: thr.y + 1 } : null);
     } else if (m.t === 'throw') {
-      // banana lanciata da un altro giocatore (R-224): tutti vedono il gesto e la banana in volo; il bersaglio si ferma 2 s
+      // banana o bananone lanciati da un altro giocatore (R-224, R-231): tutti vedono il gesto e l'oggetto in volo;
+      // il bersaglio si ferma 2 s (banana) o 4 s (bananone)
+      const big = m.kind === 'bananone';
       AVV.playThrow(m.id);
-      OGG.showThrow(m.id, m.target, m.hid);
-      if (m.target === myId) setTimeout(() => { if (racing()) crash(tr('crashBananaThrown', { n: m.name || tr('someone') }), PN.protocollo.FERMO.banana); }, 450);
+      OGG.showThrow(m.id, m.target, m.hid, big ? 'bananone' : 'banana');
+      if (m.target === myId) setTimeout(() => { if (racing()) crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: m.name || tr('someone') }), PN.protocollo.FERMO[big ? 'bananone' : 'banana']); }, 450);
     } else if (m.t === 'hit') {
       removeHazard(m.hid);
-      if (m.owner === myId) say(tr(m.kind === 'bomb' ? 'hitYourBomb' : 'hitYourBanana', { n: m.name || tr('someone') }), '#ff5a1f');
+      if (m.owner === myId) say(tr(m.kind === 'bomb' ? 'hitYourBomb' : m.kind === 'bananone' ? 'hitYourBananone' : 'hitYourBanana', { n: m.name || tr('someone') }), '#ff5a1f');
     }
   }
 
