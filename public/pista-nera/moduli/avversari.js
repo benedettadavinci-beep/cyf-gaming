@@ -48,6 +48,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
     const slot = net.racers.findIndex(x => x.id === id), n = net.racers.length;
     r.tx = r.x = center(0) + (slot - (n - 1) / 2) * 2.6; r.tz = r.z = 0; r.y = r.ty = 0; r.a = r.ta = 0; r.v = 0; r.has = true;
     r.model.group.visible = true;
+    r.ready = (net.ready || []).includes(id);
     return r;
   }
   function remoteUpdate(m) {
@@ -71,9 +72,15 @@ PN.avversari = ({ world, pista, net, stato }) => {
       r.gs = (r.gs || 0) + ((r.g || 0) - (r.gs || 0)) * Math.min(1, 9 * dt);
       bodyTurn(r.model.body, r.c ? (now / 120) % TAU : (r.f || 0), r.s, 0);
       r.ks = (r.ks || 0) + ((r.y > 0.3 ? 0 : (r.k || 0)) - (r.ks || 0)) * Math.min(1, 8 * dt);
-      r.model.pose(Math.min(1, 0.35 + r.gs * 0.45 + Math.max(0, r.ks) * 0.55), r.y > 0.3 ? 1 : 0.3, 0, r.gs, Math.max(0, -r.ks), switchOf(r.s || 0));
+      // mano alzata durante l'attesa (R-222) e gesto del lancio della banana (R-224)
+      r.hs = (r.hs || 0) + ((r.ready && stato.mode === 'countdown' ? 1 : 0) - (r.hs || 0)) * Math.min(1, 8 * dt);
+      if (r.thrT > 0) { r.thrT += dt / 0.55; if (r.thrT >= 1) r.thrT = 0; }
+      r.model.pose(Math.min(1, 0.35 + r.gs * 0.45 + Math.max(0, r.ks) * 0.55), r.y > 0.3 ? 1 : 0.3, 0, r.gs, Math.max(0, -r.ks), switchOf(r.s || 0), r.hs, r.thrT || 0);
     }
   }
+  // chi ha premuto "Sono pronto" (elenco di codici dal server)
+  function setReady(list) { for (const [id, r] of remotes) r.ready = list.includes(id); }
+  function playThrow(id) { const r = remotes.get(id); if (r) r.thrT = 0.001; }
   function hideRemotes() { for (const [, r] of remotes) r.model.group.visible = false; }
   function removeRemote(id) { const r = remotes.get(id); if (r) { world.remove(r.model.group); remotes.delete(id); } }
   function clearRemotes() { for (const id of [...remotes.keys()]) removeRemote(id); }
@@ -117,5 +124,5 @@ PN.avversari = ({ world, pista, net, stato }) => {
     $('liveTitle').textContent = tr('liveTitle');
     void lead;
   }
-  return { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive };
+  return { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, setReady, playThrow, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive };
 };

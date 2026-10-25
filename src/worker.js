@@ -18,7 +18,7 @@ const lengthFor = min => min * 60 * AVG_SPEED_MS;
 const MAX_SPEED_MS = 52;                     // velocità massima possibile nel gioco (m/s), con margine
 const COUNTDOWN_MS = 5000;
 const GATHER_MAX_MS = 40000;                 // sala online: dopo l'avvio si aspetta che tutti abbiano caricato la gara, al massimo 40 s (R-119)
-const ATTESA_SFIDA_MS = 40000;               // sfida con gli amici: dopo "Parti" si aspettano SEMPRE 40 s, così chi ha l'invito fa in tempo a entrare (R-119)
+const ATTESA_SFIDA_MS = 25000;               // sfida con gli amici: dopo "Parti" si aspettano 25 s, così chi ha l'invito fa in tempo a entrare (R-119); prima se tutti sono pronti (R-222)
 const CODE_RE = /^[A-Z0-9]{4,8}$/;
 const PUBLIC_RE = /^ONLINE\d{1,2}$/;
 const PUBLIC_ROOMS = 20;
@@ -215,6 +215,7 @@ export class RaceRoom extends DurableObject {
     st.startAt = 0;
     st.gatherUntil = now + (st.pub ? GATHER_MAX_MS : this.attesaSfida());
     st.loaded = [];
+    st.ready = [];   // chi ha premuto "Sono pronto" durante l'attesa (R-222)
     st.autoAt = 0;
     st.timeoutAt = 0;
     st.racers = list.map(p => ({ id: p.id, name: p.name, color: p.color, j: p.j || '' }));
@@ -241,9 +242,13 @@ export class RaceRoom extends DurableObject {
   // Nella sfida no: si aspettano sempre i 40 s interi (la sveglia del server chiama go() alla scadenza).
   async maybeGo(except) {
     const st = this.state;
-    if (st.phase !== 'countdown' || st.startAt || !st.pub) return;
+    if (st.phase !== 'countdown' || st.startAt) return;
     const online = new Set(this.players(except).map(p => p.id));
-    const missing = st.racers.filter(r => online.has(r.id) && !st.loaded.includes(r.id));
+    const here = st.racers.filter(r => online.has(r.id));
+    // tutti hanno alzato la mano: si parte subito, nella sfida e nelle sale online (R-222)
+    if (here.length && here.every(r => (st.ready || []).includes(r.id))) { await this.go(except); return; }
+    if (!st.pub) return;
+    const missing = here.filter(r => !st.loaded.includes(r.id));
     if (missing.length === 0) await this.go(except);
   }
   async go(except) {
@@ -308,7 +313,7 @@ export class RaceRoom extends DurableObject {
       board(this.env).touch(id).catch(() => {});
       this.send(ws, {
         t: 'welcome', you: id, code: st.code, now, max: MAX_PLAYERS, length: lengthFor(st.minutes), minutes: st.minutes, pub: st.pub,
-        phase: st.phase, seed: st.seed, startAt: st.startAt, gatherUntil: st.gatherUntil || 0, loaded: st.loaded || [], racers: st.racers, scena: cleanScena(st.raceScena), results: st.results, awards: st.awards || null,
+        phase: st.phase, seed: st.seed, startAt: st.startAt, gatherUntil: st.gatherUntil || 0, loaded: st.loaded || [], ready: st.ready || [], racers: st.racers, scena: cleanScena(st.raceScena), results: st.results, awards: st.awards || null,
         voiceNext: ((st.voiceAt || {})[id] || 0) + VOICE_COOLDOWN_MS
       });
       if (joined) this.broadcast({ t: 'racers', racers: st.racers }, ws);
@@ -335,11 +340,21 @@ export class RaceRoom extends DurableObject {
       return;
     }
 
+    if (m.t === 'pronto') {
+      if (st.phase !== 'countdown' || st.startAt || !st.racers.some(r => r.id === me.id)) return;
+      st.ready = st.ready || [];
+      if (st.ready.includes(me.id)) return;
+      st.ready.push(me.id);
+      await this.save();
+      this.broadcast({ t: 'gather', loaded: st.loaded, ready: st.ready, gatherUntil: st.gatherUntil, now });
+      await this.maybeGo();
+      return;
+    }
     if (m.t === 'loaded') {
       if (st.phase !== 'countdown' || st.startAt || !st.racers.some(r => r.id === me.id) || st.loaded.includes(me.id)) return;
       st.loaded.push(me.id);
       await this.save();
-      this.broadcast({ t: 'gather', loaded: st.loaded, gatherUntil: st.gatherUntil, now });
+      this.broadcast({ t: 'gather', loaded: st.loaded, ready: st.ready || [], gatherUntil: st.gatherUntil, now });
       await this.maybeGo();
       return;
     }
@@ -391,6 +406,18 @@ export class RaceRoom extends DurableObject {
       const hid = String(m.hid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
       if (!hid) return;
       this.broadcast({ t: 'drop', id: me.id, name: me.name, kind: m.kind, x: num(m.x, -1e5, 1e5), z: num(m.z, -1e5, 1e5), hid }, ws);
+      return;
+    }
+    // banana lanciata al giocatore davanti (R-224): il server la inoltra a tutti, il bersaglio si ferma 1 s
+    if (m.t === 'throw') {
+      if (st.phase !== 'racing' || !st.racers.some(r => r.id === me.id)) return;
+      const target = cleanId(m.target);
+      if (!target || target === me.id || !st.racers.some(r => r.id === target)) return;
+      if (now - (this.lastDrop.get(me.id) || 0) < 900) return;
+      this.lastDrop.set(me.id, now);
+      const hid = String(m.hid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
+      if (!hid) return;
+      this.broadcast({ t: 'throw', id: me.id, name: me.name, target, hid }, ws);
       return;
     }
     if (m.t === 'hit') {

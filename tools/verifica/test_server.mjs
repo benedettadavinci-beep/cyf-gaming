@@ -6,9 +6,9 @@ const WS = BASE.replace(/^http/, 'ws');
 const problems = [];
 const ok = (cond, label, extra = '') => { console.log((cond ? '  ✓ ' : '  ✗ ') + label + (extra ? '  [' + extra + ']' : '')); if (!cond) problems.push(label + (extra ? ' [' + extra + ']' : '')); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-// Attesa fissa della sfida dopo "Parti" (R-119): online 40 s; cancello.sh accende wrangler dev con ATTESA_SFIDA_MS=4000
+// Attesa della sfida dopo "Parti" (R-119): online 25 s; cancello.sh accende wrangler dev con ATTESA_SFIDA_MS=4000
 // per non rallentare le prove (il valore di 40 s online lo controlla controlli.mjs, C5).
-const W = Number(process.env.ATTESA_SFIDA_MS) || 40000;
+const W = Number(process.env.ATTESA_SFIDA_MS) || 25000;
 
 class Client {
   constructor(code, id, name, j = '') { this.code = code; this.id = id; this.name = name; this.j = j; this.msgs = []; this.closed = null; this.waiters = []; }
@@ -96,7 +96,7 @@ console.log('T2c · attesa dei concorrenti prima del via (R-119) e maglia nella 
   ok(!!lj, 'chi non organizza può cambiare la maglia nella stanza e gli altri la vedono');
   A.send({ t: 'start' });
   const g = await B.waitType('gathering', 3000);
-  ok(g && g.startAt === 0 && Math.abs(g.gatherUntil - g.now - W) < 300, 'dopo "Parti" niente via: si aspetta il tempo fisso della sfida (' + W / 1000 + ' s; online 40 s)', g && JSON.stringify({ startAt: g.startAt, wait: g.gatherUntil - g.now }));
+  ok(g && g.startAt === 0 && Math.abs(g.gatherUntil - g.now - W) < 300, 'dopo "Parti" niente via: si aspetta il tempo fisso della sfida (' + W / 1000 + ' s; online 25 s)', g && JSON.stringify({ startAt: g.startAt, wait: g.gatherUntil - g.now }));
   B.send({ t: 'jersey', j: 'roma' }); await sleep(300);
   ok(!A.msgs.some(m => m.t === 'lobby' && m.players.some(p => p.id === B.id && p.j === 'roma')), 'durante la gara la maglia non si cambia');
   A.send({ t: 'loaded' }); B.send({ t: 'loaded' });
@@ -145,6 +145,24 @@ console.log('T1b · protocollo condiviso (A-12): versione nel hello, messaggi fu
   ok(!A.closed && A.ws.readyState === 1, 'messaggi fuori contratto (tipo sconosciuto, campi mancanti) ignorati senza chiudere');
   ok(PROTO.valida({ t: 'hello', id: 'x', name: 'y', v: 1 }, 'client') === null && PROTO.valida({ t: 'pos', x: 1 }, 'client') !== null, 'valida(): accetta i messaggi giusti e segnala i campi mancanti');
   A.close(); await sleep(200);
+}
+
+console.log('T2d · "Sono pronto" durante l\'attesa (R-222): se tutti alzano la mano si parte subito');
+{
+  const code = rnd();
+  const A = new Client(code, 'ra' + code, 'Capo'); await A.connect(); await A.waitType('welcome');
+  const B = new Client(code, 'rb' + code, 'Amico'); await B.connect(); await B.waitType('welcome');
+  await B.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
+  A.send({ t: 'pronto' });
+  ok(!(await B.waitType('gather', 600)), 'prima di "Parti" il pulsante "Sono pronto" non conta');
+  A.send({ t: 'start' }); const g = await B.waitType('gathering', 3000);
+  A.send({ t: 'pronto' });
+  const ga = await B.wait(m => m.t === 'gather' && (m.ready || []).includes(A.id), 2000);
+  ok(!!ga && !(await B.waitType('go', 600)), 'uno pronto su due: gli altri vedono la sua mano alzata, ma si aspetta ancora', ga && JSON.stringify(ga.ready));
+  const t0 = Date.now(); B.send({ t: 'pronto' });
+  const go = await A.waitType('go', 2000);
+  ok(go && go.now - g.now < W - 300 && Math.abs(go.startAt - go.now - 5000) < 50, 'tutti pronti: l\'attesa finisce subito e partono i 5 s', go && JSON.stringify({ dopo: go.now - g.now, cd: go.startAt - go.now, risposta: Date.now() - t0 }));
+  A.close(); B.close(); await sleep(300);
 }
 
 console.log('T2 · stanza piena (8 giocatori, il 9° rifiutato) e pulizia dei nomi');
@@ -236,6 +254,14 @@ console.log('T4 · banane e bombe (solo in gara, non più di una ogni 0,9 s)');
   ok(!(await B.wait(m => m.t === 'drop' && m.hid === 'h3', 700)), 'tipo sconosciuto ("trap") ignorato');
   B.send({ t: 'hit', hid: 'h1', owner: A.id, kind: 'banana' });
   const h = await A.waitType('hit', 2000); ok(h && h.hid === 'h1' && h.owner === A.id && h.name === 'B', 'chi scivola lo dice a tutti, e chi l\'ha lasciata lo sa');
+  // banana lanciata al giocatore davanti (R-224)
+  await sleep(1000);
+  A.send({ t: 'throw', target: B.id, hid: 't1' });
+  const th = await B.waitType('throw', 2000);
+  ok(th && th.id === A.id && th.target === B.id && th.hid === 't1' && th.name === 'A', 'banana lanciata: il bersaglio e gli altri la ricevono con chi l\'ha lanciata', th && JSON.stringify(th));
+  await sleep(1000);
+  A.send({ t: 'throw', target: A.id, hid: 't2' }); A.send({ t: 'throw', target: 'pNessuno', hid: 't3' });
+  ok(!(await B.wait(m => m.t === 'throw' && (m.hid === 't2' || m.hid === 't3'), 800)), 'non si lancia a se stessi né a chi non è in gara');
   A.close(); B.close();
 }
 

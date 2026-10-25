@@ -2,7 +2,7 @@
 // dipende da: base, lingua, geometria, pista, effetti, audio, protocollo
 // Banane e bombe (R-113): modelli, lancio e posa, urto con il rider, pulsanti e doppio clic sulla pista.
 // Si crea con PN.oggetti({ world, ground, camera, cvs, pista, effetti, audio, net, say, crash, stato }) dal gioco:
-// stato dà lo stato del gioco (P, mode, invuln, bonus in lettura e scrittura, myId).
+// stato dà lo stato del gioco (P, mode, invuln, bonus in lettura e scrittura, myId, remotes, throwAnim()).
 window.PN = window.PN || {};
 PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, crash, stato }) => {
   const { TAU, clamp, lin } = PN.base;
@@ -46,6 +46,14 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     placeHazard(h);
   }
   function placeHazard(h) {
+    if (h.chase) {   // banana lanciata a un giocatore (R-224): segue il bersaglio e sparisce quando lo raggiunge
+      const tg = h.chase(), k = Math.min(1, h.t / 0.45);
+      const x = h.fly.x0 + (tg.x - h.fly.x0) * k, z = h.fly.z0 + (tg.z - h.fly.z0) * k;
+      h.mesh.position.set(x, hgt(x, z) + h.fly.y0 * (1 - k) + 0.8 * k + Math.sin(k * Math.PI) * 2.5, z);
+      h.mesh.rotation.y += 0.5;
+      if (k >= 1) removeHazard(h.hid);
+      return;
+    }
     if (h.fly && h.t < h.fly.dur) {
       const k = h.t / h.fly.dur;
       const x = h.fly.x0 + (h.x - h.fly.x0) * k, z = h.fly.z0 + (h.z - h.fly.z0) * k;
@@ -66,7 +74,7 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
   function updateHazards(dt) {
     for (const [, h] of hazards) {
       h.t += dt;
-      if (h.fly) placeHazard(h);
+      if (h.fly || h.chase) placeHazard(h);
       if (h.spark) h.spark.visible = Math.floor(h.t * 4) % 2 === 0;
     }
   }
@@ -74,18 +82,38 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     const { P, myId } = stato;
     if (stato.invuln > 0 || P.crash > 0) return;
     for (const [hid, h] of hazards) {
-      if (!h.armed || h.owner === myId) continue;
+      if (!h.armed || h.chase || h.owner === myId) continue;
       const dx = h.x - P.x, dz = h.z - P.z, d2 = dx * dx + dz * dz;
       const hit = h.kind === 'bomb' ? (d2 < 2.4 * 2.4 && P.y < 1.6) : (d2 < 1.0 && P.y < 0.7);
       if (!hit) continue;
       if (h.kind === 'bomb') { spray(h.x, 0.5, h.z, 90, 7, 8); sparkle(h.x, hgt(h.x, h.z) + 0.6, h.z, 80, true); thump(2); }
       removeHazard(hid);
       net.send({ t: 'hit', hid, owner: h.owner, kind: h.kind });
-      crash(tr(h.kind === 'bomb' ? 'crashBomb' : 'crashBanana'));
+      crash(tr(h.kind === 'bomb' ? 'crashBomb' : 'crashBanana'), h.kind === 'bomb' ? 4 : 1);   // bomba: fermo 4 s, banana: 1 s (R-223)
       return;
     }
   }
-  // lascia l'oggetto dietro di sé, oppure lo lancia nel punto indicato (solo banane)
+  // il giocatore più vicino davanti (più avanti sulla pista, entro 120 m), o null
+  function aheadOf(P) {
+    let best = null, bd = 120;
+    for (const [id, r] of stato.remotes) {
+      if (!r.has || !r.model.group.visible) continue;
+      const d = P.z - r.z;   // si scende verso -z: davanti vuol dire z più piccola
+      if (d > 2 && d < bd) { bd = d; best = { id, r }; }
+    }
+    return best;
+  }
+  const nameOf = id => { const x = net.racers.find(q => q.id === id); return x ? x.name : tr('someone'); };
+  // una banana che vola da chi la lancia (codice o io) a chi la riceve: la vedono tutti (R-224)
+  function showThrow(fromId, toId, hid) {
+    const { P, myId } = stato;
+    const pos = id => { if (id === myId) return { x: P.x, z: P.z, y: P.y }; const r = stato.remotes.get(id); return r ? { x: r.x, z: r.z, y: r.y } : null; };
+    const a = pos(fromId), b = pos(toId);
+    if (!a || !b || hazards.has(hid)) return;
+    const h = { hid, owner: fromId, kind: 'banana', x: b.x, z: b.z, chase: () => pos(toId) || b };
+    addHazard(h, { x: a.x, z: a.z, y: a.y + 1.4 });
+  }
+  // lascia l'oggetto dietro di sé, oppure lancia la banana: al giocatore davanti se c'è (R-224), altrimenti nel punto indicato
   function useItem(kind, target) {
     const { P, mode, myId } = stato;
     if (mode !== 'race' || !net.ws) { if (mode === 'solo') say(tr('itemsRaceOnly'), '#13233a'); return; }
@@ -94,6 +122,16 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     useItem.last = performance.now();
     stato.bonus -= COST[kind];
     const hid = myId + '-' + net.round + '-' + (++hazN);
+    if (kind === 'banana' && target) {
+      stato.throwAnim();   // gesto del braccio
+      const ah = aheadOf(P);
+      if (ah) {
+        net.send({ t: 'throw', target: ah.id, hid });
+        showThrow(myId, ah.id, hid);
+        say(tr('bananaThrownAt', { n: nameOf(ah.id) }) + '  −' + COST[kind], '#8a6d3b');
+        return;
+      }
+    }
     let x = P.x - Math.sin(P.ang) * 3, z = P.z + Math.cos(P.ang) * 3;
     if (target) { x = target.x; z = target.z; }
     addHazard({ hid, owner: myId, kind, x, z }, target ? { x: P.x, z: P.z, y: P.y + 1 } : null);
@@ -124,5 +162,5 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     useItem('banana', { x, z });
   });
 
-  return { hazards, addHazard, removeHazard, clearHazards, updateHazards, collideHazards, useItem };
+  return { hazards, addHazard, removeHazard, clearHazards, updateHazards, collideHazards, useItem, showThrow };
 };

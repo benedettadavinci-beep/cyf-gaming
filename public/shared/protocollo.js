@@ -11,7 +11,7 @@
 // quella del server, il server risponde { t: 'aggiorna' } e chiude: chi ha ancora la pagina vecchia aperta vede
 // "aggiorna la pagina" invece di errori strani.
 globalThis.CYF_PROTOCOLLO = (() => {
-  const VERSIONE = 1;
+  const VERSIONE = 2;   // 2 (0.13.0): "pronto" durante l'attesa e banana lanciata ("throw")
 
   // città: ogni città ha la sua pista, quindi in una gara tutti corrono nella stessa città (R-118, R-312)
   const SCENE = ['neve', 'napoli', 'roma', 'milano', 'parigi', 'londra', 'francoforte', 'madrid', 'lisbona', 'zagabria', 'berlino', 'zurigo', 'newyork'];
@@ -30,6 +30,8 @@ globalThis.CYF_PROTOCOLLO = (() => {
     ready:       {},
     start:       {},                                              // solo l'organizzatore
     loaded:      {},                                              // la pista è caricata e disegnata (R-119)
+    pronto:      {},                                              // "Sono pronto" durante l'attesa prima del via: alza la mano (R-222)
+    throw:       { target: 's', hid: 's' },                       // banana lanciata al giocatore davanti (R-224)
     pos:         { x: 'n', z: 'n' },                              // y, a, s, f, g, v, c, k, top, tk, p facoltativi
     finish:      {},                                              // top, tk, p facoltativi
     drop:        { kind: 's', x: 'n', z: 'n', hid: 's' },
@@ -44,7 +46,8 @@ globalThis.CYF_PROTOCOLLO = (() => {
     full:         {},
     aggiorna:     {},                                             // versione del protocollo diversa: ricaricare la pagina
     countdown:    { seed: 'n', startAt: 'n', scena: 's' },
-    gather:       { loaded: 'o' },
+    gather:       { loaded: 'o' },                                // anche ready: chi ha alzato la mano (R-222)
+    throw:        { id: 's', target: 's', hid: 's' },
     go:           { startAt: 'n', now: 'n' },
     racers:       { racers: 'o' },
     pos:          { id: 's', x: 'n', z: 'n' },

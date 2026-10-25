@@ -77,7 +77,7 @@ ok(new RegExp('^\\| ' + (ver || 'x').replace(/\./g, '\\.') + ' \\|', 'm').test(r
 
 console.log('C5 · attesa della sfida (R-119)');
 const wk = read('src/worker.js'), wr = read('wrangler.jsonc');
-ok(/const ATTESA_SFIDA_MS = 40000;/.test(wk), 'nella sfida si aspettano 40 s dopo "Parti"');
+ok(/const ATTESA_SFIDA_MS = 25000;/.test(wk), 'nella sfida si aspettano 25 s dopo "Parti" (R-119)');
 ok(!/ATTESA_SFIDA_MS/.test(wr), 'online nessuna variabile accorcia l\'attesa (ATTESA_SFIDA_MS solo nelle prove locali)');
 
 console.log('C6 · schede delle città (citta/<nome>.js): tutti i campi, nell\'ordine di index.html');

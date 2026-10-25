@@ -22,7 +22,7 @@ PN.rider = (() => {
   const DECK_Y = WHEEL_R * 2 + 0.006, LIFT = DECK_Y + 0.012 - 0.068;
   // in città il rider è vestito da skater (R-218): viso scoperto, mani nude, scarpe da skate
   const STREET = { sole: RM('#f2f1ec'), shoe: RM('#2b2f36'), lace: RM('#e8e6df'), eye: RM('#f6f4ef'), iris: RM('#4a3426'), brow: RM('#4a3628'), lip: RM('#b07468') };
-  const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
+  const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), tmpH = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
   const PIVOT = new THREE.Vector3();
   // ruota il corpo attorno al baricentro (circa 0,6 m sopra la tavola), non attorno ai piedi
   // quanto il rider è girato al contrario (0 = normale, 1 = dopo un 180°), in modo continuo durante l'avvitamento
@@ -335,8 +335,10 @@ PN.rider = (() => {
     // k: quanto è accovacciato; arms: braccia aperte; twist: torsione; grab: presa della tavola; fwd: peso in avanti (frenata);
     // sw: 0 = posizione normale, 1 = "switch" (dopo un 180° la tavola va al contrario): tutto il corpo si specchia,
     // così testa, spalle e braccio davanti restano verso dove si va (R-215). Nel mezzo dell'avvitamento si passa con continuità.
+    // hand: 0..1 mano destra alzata ("Sono pronto", R-222); thr: 0..1 avanzamento del lancio della banana (R-224):
+    // fino a 0,4 il braccio va indietro e in alto, poi si distende in avanti verso dove si va (-z)
     const JR = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => JR[k] = new THREE.Vector3());
-    function pose(k, arms, twist, grab = 0, fwd = 0, sw = 0) {
+    function pose(k, arms, twist, grab = 0, fwd = 0, sw = 0, hand = 0, thr = 0) {
       const fz = -fwd * 0.09;   // il davanti della tavola è verso -z
       J.ankL.set(0.02, 0.17, 0.26); J.ankR.set(0.02, 0.17, -0.26);
       const kneeX = 0.1 + k * 0.17, kneeY = 0.55 - k * 0.13;
@@ -367,6 +369,16 @@ PN.rider = (() => {
       if (grab > 0) {   // presa della tavola: mano dietro sulla lamina, gomito piegato
         J.haR.lerp(GRAB_HAND, grab);
         J.elR.lerp(tmpE.set(shX + 0.16, shY - 0.3, -0.24), grab);
+      }
+      if (hand > 0) {   // mano alzata sopra la testa
+        J.elR.lerp(tmpE.set(sR.x + 0.04, sR.y + 0.24, sR.z - 0.05), hand);
+        J.haR.lerp(tmpE.set(sR.x + 0.07, sR.y + 0.5, sR.z - 0.07), hand);
+      }
+      if (thr > 0 && thr < 1) {   // lancio: indietro e su, poi avanti
+        const env = Math.sin(thr * Math.PI), f = thr < 0.4 ? 0 : Math.min(1, (thr - 0.4) / 0.6);
+        tmpH.set(sR.x - 0.14 + f * 0.42, sR.y + 0.34 - f * 0.2, sR.z + 0.12 - f * 0.6);
+        J.haR.lerp(tmpH, env);
+        J.elR.lerp(tmpE.set((sR.x + tmpH.x) / 2, (sR.y + tmpH.y) / 2 + 0.06, (sR.z + tmpH.z) / 2), env);
       }
       if (sw > 0) {
         // switch: ogni giunto va verso lo specchio del suo gemello (sinistra ↔ destra, z → -z)

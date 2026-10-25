@@ -166,6 +166,7 @@
     get myId() { return myId; }, get theme() { return theme; }, racing, isCity,
     // per le schermate (si leggono solo dopo l'avvio, quando tutto è già definito)
     get net() { return net; }, serverNow: () => serverNow(), get lives() { return lives; }, get myTotal() { return myTotal; },
+    get remotes() { return remotes; }, throwAnim: () => { throwT = 0.001; },
     distM: () => distM(), score: () => score(), racePlace: () => racePlace(), renderLive: l => renderLive(l), amIn: l => amIn(l), toMenu: () => toMenu()
   };
 
@@ -192,7 +193,7 @@
     diag.log('pista', 'seed ' + seed + ' · ' + theme + (withFinish ? ' · con traguardo' : ''));
     clearWorld();
     GEN.riparti(seed);
-    P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: 9, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, ramp: false, onRamp: null };
+    P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: 9, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, stop: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
     maxSpeed = 0; bestSpin = 0; overTimer = 0; overReason = ''; tricksN = 0; near500 = false;
@@ -209,7 +210,7 @@
   const { ensureSpawned, removeObj } = GEN;
 
   const COMANDI = PN.comandi({ audio: AUDIO, stato, azioni: {
-    jump: () => jump(), togglePause: () => togglePause(), setMuted, voiceButton: () => voiceButton(), useItem: (...a) => useItem(...a),
+    jump: () => (inGather() ? pronto() : jump()), togglePause: () => togglePause(), setMuted, voiceButton: () => voiceButton(), useItem: (...a) => useItem(...a),
     enterInInput: () => { if (inCode.value.trim()) joinFromMenu(); }
   } });
   const { keys, stick, inSteer, inFast, inSlow, stickRest } = COMANDI;
@@ -245,10 +246,11 @@
     spray(P.x, 0, P.z, 12, 2.5);
   }
 
-  function crash(reason) {
+  // stop: secondi da fermo dopo la caduta (bomba 4 s, banana 1 s: R-223, R-224); intanto non si può essere colpiti di nuovo
+  function crash(reason, stop = 0) {
     if (invuln > 0 || P.crash > 0 || (mode === 'solo' && lives <= 0)) return;
     if (mode === 'solo') { lives--; renderLives(); }
-    P.crash = 0.85; invuln = 2.3; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
+    P.crash = 0.85; invuln = Math.max(2.3, stop + 1.5); P.stop = stop; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
     combo = 0; shake = reduceMotion ? 0 : 0.45;
     spray(P.x, 0.2, P.z, 60, 4, 5);
     thump(1.4);
@@ -307,6 +309,9 @@
 
     if (frozen) {
       P.speed = 0;
+    } else if (P.stop > 0) {   // fermo dopo una bomba o una banana (R-223)
+      P.stop -= dt; P.speed = 0;
+      if (P.crash > 0) P.crash -= dt;
     } else if (P.crash > 0) {
       P.crash -= dt;
       P.speed = Math.max(2, P.speed - 14 * dt);
@@ -574,7 +579,7 @@
       net.offset = m.now - Date.now();
       voice.next = m.voiceNext || 0;
       net.phase = m.phase; net.seed = m.seed; net.startAt = m.startAt; net.racers = m.racers || []; net.results = m.results || [];
-      net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || [];
+      net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || []; net.ready = m.ready || [];
       net.pub = !!m.pub; net.minutes = m.minutes || 5; net.awards = m.awards || null; net.scena = m.scena || 'neve';
       raceLen = m.length || raceLen;
       if ((m.phase === 'countdown' || m.phase === 'racing') && amIn(net.racers) && !racing()) beginRace(true);
@@ -594,7 +599,7 @@
     } else if (m.t === 'countdown') {
       net.offset = m.now - Date.now();
       net.phase = 'countdown'; net.seed = m.seed; net.startAt = m.startAt; net.racers = m.racers; net.round = m.round; net.results = []; net.finished = new Map(); net.scena = m.scena || 'neve';
-      net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || [];
+      net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || []; net.ready = m.ready || [];
       raceLen = m.length || raceLen;
       if (amIn(net.racers)) beginRace(false);
       else renderLobby();
@@ -604,8 +609,9 @@
       if (racing()) { const slot = Math.max(0, net.racers.findIndex(r => r.id === myId)); for (const r of net.racers) if (r.id !== myId) remoteFor(r.id, r, slot); }
     } else if (m.t === 'gather') {
       net.loaded = m.loaded || []; net.gatherUntil = m.gatherUntil || net.gatherUntil;
+      if (m.ready) { net.ready = m.ready; AVV.setReady(net.ready); }   // chi ha alzato la mano (R-222)
     } else if (m.t === 'go') {
-      // tutti dentro (o 40 s passati): parte il conto alla rovescia di 5 s
+      // tutti pronti (o attesa finita): parte il conto alla rovescia di 5 s
       net.offset = m.now - Date.now();
       net.startAt = m.startAt; net.loaded = m.loaded || net.loaded; net.gatherUntil = 0;
       setBanner('');
@@ -646,6 +652,11 @@
     } else if (m.t === 'drop') {
       // anche se questo dispositivo è ancora al conto alla rovescia (telefoni lenti): la gara è già partita sul server
       if (racing()) addHazard({ hid: m.hid, owner: m.id, kind: m.kind, x: m.x, z: m.z });
+    } else if (m.t === 'throw') {
+      // banana lanciata da un altro giocatore (R-224): tutti vedono il gesto e la banana in volo; il bersaglio si ferma 1 s
+      AVV.playThrow(m.id);
+      OGG.showThrow(m.id, m.target, m.hid);
+      if (m.target === myId) setTimeout(() => { if (racing()) crash(tr('crashBananaThrown', { n: m.name || tr('someone') }), 1); }, 450);
     } else if (m.t === 'hit') {
       removeHazard(m.hid);
       if (m.owner === myId) say(tr(m.kind === 'bomb' ? 'hitYourBomb' : 'hitYourBanana', { n: m.name || tr('someone') }), '#ff5a1f');
@@ -669,6 +680,7 @@
 
   function beginRace(late) {
     initAudio();
+    net.iAmReady = false; handUp = 0;
     applyTheme(net.scena || 'neve', true);   // la città della gara, uguale per tutti: prima di center(0), che dipende dalla pista
     const slot = Math.max(0, net.racers.findIndex(r => r.id === myId));
     const n = net.racers.length;
@@ -697,17 +709,34 @@
   }
   const myStats = () => ({ top: +maxSpeed.toFixed(1), tk: tricksN, p: Math.max(0, Math.round(bonus)) });
   let lastCount = -1;
+  // "Sono pronto" durante l'attesa prima del via (R-222): al posto di Salta, il rider alza la mano
+  const btnPronto = $('btnPronto');
+  const inGather = () => mode === 'countdown' && !net.startAt;
+  function showPronto(on) {
+    if (btnPronto.hidden === !on) return;
+    btnPronto.hidden = !on; stage.classList.toggle('gather', on);
+    if (on) { btnPronto.textContent = net.iAmReady ? tr('readyDone') : tr('readyBtn'); btnPronto.classList.toggle('done', !!net.iAmReady); }
+  }
+  function pronto() {
+    if (!inGather() || net.iAmReady) return;
+    net.iAmReady = true; net.send({ t: 'pronto' });
+    btnPronto.textContent = tr('readyDone'); btnPronto.classList.add('done');
+  }
+  btnPronto.addEventListener('pointerdown', e => { e.preventDefault(); pronto(); });
   function raceClock() {
     const cnt = $('count');
     if (mode === 'countdown' && !net.startAt) {
       // attesa prima del via (R-119). Sfida: sempre 40 s, così chi ha l'invito fa in tempo a entrare.
       // Sala online: il conto alla rovescia parte quando tutti hanno caricato la gara, al massimo dopo 40 s.
       const s = Math.max(0, Math.ceil((net.gatherUntil - serverNow()) / 1000));
-      const txt = net.pub ? tr('gatherWait', { n: net.loaded.length, t: net.racers.length, s }) : tr('gatherFixed', { t: net.racers.length, s });
+      const nReady = (net.ready || []).length;
+      const txt = (net.pub ? tr('gatherWait', { n: net.loaded.length, t: net.racers.length, s }) : tr('gatherFixed', { t: net.racers.length, s })) + (nReady ? ' · ' + tr('readyCount', { r: nReady, t: net.racers.length }) : '');
       if (net.gatherTxt !== txt) { net.gatherTxt = txt; setBanner(txt); banner.classList.add('wait'); }
       cnt.hidden = true;
+      showPronto(true);
     } else if (mode === 'countdown') {
       if (net.gatherTxt) { net.gatherTxt = ''; setBanner(''); banner.classList.remove('wait'); }
+      showPronto(false);
       const left = net.startAt - serverNow();
       if (left <= 0) {
         mode = 'race';
@@ -771,7 +800,7 @@
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
   const vignette = $('vignette');
-  let airCam = 0, tuckS = 0, brakeS = 0;
+  let airCam = 0, tuckS = 0, brakeS = 0, handUp = 0, throwT = 0;
   function place(dt) {
     const steer = inSteer();
     const autoLean = mode === 'menu' || mode === 'lobby' || mode === 'results';
@@ -781,7 +810,9 @@
     const onGround = !P.air && P.crash <= 0 && (mode === 'solo' || mode === 'race');
     tuckS += ((onGround && inFast() && !inSlow() ? 1 : 0) - tuckS) * Math.min(1, 8 * dt);
     brakeS += ((onGround && inSlow() ? 1 : 0) - brakeS) * Math.min(1, 8 * dt);
-    me.pose(Math.min(1, crouch + P.grab * 0.45 + tuckS * 0.55), armsUp * (1 - tuckS * 0.6), P.air ? Math.sin(P.spin) * 0.3 : lean * 0.3, P.grab, brakeS, switchOf(P.spin));
+    handUp += ((mode === 'countdown' && net.iAmReady ? 1 : 0) - handUp) * Math.min(1, 8 * dt);
+    if (throwT > 0) { throwT += dt / 0.55; if (throwT >= 1) throwT = 0; }
+    me.pose(Math.min(1, crouch + P.grab * 0.45 + tuckS * 0.55), armsUp * (1 - tuckS * 0.6), P.air ? Math.sin(P.spin) * 0.3 : lean * 0.3, P.grab, brakeS, switchOf(P.spin), handUp, throwT);
 
     const gH = hgt(P.x, P.z);
     rider.position.set(P.x, gH + P.y, P.z);

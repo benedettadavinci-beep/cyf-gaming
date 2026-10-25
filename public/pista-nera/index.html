@@ -172,6 +172,12 @@
   .tjump, .stick { display: none; }
   .tjump { position: absolute; left: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: 104px; height: 104px; border-radius: 50%; border: 3px solid rgba(255,255,255,.9); background: var(--flare); color: #fff; font-family: var(--display); font-size: 15px; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 -5px 0 rgba(0,0,0,.18); touch-action: none; user-select: none; -webkit-user-select: none; z-index: 3; padding: 0; }
   .tjump.on { transform: scale(.94); filter: brightness(1.15); }
+  /* "Sono pronto" durante l'attesa prima del via (R-222): verde, al posto di Salta sul telefono, in basso al centro sul PC */
+  .tpronto { position: absolute; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 4; padding: 14px 30px; border-radius: 999px; border: 3px solid rgba(255,255,255,.92); background: #1f9d4c; color: #fff; font-family: var(--display); font-size: 20px; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 -5px 0 rgba(0,0,0,.18); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .tpronto.done { background: #14713a; }
+  .tpronto[hidden] { display: none; }
+  @media (pointer: coarse) { .tpronto { left: 14px; transform: none; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: 104px; height: 104px; padding: 0; border-radius: 50%; font-size: 15px; line-height: 1.1; } }
+  .stage.gather .tjump { display: none !important; }
   .stick { position: absolute; right: 0; bottom: 0; width: 64%; height: 50%; touch-action: none; user-select: none; -webkit-user-select: none; z-index: 2; }
   .stick .base { position: absolute; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; background: radial-gradient(circle, rgba(12,24,40,.22) 0 58%, rgba(12,24,40,.38) 59% 100%); border: 2px solid rgba(255,255,255,.75); box-shadow: 0 4px 14px rgba(0,0,0,.25); opacity: .55; transition: opacity .15s ease; pointer-events: none; }
   .stick.on .base { opacity: 1; transition: none; }
@@ -209,6 +215,7 @@
       <button type="button" id="btnBomb" data-i18n-title="bombTitle"><b>💣</b><span>150</span><small class="hide-touch">N</small></button>
     </div>
     <button type="button" class="tjump" id="tJump" data-i18n="jump"></button>
+    <button type="button" class="tpronto" id="btnPronto" hidden></button>
     <div class="stick" id="stick" data-i18n-aria="stickAria" aria-label="Rotellina" role="application">
       <div class="base" id="stickBase"><span class="ar u">▲</span><span class="ar d">▼</span><span class="ar l">◀</span><span class="ar r">▶</span><div class="knob" id="stickKnob"></div></div>
     </div>

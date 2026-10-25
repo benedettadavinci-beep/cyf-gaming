@@ -219,7 +219,16 @@ with sync_playwright() as p:
     g = br.new_context(locale='it-IT', viewport={'width': 400, 'height': 300}); local(g); g.set_default_timeout(120000)
     g.add_init_script("localStorage.setItem('cyf.id','pGuest2'); localStorage.setItem('cyf.name','Ospite')")
     gp = g.new_page(); gp.goto(f'{BASE}/pista-nera/?sfida={code}', wait_until='domcontentloaded'); gp.wait_for_function('window.__dbg'); gp.wait_for_timeout(1500)
-    pg.click('#btnGo'); pg.wait_for_function("window.__dbg.mode === 'race'", timeout=90000); gp.wait_for_function("window.__dbg.mode === 'race'", timeout=90000); pg.wait_for_timeout(200)
+    pg.click('#btnGo')
+    # attesa prima del via (R-222): pulsante verde "Sono pronto" al posto di Salta; con tutti pronti si parte subito
+    pg.wait_for_function("!document.getElementById('btnPronto').hidden", timeout=60000); gp.wait_for_function("!document.getElementById('btnPronto').hidden", timeout=60000)
+    rp = pg.evaluate("() => { const b = document.getElementById('btnPronto'); return { text: b.textContent, gather: document.getElementById('stage').classList.contains('gather') }; }")
+    check(rp['text'] == 'Sono pronto' and rp['gather'], 'durante l\'attesa compare il pulsante verde "Sono pronto"', json.dumps(rp))
+    pg.dispatch_event('#btnPronto', 'pointerdown')
+    gp.wait_for_function("(() => { const r = window.__dbg.remotes.get('pTester') || [...window.__dbg.remotes.values()][0]; return !!r && r.ready; })()", timeout=10000)
+    check(True, 'chi preme "Sono pronto" alza la mano e gli altri lo vedono')
+    gp.dispatch_event('#btnPronto', 'pointerdown')
+    pg.wait_for_function("window.__dbg.mode === 'race'", timeout=90000); gp.wait_for_function("window.__dbg.mode === 'race'", timeout=90000); pg.wait_for_timeout(200)
     r = pg.evaluate("""() => { const D = window.__dbg; return { mode: D.mode, finish: !!D.finishObj, finishZ: D.finishObj ? D.finishObj.children[0].position.z : null, raceLen: D.raceLen, remotes: D.remotes.size, live: document.querySelectorAll('#liveList li').length }; }""")
     check(r['mode'] == 'race' and r['finish'] and abs(r['finishZ'] + r['raceLen']) < 1 and r['raceLen'] == 12000, 'in gara c\'è il traguardo a 12.000 m', json.dumps(r))
     check(r['remotes'] == 1 and r['live'] == 2, 'avversario in pista e classifica dal vivo con 2 nomi', json.dumps(r))
@@ -232,6 +241,20 @@ with sync_playwright() as p:
     gp.wait_for_function("window.__dbg.hazards.size === 1", timeout=20000)
     gh = gp.evaluate("() => ({ n: window.__dbg.hazards.size, kind: [...window.__dbg.hazards.values()][0].kind })")
     check(gh['n'] == 1 and gh['kind'] == 'banana', 'l\'avversario vede la banana', json.dumps(gh))
+    # banana lanciata al giocatore davanti (R-224): l'ospite va 30 m più avanti, l'organizzatore lancia, l'ospite si ferma 1 s
+    gp.evaluate("() => { const D = window.__dbg; D.P.z -= 30; D.P.x = D.center(D.P.z); D.invuln = 0; window.__toasts.length = 0; }")
+    pg.wait_for_function("(() => { const D = window.__dbg; const r = D.remotes.get('pGuest2'); return !!r && D.P.z - r.z > 5; })()", timeout=20000)
+    pg.wait_for_timeout(1100)
+    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 200; window.__toasts.length = 0; const cvs = document.getElementById('game'); const rc = cvs.getBoundingClientRect();
+      const ev = () => new PointerEvent('pointerdown', { clientX: rc.left + rc.width / 2, clientY: rc.top + rc.height * 0.7, bubbles: true, pointerId: 4 });
+      cvs.dispatchEvent(ev()); cvs.dispatchEvent(ev()); return { bonus: D.bonus, toast: window.__toasts.join('|') }; }""")
+    check(r['bonus'] == 150 and 'Ospite' in r['toast'], 'doppio clic con un avversario davanti: la banana è lanciata a lui (R-224)', json.dumps(r))
+    try:
+        gp.wait_for_function("window.__dbg.P.stop > 0", timeout=10000)
+        gr = gp.evaluate("() => ({ stop: +window.__dbg.P.stop.toFixed(2), toast: window.__toasts.join('|') })")
+    except Exception as e:
+        gr = { 'stop': 0, 'toast': str(e)[:80] }
+    check(gr['stop'] > 0 and gr['stop'] <= 1 and 'Banana' in gr['toast'], 'chi la riceve cade e resta fermo 1 s', json.dumps(gr))
     r = pg.evaluate("""() => { const D = window.__dbg; window.__toasts.length = 0; D.P.z = -(D.raceLen - 400); D.P.x = D.center(D.P.z); return D.frames(4).then(() => ({ toast: window.__toasts.join('|') })); }""")
     check('500' in r['toast'], 'avviso "Traguardo tra 500 m"', json.dumps(r))
     r = pg.evaluate("""() => { const D = window.__dbg; window.__toasts.length = 0; D.P.z = -D.raceLen - 1; return D.frames(4).then(() => new Promise(res => setTimeout(() => res({ mode: D.mode, toasts: window.__toasts.join('|'), banner: document.getElementById('banner').textContent }), 1500))); }""")
