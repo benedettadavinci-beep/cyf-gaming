@@ -1,4 +1,4 @@
-# Cancello dei test: a ogni modifica su GitHub lancia il giro rapido delle prove (~2 min di prove, ~5 min in tutto).
+# Cancello dei test: a ogni modifica su GitHub lancia il giro rapido delle prove (~1,5 min in tutto).
 # Verde = si può andare online. Rosso = qualcosa si è rotto: il dettaglio è nel registro del passo "Giro rapido".
 # Il giro completo (~30 min) lo fa il controllo notturno delle 21:33; da qui si lancia a mano con "Run workflow" → tutto.
 name: Cancello dei test
