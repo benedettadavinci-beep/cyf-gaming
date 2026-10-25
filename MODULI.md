@@ -45,7 +45,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/generazione.js` | generazione | 303 | base (TAU, clamp, lin, mulberry32); geometria (GEO, vcMat); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/lingua.js` | lingua | 37 | base (store) |
-| `moduli/oggetti.js` | oggetti | 167 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
+| `moduli/oggetti.js` | oggetti | 170 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
 | `moduli/personaggio.js` | personaggio | 104 | base (store, lin); rider (JERSEYS, myJersey, myHair, myGear, makeRider) |
 | `moduli/pista.js` | pista | 176 | base (TAU, clamp, isPhone, lin, mulberry32) |
 | `moduli/profilo.js` | profilo | 100 | base (store); lingua (tr) |
@@ -53,10 +53,10 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/schermate.js` | schermate | 245 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (tr, ord, fmtLen); protocollo (COSTI) |
 | `moduli/sfondi.js` | sfondi | 522 | base (TAU, lin, mulberry32); geometria (lumpy) |
 | `moduli/vocali.js` | vocali | 180 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr) |
-| `game.js` | — | 975 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); generazione (); comandi (); schermate (); profilo (); personaggio (); protocollo (VERSIONE); vocali (); oggetti (); avversari () |
+| `game.js` | — | 978 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); generazione (); comandi (); schermate (); profilo (); personaggio (); protocollo (VERSIONE, FERMO); vocali (); oggetti (); avversari () |
 | `diagnosi.js` | — | 149 | nessuno |
 | `i18n.js` | — | 361 | nessuno |
-| `shared/protocollo.js` | protocollo | 83 | nessuno |
+| `shared/protocollo.js` | protocollo | 84 | nessuno |
 <!-- /matrice -->
 
 ## Dove sta cosa

@@ -20,6 +20,7 @@ globalThis.CYF_PROTOCOLLO = (() => {
   const MAX_PLAYERS = 8;
   const DROP_KINDS = ['banana', 'bomb'];
   const COSTI = { banana: 50, bomb: 150 };     // punti della gara spesi per lasciare l'oggetto (R-113)
+  const FERMO = { banana: 2, bomb: 4 };        // secondi di fermo per chi viene colpito (R-223, R-224)
 
   // messaggi dal gioco al server: tipo → campi obbligatori con il loro tipo ("n" numero, "s" testo, "b" vero/falso)
   const CLIENT = {
@@ -77,6 +78,6 @@ globalThis.CYF_PROTOCOLLO = (() => {
     return null;
   }
 
-  return { VERSIONE, SCENE, cleanScena, DURATIONS, MAX_PLAYERS, DROP_KINDS, COSTI, CLIENT, SERVER, valida };
+  return { VERSIONE, SCENE, cleanScena, DURATIONS, MAX_PLAYERS, DROP_KINDS, COSTI, FERMO, CLIENT, SERVER, valida };
 })();
 if (typeof window !== 'undefined') { window.PN = window.PN || {}; window.PN.protocollo = globalThis.CYF_PROTOCOLLO; }

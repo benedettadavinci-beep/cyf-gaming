@@ -14,6 +14,7 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
   const $ = id => document.getElementById(id);
   // ---------- banane e bombe: si pagano con i punti della gara e fanno cadere gli altri ----------
   const COST = PN.protocollo.COSTI;   // i costi li conosce anche il server (shared/protocollo.js)
+  const STOP = PN.protocollo.FERMO;   // secondi di fermo per chi viene colpito (R-223, R-224)
   const HAZ_GEO = {
     // buccia di banana: arco giallo con le punte scure, appoggiato sulla pista
     banana: merge([
@@ -89,13 +90,13 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
       if (h.kind === 'bomb') { spray(h.x, 0.5, h.z, 90, 7, 8); sparkle(h.x, hgt(h.x, h.z) + 0.6, h.z, 80, true); thump(2); }
       removeHazard(hid);
       net.send({ t: 'hit', hid, owner: h.owner, kind: h.kind });
-      crash(tr(h.kind === 'bomb' ? 'crashBomb' : 'crashBanana'), h.kind === 'bomb' ? 4 : 1);   // bomba: fermo 4 s, banana: 1 s (R-223)
+      crash(tr(h.kind === 'bomb' ? 'crashBomb' : 'crashBanana'), h.kind === 'bomb' ? STOP.bomb : STOP.banana);   // bomba: fermo 4 s, banana: 2 s (R-223)
       return;
     }
   }
-  // il giocatore più vicino davanti (più avanti sulla pista, entro 120 m), o null
+  // il giocatore più vicino davanti (più avanti sulla pista, a qualunque distanza), o null (S-34)
   function aheadOf(P) {
-    let best = null, bd = 120;
+    let best = null, bd = Infinity;
     for (const [id, r] of stato.remotes) {
       if (!r.has || !r.model.group.visible) continue;
       const d = P.z - r.z;   // si scende verso -z: davanti vuol dire z più piccola
@@ -113,7 +114,8 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     const h = { hid, owner: fromId, kind: 'banana', x: b.x, z: b.z, chase: () => pos(toId) || b };
     addHazard(h, { x: a.x, z: a.z, y: a.y + 1.4 });
   }
-  // lascia l'oggetto dietro di sé, oppure lancia la banana: al giocatore davanti se c'è (R-224), altrimenti nel punto indicato
+  // bomba: si lascia dietro di sé. Banana: si lancia sempre, dal pulsante, dal tasto B o con il doppio tocco (R-224, R-230):
+  // al giocatore più vicino davanti se c'è, altrimenti cade sulla pista davanti (nel punto toccato o 30 m più avanti)
   function useItem(kind, target) {
     const { P, mode, myId } = stato;
     if (mode !== 'race' || !net.ws) { if (mode === 'solo') say(tr('itemsRaceOnly'), '#13233a'); return; }
@@ -122,8 +124,9 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     useItem.last = performance.now();
     stato.bonus -= COST[kind];
     const hid = myId + '-' + net.round + '-' + (++hazN);
-    if (kind === 'banana' && target) {
+    if (kind === 'banana') {
       stato.throwAnim();   // gesto del braccio
+      if (!target) { const tz = P.z - 30; target = { x: center(tz) + clamp(P.x - center(P.z), -12, 12), z: tz }; }
       const ah = aheadOf(P);
       if (ah) {
         net.send({ t: 'throw', target: ah.id, hid });

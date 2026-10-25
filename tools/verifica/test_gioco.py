@@ -13,7 +13,7 @@ GAME = GAME.replace(hook, hook + """
   window.__dbg = {
     get P() { return P; }, get objs() { return GEN.objs; }, get mode() { return mode; }, set mode(v) { mode = v; }, get theme() { return theme; },
     get bonus() { return bonus; }, set bonus(v) { bonus = v; }, get lives() { return lives; }, set invuln(v) { invuln = v; }, get raceLen() { return raceLen; },
-    get finishObj() { return finishObj; }, get hazards() { return hazards; }, get PART() { return PART; }, get tuckS() { return tuckS; }, get brakeS() { return brakeS; },
+    get finishObj() { return finishObj; }, get hazards() { return hazards; }, get PART() { return PART; }, get tuckS() { return tuckS; }, get brakeS() { return brakeS; }, get throwT() { return throwT; },
     reset, applyTheme, ensureSpawned, TRACKS, assets, CITY_CFG, THEMES, builtSky, bay: builtSky.napoli, rome: builtSky.roma, ranges, camera, me, scene, renderer, collide, keys, stick, net, center, hgt, tr,
     store, mutedIds, playVoice, useItem, jump, PALETTE, flakes, groundMat, sky, hemi, sun, trailMesh, sprayPts, isCity, remotes, standings, GEO, GROUND_TEX,
     jacketTexture, JERSEYS, myJersey, THREE, world, god() { invuln = 1e9; lives = 99; }, setLives(n) { lives = n; renderLives(); }, lastToast() { const t = window.__toasts; return t.length ? t[t.length - 1] : ''; },
@@ -242,7 +242,7 @@ with sync_playwright() as p:
     gp.wait_for_function("window.__dbg.hazards.size === 1", timeout=20000)
     gh = gp.evaluate("() => ({ n: window.__dbg.hazards.size, kind: [...window.__dbg.hazards.values()][0].kind })")
     check(gh['n'] == 1 and gh['kind'] == 'banana', 'l\'avversario vede la banana', json.dumps(gh))
-    # banana lanciata al giocatore davanti (R-224): l'ospite va 30 m più avanti, l'organizzatore lancia, l'ospite si ferma 1 s
+    # banana lanciata al giocatore davanti (R-224): l'ospite va 30 m più avanti, l'organizzatore lancia, l'ospite si ferma 2 s
     gp.evaluate("() => { const D = window.__dbg; D.P.z -= 30; D.P.x = D.center(D.P.z); D.invuln = 0; window.__toasts.length = 0; }")
     pg.wait_for_function("(() => { const D = window.__dbg; const r = D.remotes.get('pGuest2'); return !!r && D.P.z - r.z > 5; })()", timeout=20000)
     pg.wait_for_timeout(1100)
@@ -255,7 +255,12 @@ with sync_playwright() as p:
         gr = gp.evaluate("() => ({ stop: +window.__dbg.P.stop.toFixed(2), toast: window.__toasts.join('|') })")
     except Exception as e:
         gr = { 'stop': 0, 'toast': str(e)[:80] }
-    check(gr['stop'] > 0 and gr['stop'] <= 1 and 'Banana' in gr['toast'], 'chi la riceve cade e resta fermo 1 s', json.dumps(gr))
+    check(gr['stop'] > 1 and gr['stop'] <= 2 and 'Banana' in gr['toast'], 'chi la riceve cade e resta fermo 2 s (R-224)', json.dumps(gr))
+    # il pulsante 🍌 lancia come il doppio clic, con il gesto del braccio (R-230)
+    pg.wait_for_timeout(1100)
+    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 200; window.__toasts.length = 0; document.getElementById('btnBanana').click();
+      return D.frames(3).then(() => ({ bonus: D.bonus, toast: window.__toasts.join('|'), gesto: D.throwT })); }""")
+    check(r['bonus'] == 150 and 'Ospite' in r['toast'] and r['gesto'] > 0, 'pulsante della banana: gesto del braccio e banana lanciata al giocatore davanti (R-230)', json.dumps(r))
     r = pg.evaluate("""() => { const D = window.__dbg; window.__toasts.length = 0; D.P.z = -(D.raceLen - 400); D.P.x = D.center(D.P.z); return D.frames(4).then(() => ({ toast: window.__toasts.join('|') })); }""")
     check('500' in r['toast'], 'avviso "Traguardo tra 500 m"', json.dumps(r))
     r = pg.evaluate("""() => { const D = window.__dbg; window.__toasts.length = 0; D.P.z = -D.raceLen - 1; return D.frames(4).then(() => new Promise(res => setTimeout(() => res({ mode: D.mode, toasts: window.__toasts.join('|'), banner: document.getElementById('banner').textContent }), 1500))); }""")

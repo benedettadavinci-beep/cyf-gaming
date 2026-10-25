@@ -251,7 +251,7 @@
   function crash(reason, stop = 0) {
     if (invuln > 0 || P.crash > 0 || (mode === 'solo' && lives <= 0)) return;
     if (mode === 'solo') { lives--; renderLives(); }
-    P.crash = 0.85; invuln = Math.max(2.3, stop + 1.5); P.stop = stop; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
+    P.crash = 0.85; invuln = Math.max(2.3, stop + 1.5); P.stop = stop; P.stopUntil = performance.now() + stop * 1000; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
     combo = 0; shake = reduceMotion ? 0 : 0.45;
     spray(P.x, 0.2, P.z, 60, 4, 5);
     thump(1.4);
@@ -310,8 +310,8 @@
 
     if (frozen) {
       P.speed = 0;
-    } else if (P.stop > 0) {   // fermo dopo una bomba o una banana (R-223)
-      P.stop -= dt; P.speed = 0;
+    } else if (P.stop > 0) {   // fermo dopo una bomba o una banana (R-223): contato in secondi veri, uguale anche sui telefoni lenti
+      P.stop = Math.max(0, (P.stopUntil - performance.now()) / 1000); P.speed = 0;
       if (P.crash > 0) P.crash -= dt;
     } else if (P.crash > 0) {
       P.crash -= dt;
@@ -679,12 +679,15 @@
       say(tr('voiceBlocked'), '#d8302a');
     } else if (m.t === 'drop') {
       // anche se questo dispositivo è ancora al conto alla rovescia (telefoni lenti): la gara è già partita sul server
-      if (racing()) addHazard({ hid: m.hid, owner: m.id, kind: m.kind, x: m.x, z: m.z });
+      // la banana lanciata sulla pista (davanti non c'era nessuno) si vede partire dal braccio di chi la lancia e volare
+      const thr = m.kind === 'banana' ? remotes.get(m.id) : null;
+      if (thr) AVV.playThrow(m.id);
+      if (racing()) addHazard({ hid: m.hid, owner: m.id, kind: m.kind, x: m.x, z: m.z }, thr && thr.has ? { x: thr.x, z: thr.z, y: thr.y + 1 } : null);
     } else if (m.t === 'throw') {
-      // banana lanciata da un altro giocatore (R-224): tutti vedono il gesto e la banana in volo; il bersaglio si ferma 1 s
+      // banana lanciata da un altro giocatore (R-224): tutti vedono il gesto e la banana in volo; il bersaglio si ferma 2 s
       AVV.playThrow(m.id);
       OGG.showThrow(m.id, m.target, m.hid);
-      if (m.target === myId) setTimeout(() => { if (racing()) crash(tr('crashBananaThrown', { n: m.name || tr('someone') }), 1); }, 450);
+      if (m.target === myId) setTimeout(() => { if (racing()) crash(tr('crashBananaThrown', { n: m.name || tr('someone') }), PN.protocollo.FERMO.banana); }, 450);
     } else if (m.t === 'hit') {
       removeHazard(m.hid);
       if (m.owner === myId) say(tr(m.kind === 'bomb' ? 'hitYourBomb' : 'hitYourBanana', { n: m.name || tr('someone') }), '#ff5a1f');

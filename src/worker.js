@@ -446,7 +446,7 @@ export class RaceRoom extends DurableObject {
       this.broadcast({ t: 'drop', id: me.id, name: me.name, kind: m.kind, x: num(m.x, -1e5, 1e5), z: num(m.z, -1e5, 1e5), hid }, ws);
       return;
     }
-    // banana lanciata al giocatore davanti (R-224): il server la inoltra a tutti, il bersaglio si ferma 1 s
+    // banana lanciata al giocatore davanti (R-224): il server la inoltra a tutti, il bersaglio si ferma 2 s
     if (m.t === 'throw') {
       if (st.phase !== 'racing' || !st.racers.some(r => r.id === me.id)) return;
       const target = cleanId(m.target);
