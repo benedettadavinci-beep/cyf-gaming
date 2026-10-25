@@ -163,7 +163,10 @@
   const stato = {
     get P() { return P; }, get mode() { return mode; }, get invuln() { return invuln; }, get raceLen() { return raceLen; },
     get bonus() { return bonus; }, set bonus(v) { bonus = v; },
-    get myId() { return myId; }, get theme() { return theme; }, racing, isCity
+    get myId() { return myId; }, get theme() { return theme; }, racing, isCity,
+    // per le schermate (si leggono solo dopo l'avvio, quando tutto è già definito)
+    get net() { return net; }, serverNow: () => serverNow(), get lives() { return lives; }, get myTotal() { return myTotal; },
+    distM: () => distM(), score: () => score(), racePlace: () => racePlace(), renderLive: l => renderLive(l), amIn: l => amIn(l), toMenu: () => toMenu()
   };
 
   // Altezza della superficie della rampa (sopra la sua base) nel punto z della pista. Ricalca il modello: profilo
@@ -210,34 +213,8 @@
     enterInInput: () => { if (inCode.value.trim()) joinFromMenu(); }
   } });
   const { keys, stick, inSteer, inFast, inSlow, stickRest } = COMANDI;
-  // ---------- overlays & HUD ----------
-  const OVERLAYS = ['menu', 'lobby', 'raceResults', 'over', 'pause'];
-  function show(id) { for (const o of OVERLAYS) $(o).hidden = o !== id; diag.log('schermata', id || 'gioco'); }
-  const banner = $('banner');
-  function setBanner(text) { banner.hidden = !text; banner.textContent = text || ''; if (!text) banner.classList.remove('wait'); }
-
-  function hudLabels() {
-    const race = racing();
-    $('k1').textContent = race ? tr('hudTime') : tr('hudPoints');
-    $('k2').textContent = race ? tr('hudPlace') : tr('hudDistance');
-    $('kSpeed').textContent = tr('hudSpeed');
-    $('k4').textContent = race ? tr('hudLeft') : tr('hudAltitude');
-    $('k5').textContent = tr('hudPoints');
-    $('hLives').hidden = race;
-    $('sPts').hidden = !race;
-    $('live').hidden = !race;
-    $('items').hidden = !race;
-  }
-
-  const toasts = $('toasts');
-  function say(text, color) {
-    const el = document.createElement('div');
-    el.className = 'toast'; el.textContent = text; el.style.color = color || '#13233a';
-    toasts.appendChild(el);
-    setTimeout(() => el.remove(), 1150);
-    while (toasts.children.length > 3) toasts.firstChild.remove();
-  }
-
+  const SCHERMATE = PN.schermate({ diag, stato });
+  const { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard } = SCHERMATE;
   // ---------- solo ----------
   function startSolo() {
     initAudio();
@@ -670,116 +647,6 @@
     }
   }
 
-  function renderLobby() {
-    const pub = net.pub;
-    $('lobbyShare').hidden = pub;
-    $('lobbyPublic').hidden = !pub;
-    $('lobbyBrand').textContent = pub ? tr('onlineBrand') : tr('lobbyBrand');
-    $('lobbyCode').textContent = net.code || '—';
-    const link = location.origin + location.pathname + '?sfida=' + (net.code || '');
-    $('linkText').textContent = link;
-    $('shareWa').href = 'https://wa.me/?text=' + encodeURIComponent(tr('shareMsg', { code: net.code || '', link }));
-    $('shareTg').href = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(tr('shareMsg2', { code: net.code || '' }));
-    const ul = $('lobbyPlayers');
-    ul.innerHTML = '';
-    for (const p of net.players) {
-      const li = document.createElement('li');
-      const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[p.color % PALETTE.length];
-      const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = p.name + (p.id === myId ? tr('you') : '');
-      li.append(dot, nm);
-      if (!pub && p.id === net.hostId) { const h = document.createElement('span'); h.className = 'pill host'; h.textContent = tr('host'); li.append(h); }
-      const r = document.createElement('span'); r.className = 'pill' + (p.ready ? ' ok' : ''); r.textContent = p.ready ? tr('ready') : tr('waiting');
-      li.append(r);
-      ul.append(li);
-    }
-    const isHost = !pub && net.hostId === myId;
-    // durata della gara: la sceglie chi organizza (nelle sale pubbliche è sempre 5 minuti)
-    $('durBox').hidden = pub;
-    document.querySelectorAll('[data-min]').forEach(b => {
-      b.setAttribute('aria-pressed', String(+b.dataset.min === net.minutes));
-      b.disabled = !isHost;
-    });
-    $('durLabel').textContent = tr('durationLabel') + (isHost ? '' : ' · ' + tr('durationHost'));
-    // città della gara: la sceglie chi organizza; gli altri la vedono e basta
-    const rc = $('selRoomCity');
-    if (rc.options.length !== selScena.options.length) rc.innerHTML = selScena.innerHTML;
-    for (let i = 0; i < rc.options.length; i++) rc.options[i].textContent = selScena.options[i].textContent;
-    rc.value = net.roomScena || selScena.value;
-    rc.disabled = !isHost;
-    const rj = $('selRoomJersey');
-    if (rj.options.length !== selJersey.options.length) rj.innerHTML = selJersey.innerHTML;
-    for (let i = 0; i < rj.options.length; i++) rj.options[i].textContent = selJersey.options[i].textContent;
-    rj.value = myJersey();
-    $('cityLabel').textContent = tr('raceCity') + (isHost ? '' : ' · ' + tr(pub ? 'raceCityPub' : 'raceCityHost'));
-    const mine = net.players.find(p => p.id === myId);
-    $('btnReady').textContent = mine && mine.ready ? tr('notReady') : tr('imReady');
-    $('btnGo').hidden = !isHost;
-    const busy = net.phase === 'countdown' || net.phase === 'racing';
-    $('btnGo').disabled = busy;
-    $('btnLeave').textContent = pub ? tr('leaveOnline') : tr('leaveChallenge');
-    renderLobbyStatus();
-  }
-  function renderLobbyStatus() {
-    const n = net.players.length, ready = net.players.filter(p => p.ready).length;
-    const busy = net.phase === 'countdown' || net.phase === 'racing';
-    const isHost = !net.pub && net.hostId === myId;
-    let status;
-    if (!net.ws || net.ws.readyState !== 1) status = tr('connecting');
-    else if (busy && !amIn(net.racers)) status = tr('raceRunning');
-    else if (net.pub) {
-      const left = net.autoAt ? Math.max(0, Math.ceil((net.autoAt - serverNow()) / 1000)) : 0;
-      status = n < 2 ? tr('pubWaiting') : (left ? tr('pubStartsIn', { n, s: left }) : tr('pubStarting', { n }));
-    }
-    else if (n < 2) status = tr('shareLink');
-    else status = tr('lobbyCount', { n, r: ready }) + ' ' + (isHost ? tr('pressGo') : tr('waitHost'));
-    $('lobbyStatus').textContent = status;
-  }
-  // il conto alla rovescia delle sale pubbliche si aggiorna da solo
-  setInterval(() => {
-    if (!net.pub) return;
-    if (mode === 'lobby') renderLobbyStatus();
-    else if (mode === 'results') renderResultsStatus();
-  }, 500);
-  document.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => net.send({ t: 'settings', minutes: +b.dataset.min })));
-  // maglia: la sceglie ognuno anche dentro la stanza (chi arriva dal link non passa dal menu)
-  $('selRoomJersey').addEventListener('change', () => {
-    selJersey.value = $('selRoomJersey').value;
-    selJersey.dispatchEvent(new Event('change'));
-    net.send({ t: 'jersey', j: myJersey() });
-  });
-  $('selRoomCity').addEventListener('change', () => {
-    selScena.value = $('selRoomCity').value;
-    selScena.dispatchEvent(new Event('change'));
-  });
-  $('btnReady').addEventListener('click', () => {
-    const mine = net.players.find(p => p.id === myId);
-    net.send({ t: 'ready', ready: !(mine && mine.ready) });
-  });
-  $('btnGo').addEventListener('click', () => net.send({ t: 'start' }));
-  $('btnRematch').addEventListener('click', () => net.send({ t: 'start' }));
-  $('btnCopy').addEventListener('click', async () => {
-    const link = $('linkText').textContent;
-    try { await navigator.clipboard.writeText(link); $('btnCopy').textContent = tr('linkCopied'); setTimeout(() => ($('btnCopy').textContent = tr('copyLink')), 1800); }
-    catch (e) { const r = document.createRange(); r.selectNodeContents($('linkText')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $('btnCopy').textContent = tr('copyManual'); }
-  });
-  $('btnLeave').addEventListener('click', toMenu);
-  $('btnResLeave').addEventListener('click', toMenu);
-  const CITY_LABEL = { neve: 'snow', napoli: 'naples', roma: 'rome', milano: 'milan', parigi: 'paris', londra: 'london', francoforte: 'frankfurt', madrid: 'madrid', lisbona: 'lisbon', zagabria: 'zagreb', berlino: 'berlin', zurigo: 'zurich', newyork: 'newyorkCity' };
-  $('btnShareRes').addEventListener('click', async () => {
-    const i = net.results.findIndex(r => r.id === myId);
-    const mine = i >= 0 ? net.results[i] : null;
-    const link = location.origin + location.pathname;
-    // sulla neve non c'è una città: "arrivato 1° a Neve" non ha senso
-    const txt = tr(theme === 'neve' ? 'shareResultSnow' : 'shareResult', {
-      p: mine && mine.ms != null ? ord(i + 1) : '…',
-      city: tr(CITY_LABEL[theme] || 'snow'),
-      t: mine && mine.ms != null ? fmtTime(mine.ms) : '—',
-      link
-    });
-    try { if (navigator.share) { await navigator.share({ text: txt }); return; } }
-    catch (e) { if (e && e.name === 'AbortError') return; }
-    window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
-  });
 
   function toMenu() {
     net.close();
@@ -865,56 +732,6 @@
     hudLabels();
     renderResults();
     show('raceResults');
-  }
-  function renderResults() {
-    $('resRound').textContent = (net.pub ? tr('onlineBrand') : tr('challenge') + ' ' + (net.code || '')) + ' · ' + tr('raceN', { n: net.round || 1 }) + ' · ' + (net.minutes || 5) + ' min';
-    const ul = $('resList');
-    ul.innerHTML = '';
-    net.results.forEach((r, i) => {
-      const li = document.createElement('li');
-      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = r.ms != null ? (i === 0 ? '🏆' : ord(i + 1)) : '–';
-      const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(r.color || 0) % PALETTE.length];
-      const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = r.name + (r.id === myId ? tr('you') : '');
-      const tm = document.createElement('span'); tm.className = r.ms != null ? 'time' : 'time dnf'; tm.textContent = r.ms != null ? fmtTime(r.ms) : tr('dnf');
-      li.append(pos, dot, nm, tm);
-      if (r.earned != null) { const e = document.createElement('span'); e.className = 'earned'; e.textContent = '+' + fmt(r.earned); li.append(e); }
-      ul.append(li);
-    });
-    // premi: chi ha toccato la velocità più alta e chi ha fatto più acrobazie
-    const aw = $('awards');
-    aw.innerHTML = '';
-    const award = (label, a, value) => {
-      if (!a) return;
-      const d = document.createElement('div');
-      const k = document.createElement('span'); k.className = 'k'; k.textContent = label;
-      const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(a.color || 0) % PALETTE.length];
-      const n = document.createElement('span'); n.textContent = a.name + (a.id === myId ? tr('you') : '');
-      const v = document.createElement('b'); v.textContent = value; v.style.marginLeft = 'auto';
-      d.append(k, dot, n, v);
-      aw.append(d);
-    };
-    const A = net.awards || {};
-    if (A.fastest && A.fastest.top > 0) award('⚡ ' + tr('awardSpeed'), A.fastest, Math.round(kmh(A.fastest.top)) + ' km/h');
-    if (A.tricks && A.tricks.tk > 0) award('🤸 ' + tr('awardTricks'), A.tricks, String(A.tricks.tk));
-    aw.hidden = !aw.children.length;
-    const mine = net.results.find(r => r.id === myId);
-    $('resMine').hidden = !mine || mine.earned == null;
-    if (mine && mine.earned != null) $('resMine').innerHTML = tr('earnedLine', { e: '<span>' + fmt(mine.earned) + '</span>', t: fmt(mine.total ?? myTotal) });
-    const isHost = !net.pub && net.hostId === myId;
-    $('btnRematch').hidden = !isHost;
-    renderResultsStatus();
-  }
-  function renderResultsStatus() {
-    let txt;
-    if (net.pub) {
-      const left = net.autoAt ? Math.max(0, Math.ceil((net.autoAt - serverNow()) / 1000)) : 0;
-      txt = net.players.length < 2 ? tr('pubWaiting') : (left ? tr('nextRaceIn', { s: left }) : tr('pubStarting', { n: net.players.length }));
-    } else {
-      const isHost = net.hostId === myId;
-      const host = net.players.find(p => p.id === net.hostId);
-      txt = isHost ? tr('rematchHint') : tr('waitRematch', { n: host ? host.name : tr('hostName') });
-    }
-    $('resStatus').textContent = txt;
   }
 
   // ---------- punti collezionati (li tiene il server, legati a questo dispositivo) ----------
@@ -1008,54 +825,6 @@
     const skyG = builtSky[theme];
     if (skyG) skyG.position.copy(camera.position);
     updateTrail();
-  }
-
-  // ---------- HUD ----------
-  let hudT = 0, liveT = 1;
-  function hud(dt) {
-    hudT += dt;
-    if (hudT < 0.08) return;
-    hudT = 0;
-    $('vSpeed').textContent = Math.round(kmh(P.speed)) + ' km/h';
-    if (racing()) {
-      const el = mode === 'countdown' ? 0 : (net.finished.get(myId) ?? Math.max(0, serverNow() - net.startAt));
-      $('v1').textContent = fmtTime(el);
-      const pl = racePlace();
-      $('v2').textContent = tr('placeOf', { p: ord(pl.place), n: pl.of });
-      $('v4').textContent = fmtLen(Math.max(0, raceLen - distM()));
-      $('v5').textContent = fmt(bonus);
-      $('btnBanana').disabled = mode !== 'race' || bonus < PN.protocollo.COSTI.banana;
-      $('btnBomb').disabled = mode !== 'race' || bonus < PN.protocollo.COSTI.bomb;
-      liveT += 0.08;
-      if (liveT > 0.25) { liveT = 0; renderLive(pl.list); }
-    } else {
-      $('v1').textContent = fmt(score());
-      $('v2').textContent = fmt(Math.floor(distM())) + ' m';
-      $('v4').textContent = fmt(Math.max(0, START_ALT - distM() * Math.sin(SLOPE))) + ' m';
-    }
-  }
-  function renderLives() {
-    const box = $('hLives');
-    box.innerHTML = '';
-    for (let i = 0; i < 3; i++) { const s = document.createElement('span'); s.className = 'life' + (i >= lives ? ' lost' : ''); box.appendChild(s); }
-  }
-
-  async function loadBoard() {
-    try {
-      const res = await fetch('/api/leaderboard?min=5', { cache: 'no-store' });
-      if (!res.ok) throw new Error();
-      const rows = await res.json();
-      const ol = $('board');
-      ol.innerHTML = '';
-      for (const r of rows.slice(0, 10)) {
-        const li = document.createElement('li');
-        li.textContent = r.name;
-        const s = document.createElement('span'); s.textContent = fmtTime(r.ms);
-        li.append(s);
-        ol.append(li);
-      }
-      $('boardBox').hidden = rows.length === 0;
-    } catch (e) { $('boardBox').hidden = true; }
   }
 
   function resize() {

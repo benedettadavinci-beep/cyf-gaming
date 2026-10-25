@@ -16,7 +16,7 @@ usano a vicenda. Il cancello dei test la esegue a ogni modifica: così la matric
 ## Come sono fatti i moduli
 
 - **Puri** (`PN.base`, `PN.lingua`, `PN.geometria`, `PN.rider`): un oggetto pronto all'uso, creato quando il file si carica.
-- **Con istanza** (`PN.pista`, `PN.sfondi`, `PN.citta`, `PN.effetti`, `PN.audio`, `PN.vocali`, `PN.oggetti`, `PN.avversari`):
+- **Con istanza** (`PN.pista`, `PN.sfondi`, `PN.citta`, `PN.generazione`, `PN.effetti`, `PN.audio`, `PN.vocali`, `PN.oggetti`, `PN.avversari`, `PN.comandi`, `PN.schermate`):
   una funzione che il gioco chiama una volta sola passando quello che serve (la scena 3D, il terreno, la rete…) e che
   restituisce l'istanza. Quello che un modulo riceve è scritto nel commento in testa al file.
 - **Lo stato del gioco** (posizione del rider, modalità, punti…) resta in `game.js`. I moduli che devono leggerlo
@@ -48,9 +48,10 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/oggetti.js` | oggetti | 129 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
 | `moduli/pista.js` | pista | 176 | base (TAU, clamp, isPhone, lin, mulberry32) |
 | `moduli/rider.js` | rider | 290 | base (TAU, lin, store) |
+| `moduli/schermate.js` | schermate | 255 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (tr, ord, fmtLen); rider (myJersey); protocollo (COSTI) |
 | `moduli/sfondi.js` | sfondi | 522 | base (TAU, lin, mulberry32); geometria (lumpy) |
 | `moduli/vocali.js` | vocali | 180 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr) |
-| `game.js` | — | 1144 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, jacketTexture, switchOf, bodyTurn, makeRider); effetti (); audio (); generazione (); comandi (); protocollo (VERSIONE); vocali (); oggetti (); avversari () |
+| `game.js` | — | 913 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, jacketTexture, switchOf, bodyTurn, makeRider); effetti (); audio (); generazione (); comandi (); schermate (); protocollo (VERSIONE); vocali (); oggetti (); avversari () |
 | `diagnosi.js` | — | 149 | nessuno |
 | `i18n.js` | — | 361 | nessuno |
 | `shared/protocollo.js` | protocollo | 80 | nessuno |
@@ -73,4 +74,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | banane e bombe | `moduli/oggetti.js` |
 | gli avversari in pista e la classifica dal vivo | `moduli/avversari.js` |
 | i messaggi tra gioco e server | `shared/protocollo.js` |
-| stato della partita, fisica, generazione della pista, comandi, schermate, rete, HUD | `game.js` (da dividere ancora: A-11) |
+| schermate (menu, stanza, risultati), avvisi, HUD, classifica del menu | `moduli/schermate.js` |
+| generazione della pista con il seme, palazzi, lati della strada | `moduli/generazione.js` |
+| tastiera, rotellina, Salta | `moduli/comandi.js` |
+| stato della partita, fisica, rete, ciclo di gioco | `game.js` (da dividere ancora: A-11) |
