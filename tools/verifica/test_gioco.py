@@ -222,7 +222,8 @@ with sync_playwright() as p:
     pg.click('#btnGo')
     # attesa prima del via (R-222): pulsante verde "Sono pronto" al posto di Salta; con tutti pronti si parte subito
     pg.wait_for_function("!document.getElementById('btnPronto').hidden", timeout=60000); gp.wait_for_function("!document.getElementById('btnPronto').hidden", timeout=60000)
-    rp = pg.evaluate("() => { const b = document.getElementById('btnPronto'); return { text: b.textContent, gather: document.getElementById('stage').classList.contains('gather') }; }")
+    # letto nello stesso istante in cui il pulsante è visibile (con l'attesa accorciata delle prove può finire subito dopo)
+    rp = pg.evaluate("() => new Promise(res => { const t0 = performance.now(); const f = () => { const b = document.getElementById('btnPronto'); if (!b.hidden || performance.now() - t0 > 60000) res({ text: b.textContent, hidden: b.hidden, gather: document.getElementById('stage').classList.contains('gather') }); else requestAnimationFrame(f); }; f(); })")
     check(rp['text'] == 'Sono pronto' and rp['gather'], 'durante l\'attesa compare il pulsante verde "Sono pronto"', json.dumps(rp))
     pg.dispatch_event('#btnPronto', 'pointerdown')
     gp.wait_for_function("(() => { const r = window.__dbg.remotes.get('pTester') || [...window.__dbg.remotes.values()][0]; return !!r && r.ready; })()", timeout=10000)

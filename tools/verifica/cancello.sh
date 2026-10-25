@@ -5,7 +5,7 @@
 #   bash tools/verifica/cancello.sh tutto      giro completo (~30 min): anche gara valida, guida, lingue, risultati, comandi, vocale
 #
 # Se il server locale non è già acceso su 127.0.0.1:8787 lo avvia (wrangler dev, attesa della sfida di 4 s) e lo spegne alla fine.
-# Con un server già acceso le prove assumono l'attesa vera di 40 s, salvo ATTESA_SFIDA_MS esportata con lo stesso valore del server.
+# Con un server già acceso le prove assumono l'attesa vera di 25 s, salvo ATTESA_SFIDA_MS esportata con lo stesso valore del server.
 # Esce con 1 se una prova fallisce: è questo che chiude il cancello.
 set -u
 MODO="${1:-rapido}"
@@ -24,8 +24,8 @@ fi
 SERVER_PID=""
 if ! curl -s -o /dev/null "$BASE/"; then
   [ -d node_modules/wrangler ] || npm ci --no-audit --no-fund >/dev/null 2>&1 || npm install --no-audit --no-fund >/dev/null 2>&1
-  # attesa della sfida accorciata a 4 s solo qui (online sono 40 s, R-119): le prove che avviano gare non aspettano 40 s ognuna
-  export ATTESA_SFIDA_MS="${ATTESA_SFIDA_MS:-4000}"
+  # attesa della sfida accorciata a 10 s solo qui (online sono 25 s, R-119): le prove che avviano gare non aspettano 25 s ognuna
+  export ATTESA_SFIDA_MS="${ATTESA_SFIDA_MS:-10000}"
   WRANGLER_SEND_METRICS=false npx wrangler dev --port 8787 --var "ATTESA_SFIDA_MS:$ATTESA_SFIDA_MS" > /tmp/cyf-wrangler.log 2>&1 &
   SERVER_PID=$!
   for _ in $(seq 1 60); do curl -s -o /dev/null "$BASE/" && break; sleep 1; done

@@ -114,6 +114,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-503 | Controllo generale automatico ogni sera verso le 22: qualità, bachi, stabilità e idee di miglioramento | 24/10/2026 | Fatto | Attività pianificata ogni sera alle 21:33 (poco prima delle 22, per evitare l'ora di punta dei server); corregge solo bachi piccoli e sicuri e lascia un rapporto. Dal 25/10 fa anche il giro completo del cancello dei test (A-05) |
 | R-504 | Migliorare la descrizione del documento Word e delle tabelle | 24/10/2026 | Fatto | Introduzione, legenda e colonne riscritte; colonna "Come funziona oggi" |
 | R-505 | Business plan con aspetti economici e strategia aziendale, in un file separato | 24/10/2026 | Fatto | CYF-Gaming-business-plan.docx nella cartella sul Desktop |
+| R-506 | Le prove lunghe (gioco completo, risultati, lingue, comandi, vocali) girano solo di notte; di giorno solo il cancello rapido, per non perdere tempo e token (P-02) | 25/10/2026 | Fatto | Di giorno: `npm test` (cancello rapido, anche su GitHub a ogni push) più controlli mirati e foto quando servono. Le prove lunghe le fa il controllo notturno (R-503); se trova un problema lo corregge o lo segnala nel rapporto del mattino |
 
 # 7. Scelte fatte da Claude (da confermare)
 
@@ -235,6 +236,17 @@ Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel
 | R-503 | ✓ | Attività pianificata attiva: primo giro 24/10 dalle 21:33 alle 22:12, riuscito (ha pubblicato la 0.8.3); prossimo 25/10 alle 21:33 |
 | R-505 | ✓ | `BUSINESS-PLAN.md` nel repo e Word sul Desktop |
 | S-01 … S-21 | ✓ | Ogni scelta corrisponde al codice (S-12 aggiornata: le porte di Zagabria ora sono a scacchi) |
+
+**Controllo della 0.13.0 (25/10, ore 16:45)**: cancello rapido superato (server con le nuove prove T2d e T4, controlli statici, matrice, nomi, prova rapida del gioco), più le foto delle pose. Le prove lunghe (gioco completo, risultati, lingue, comandi) si fanno nel controllo notturno, come chiesto da Luigi (R-506):
+
+| ID | Esito | Come è stato verificato |
+|---|---|---|
+| R-119 | ✓ | `controlli.mjs` C5: attesa di 25 s nel codice; `test_server.mjs`: niente via prima della fine dell'attesa se non tutti sono pronti |
+| R-222 | ✓ | `test_server.mjs` T2d: con tutti "pronto" l'attesa finisce subito e partono i 5 s (via dopo 0,6 s). Foto: rider con la mano alzata. In `test_gioco.py` (G6) il pulsante verde e la mano vista dall'avversario: la prova va in notturna |
+| R-223 | ✓ | Codice: `crash(motivo, 4)` per la bomba, `crash(motivo, 1)` per la banana; durante il fermo la velocità resta 0. Prova completa in `test_gioco.py` in notturna |
+| R-224 | ✓ | `test_server.mjs` T4: il lancio arriva solo al bersaglio giusto, rifiutato verso sé stessi o chi non è in gara, al massimo uno ogni 0,9 s. Foto: gesto del braccio. Fermo di 1 s del bersaglio in `test_gioco.py` in notturna |
+
+Nota: nella prima prova lunga di oggi `test_gioco.py` si è fermato sul controllo del pulsante "Sono pronto" perché, con l'attesa accorciata a 4 s solo nelle prove, il pulsante spariva prima della lettura. Nel gioco vero funziona (verificato a mano: pulsante visibile, Salta nascosto). Corretto: la prova legge tutto nello stesso istante e l'attesa delle prove è ora di 10 s.
 
 **Controllo della 0.12.2 (25/10, ore 16:30)**: cancello rapido, `test_gioco.py` (165 controlli), `test_trampolino.py` e `test_comandi.py` superati:
 

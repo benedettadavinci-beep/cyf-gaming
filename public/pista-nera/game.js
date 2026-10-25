@@ -726,8 +726,8 @@
   function raceClock() {
     const cnt = $('count');
     if (mode === 'countdown' && !net.startAt) {
-      // attesa prima del via (R-119). Sfida: sempre 40 s, così chi ha l'invito fa in tempo a entrare.
-      // Sala online: il conto alla rovescia parte quando tutti hanno caricato la gara, al massimo dopo 40 s.
+      // attesa prima del via (R-119). Sfida: 25 s (prima, se tutti sono pronti), così chi ha l'invito fa in tempo a entrare.
+      // Sala online: il conto alla rovescia parte quando tutti hanno caricato la gara, al massimo dopo 25 s.
       const s = Math.max(0, Math.ceil((net.gatherUntil - serverNow()) / 1000));
       const nReady = (net.ready || []).length;
       const txt = (net.pub ? tr('gatherWait', { n: net.loaded.length, t: net.racers.length, s }) : tr('gatherFixed', { t: net.racers.length, s })) + (nReady ? ' · ' + tr('readyCount', { r: nReady, t: net.racers.length }) : '');
