@@ -335,7 +335,8 @@ console.log('T7 · stesso giocatore da un\'altra scheda');
   const A2 = new Client(code, 'same' + code, 'Uno'); await A2.connect(); await A2.waitType('welcome');
   const cl = await A1.wait(m => m.t === '__closed', 3000);
   ok(cl && cl.code === 4000, 'la vecchia scheda viene chiusa con il codice 4000', cl && String(cl.code));
-  const lb = A2.last('lobby'); ok(lb && lb.players.length === 1, 'nella stanza resta un solo giocatore');
+  const lb = await A2.wait(m => m.t === 'lobby' && m.players.length === 1, 3000) || A2.last('lobby');
+  ok(lb && lb.players.length === 1, 'nella stanza resta un solo giocatore', lb && String(lb.players.length));
   A2.close();
 }
 
