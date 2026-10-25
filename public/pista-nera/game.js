@@ -127,7 +127,8 @@
 
   // ---------- terrain ----------
   // asse della pista: tre onde sovrapposte danno curve ampie e naturali, mai brusche
-  const center = z => 22 * Math.sin(z / 250) + 10 * Math.sin(z / 108) + 4 * Math.sin(z / 46);
+  // R-311 (0.10.0): tre onde più corte e più ampie di prima (22/250, 10/108, 4/46): pendenza laterale massima ≈ 0,33
+  const center = z => 27 * Math.sin(z / 230) + 12 * Math.sin(z / 105) + 4.5 * Math.sin(z / 46);
   function hgt(x, z) {
     const off = Math.abs(x - center(z));
     const rough = 0.32 + clamp((off - 17) / 12, 0, 1) * 1.4;
@@ -278,7 +279,7 @@
     const somma = new THREE.Mesh(lumpy(new THREE.CylinderGeometry(60, 230, 160, 32, 4, true), 0.04, mulberry32(4)), sMat);
     somma.position.set(-175, 80, 60);
     ves.add(somma, cone, crater);
-    ves.position.set(Math.sin(0.42) * 640, -150, -Math.cos(0.42) * 640);
+    ves.position.set(Math.sin(0.04) * 660, -150, -Math.cos(0.04) * 660);   // R-308: il Vesuvio dritto in fondo a via Partenope
     bay.add(ves);
     // penisola sorrentina e Capri, più chiare per la distanza
     const coast = mk('#9fb0c4');
@@ -360,7 +361,7 @@
     plain.position.y = BASE;
     rome.add(plain);
     // il Colosseo, leggermente a destra della discesa
-    const CA = 0.1, CR = 560, RX = 150, RZ = 124, H = 80;
+    const CA = 0.0, CR = 560, RX = 150, RZ = 124, H = 80;   // R-308: il Colosseo in fondo a via dei Fori Imperiali
     const col = new THREE.Group();
     const base = colosseoTexture();
     const lit = { fog: false, side: THREE.DoubleSide };
@@ -497,14 +498,14 @@
     milano: () => skyBase((g, H) => {
       H.plain('#b2aca0');
       H.hills(['#c2ccd6', '#ccd6de'], 1010, true);   // Alpi lontane
-      H.ring({ n: 130, r0: 330, rs: 480, h0: 12, hs: 24, walls: ['#ddd2bc', '#d2c0a2', '#c8b89e', '#e2d8c4'], roofs: ['#7d8287'], avoid: [0.1, 0.3, 380] });
+      H.ring({ n: 130, r0: 330, rs: 480, h0: 12, hs: 24, walls: ['#ddd2bc', '#d2c0a2', '#c8b89e', '#e2d8c4'], roofs: ['#7d8287'], avoid: [0.0, 0.3, 380] });
       const duomo = H.grp();
       H.box(duomo, 92, 36, 60, '#e8e2d2');
       H.box(duomo, 60, 14, 58, '#e8e2d2', 0, 36);
       for (let i = -4; i <= 4; i++) { H.cone(duomo, 2.2, 16, '#f0ead8', i * 10, 36 + (Math.abs(i) < 2 ? 14 : 4), 29); H.cone(duomo, 2.2, 16, '#f0ead8', i * 10, 36 + (Math.abs(i) < 2 ? 14 : 4), -29); }
       H.cone(duomo, 3, 24, '#f0ead8', 0, 50);
       H.sph(duomo, 2, '#e8c33c', 0, 77);
-      H.at(0.08, 560, duomo);
+      H.at(0.0, 560, duomo);   // R-308: il Duomo in fondo a corso Vittorio Emanuele
       const tw = H.grp();   // grattacieli di Porta Nuova e CityLife
       H.box(tw, 26, 150, 26, '#7a93a8', 0);
       for (let i = 0; i < 6; i++) H.box(tw, 24 - i * 1.5, 22, 24 - i * 1.5, '#8aa2b4', 55, i * 22, 10, i * 0.14);   // torre "storta"
@@ -515,7 +516,7 @@
     }),
     parigi: () => skyBase((g, H) => {
       H.plain('#b0a48e');
-      H.ring({ n: 150, r0: 320, rs: 520, h0: 13, hs: 15, walls: ['#ddd2bc', '#d8cbb2', '#d2c6ae', '#e2d8c4'], roofs: ['#6a7078'], avoid: [-0.25, 0.3, 380] });
+      H.ring({ n: 150, r0: 320, rs: 520, h0: 13, hs: 15, walls: ['#ddd2bc', '#d8cbb2', '#d2c6ae', '#e2d8c4'], roofs: ['#6a7078'], avoid: [0.0, 0.3, 380] });
       const eiffel = H.grp();
       H.cyl(eiffel, 16, 40, 52, '#5a4636', 0, 0, 0, 4);
       H.box(eiffel, 44, 5, 44, '#5a4636', 0, 50);
@@ -524,7 +525,7 @@
       H.cyl(eiffel, 1.6, 6.5, 62, '#5a4636', 0, 107, 0, 4);
       H.box(eiffel, 7, 4, 7, '#5a4636', 0, 167);
       H.cyl(eiffel, 0.7, 0.7, 16, '#5a4636', 0, 171);
-      H.at(-0.25, 640, eiffel);
+      H.at(0.0, 640, eiffel);   // R-308: la Tour Eiffel in fondo
       const sacre = H.grp();   // Sacré-Cœur sulla collina
       H.sph(sacre, 36, '#8a9478', 0, 0, 0, true);
       H.cyl(sacre, 9, 10, 20, '#f0ece0', 0, 30);
@@ -537,7 +538,7 @@
       H.box(arc, 9, 22, 10, '#d8cdb8', 9.5);
       H.box(arc, 28, 7, 10, '#d8cdb8', 0, 22);
       H.box(arc, 24, 3, 8, '#cfc3aa', 0, 29);
-      H.at(0.18, 470, arc);
+      H.at(-0.38, 470, arc);
     }),
     londra: () => skyBase((g, H) => {
       H.plain('#58707e');   // il Tamigi
@@ -548,7 +549,7 @@
       H.box(ben, 15, 12, 15, '#b8a478', 0, 78);
       for (const [dx, dz] of [[0, 7.6], [0, -7.6], [7.6, 0], [-7.6, 0]]) H.cyl(ben, 4.2, 4.2, 1.5, '#f4f0e2', dx, 83, dz, 16).rotation.x = dz ? Math.PI / 2 : 0, H.mk;
       H.cone(ben, 9, 18, '#55585c', 0, 90, 0, 4);
-      H.at(-0.38, 620, ben);
+      H.at(0.0, 620, ben);   // R-308: il Big Ben in fondo a Oxford Street
       const eye = H.grp();
       const wheel = new THREE.Mesh(new THREE.TorusGeometry(40, 2.2, 8, 36), H.mk('#d8dde2'));
       wheel.position.y = 48; eye.add(wheel);
@@ -561,7 +562,7 @@
       for (const dx of [-42, 42]) { H.box(bridge, 15, 50, 13, '#d8d2c2', dx); H.cone(bridge, 9, 13, '#55789a', dx, 50, 0, 4); }
       H.box(bridge, 130, 5, 10, '#55789a', 0, 16);
       H.box(bridge, 68, 3.5, 8, '#d8d2c2', 0, 42);
-      H.at(0.02, 760, bridge);
+      H.at(-0.48, 760, bridge);
       const shard = H.grp();
       H.cone(shard, 15, 112, '#9fb6c6', 0, 0, 0, 4);
       H.at(0.62, 820, shard);
@@ -576,7 +577,13 @@
       for (let i = 0; i < 9; i++) H.box(sky, 16 + (i % 3) * 5, 62 + (i * 37) % 92, 16 + (i % 2) * 6, tints[i % 4], -90 + i * 23, 0, (i % 3) * 18 - 12);
       H.box(sky, 20, 148, 20, '#5f7a90', 10, 0, 6);
       H.cyl(sky, 0.8, 0.8, 42, '#9aa4ae', 10, 148, 6);
-      H.at(0.05, 660, sky);
+      H.at(0.22, 660, sky);
+      const romer = H.grp();   // R-308: il Römer, le tre case a gradoni, dritto in fondo al Römerberg
+      for (const [dx, w, h] of [[-16, 14, 22], [0, 16, 26], [16, 14, 22]]) {
+        H.box(romer, w, h * 0.62, 12, '#e8dcc8', dx);
+        for (let i = 0; i < 5; i++) H.box(romer, w - i * (w / 5), h * 0.08, 12.2, '#9a6a4e', dx, h * 0.62 + i * h * 0.076);
+      }
+      H.at(0.0, 470, romer);
       const dom = H.grp();   // la torre del Kaiserdom
       H.box(dom, 15, 56, 15, '#9a4a34');
       H.cyl(dom, 7.5, 9.5, 12, '#8a3f2c', 0, 56, 0, 8);
@@ -586,7 +593,7 @@
     madrid: () => skyBase((g, H) => {
       H.plain('#c0a878');
       H.hills(['#8a9aa8', '#9aacb8'], 1000, true);   // la sierra
-      H.ring({ n: 120, r0: 330, rs: 460, h0: 12, hs: 18, walls: ['#d8a878', '#c08a5c', '#e2c8a4', '#d2b490'], roofs: ['#8a5a3c'], avoid: [-0.1, 0.3, 360] });
+      H.ring({ n: 120, r0: 330, rs: 460, h0: 12, hs: 18, walls: ['#d8a878', '#c08a5c', '#e2c8a4', '#d2b490'], roofs: ['#8a5a3c'], avoid: [0.0, 0.3, 360] });
       const pal = H.grp();   // Palazzo Reale
       H.box(pal, 110, 26, 36, '#ddd6c6');
       H.box(pal, 114, 3, 40, '#cfc8b6', 0, 26);
@@ -597,14 +604,14 @@
       H.box(puerta, 46, 20, 9, '#d8cdb4');
       for (const dx of [-15, -5, 5, 15]) H.cyl(puerta, 1.6, 1.6, 18, '#c8bda2', dx, 1, 5);
       H.box(puerta, 20, 6, 8, '#d8cdb4', 0, 20);
-      H.at(0.22, 480, puerta);
+      H.at(0.0, 480, puerta);   // R-308: la Puerta de Alcalá in fondo
       const torres = H.grp();
       for (let i = 0; i < 4; i++) H.box(torres, 15, 115 + (i % 2) * 28, 15, ['#7a93a8', '#90a8ba', '#86a0b2', '#9fb6c6'][i], i * 24 - 36, 0, (i % 2) * 14);
       H.at(0.55, 840, torres);
     }),
     lisbona: () => skyBase((g, H) => {
       H.plain('#4a7a9a');   // il Tago
-      H.ring({ n: 120, r0: 330, rs: 420, h0: 10, hs: 14, walls: ['#efe4ce', '#e8d2b4', '#e2c0a4', '#d8e2e4'], roofs: ['#b4603f'], avoid: [0.15, 0.4, 420] });
+      H.ring({ n: 120, r0: 330, rs: 420, h0: 10, hs: 14, walls: ['#efe4ce', '#e8d2b4', '#e2c0a4', '#d8e2e4'], roofs: ['#b4603f'], avoid: [0.0, 0.4, 420] });
       H.hills(['#a8a090', '#b0a898'], 990);
       const ponte = H.grp();   // il ponte 25 de Abril
       for (const dx of [-80, 80]) {
@@ -622,7 +629,14 @@
         mid.position.set(s * 40, 74, 5); mid.rotation.z = s * 0.18; ponte.add(mid);
         const mid2 = mid.clone(); mid2.position.z = -5; ponte.add(mid2);
       }
-      H.at(0.15, 780, ponte);
+      H.at(0.4, 780, ponte);
+      const belem = H.grp();   // R-308: la Torre di Belém, dritta in fondo all'Avenida
+      H.box(belem, 30, 10, 22, '#e2dccc');
+      H.box(belem, 16, 36, 16, '#ece6d6', 0, 0, -3);
+      for (const [dx, dz] of [[-8, -11], [8, -11], [-8, 5], [8, 5]]) { H.cyl(belem, 2.2, 2.2, 40, '#e8e2d2', dx, 0, dz, 10); H.sph(belem, 2.6, '#d8d2c2', dx, 40, dz, true); }
+      H.box(belem, 14, 3, 14, '#d8d2c2', 0, 36, -3);
+      H.at(0.0, 520, belem);
+
       const cristo = H.grp();
       H.box(cristo, 9, 46, 9, '#d8d2c4');
       H.box(cristo, 5, 14, 4, '#e8e2d4', 0, 46);
@@ -664,7 +678,7 @@
       H.box(tor, 54, 7, 15, '#cfc7b4', 0, 24);
       H.box(tor, 30, 5, 12, '#c8bda2', 0, 31);
       H.box(tor, 12, 4.5, 5, '#3f6b4a', 0, 36);
-      H.at(-0.2, 500, tor);
+      H.at(0.0, 500, tor);   // R-308: la Porta di Brandeburgo dove finisce Unter den Linden
       const tv = H.grp();   // il Fernsehturm
       H.cyl(tv, 2.6, 5, 150, '#c8ccd2');
       H.sph(tv, 13, '#b8c2cc', 0, 155);
@@ -674,7 +688,7 @@
       H.box(reich, 58, 22, 38, '#b8b2a4');
       for (const [dx, dz] of [[-26, 16], [26, 16], [-26, -16], [26, -16]]) H.box(reich, 8, 27, 8, '#aca698', dx, 0, dz);
       H.sph(reich, 11, '#9fc2d8', 0, 22, 0, true);
-      H.at(0.08, 620, reich);
+      H.at(-0.32, 620, reich);
       for (let i = 0; i < 6; i++) {   // tratti del Muro dipinti
         const m = new THREE.Mesh(new THREE.BoxGeometry(16, 6, 1.2), H.mk(['#d8403a', '#2f8fd0', '#e8c33c', '#7fb043', '#b05ad0', '#e8e8e8'][i]));
         H.at(-0.75 + i * 0.05, 390 + i * 8, (() => { const gr = H.grp(); gr.add(m); m.position.y = 3; return gr; })());
@@ -683,7 +697,7 @@
     zurigo: () => skyBase((g, H) => {
       H.plain('#3f7a9a');   // il lago
       H.hills(['#b8c6d2', '#c6d2dc'], 960, true);   // Alpi innevate
-      H.ring({ n: 110, r0: 330, rs: 400, h0: 10, hs: 13, walls: ['#e2d8c4', '#d8c8b0', '#e8e0d0', '#cfc0a8'], roofs: ['#7a4a3a'], avoid: [0.1, 0.3, 360] });
+      H.ring({ n: 110, r0: 330, rs: 400, h0: 10, hs: 13, walls: ['#e2d8c4', '#d8c8b0', '#e8e0d0', '#cfc0a8'], roofs: ['#7a4a3a'], avoid: [0.0, 0.3, 360] });
       const gm = H.grp();   // il Grossmünster
       H.box(gm, 26, 20, 34, '#d2c8b4', 0, 0, -4);
       for (const dx of [-8, 8]) {
@@ -692,7 +706,7 @@
         H.sph(gm, 5, '#7a8a96', dx, 51, 8, true);
         H.cone(gm, 1, 6, '#5f6b76', dx, 54, 8, 6);
       }
-      H.at(0.12, 500, gm);
+      H.at(0.0, 500, gm);   // R-308: il Grossmünster in fondo alla Bahnhofstrasse
       const fm = H.grp();
       H.box(fm, 12, 26, 12, '#e2d8c4');
       H.cone(fm, 7, 30, '#4a8a7a', 0, 26, 0, 8);
@@ -710,7 +724,7 @@
       H.box(sky, 20, 112, 20, '#8a96a4', -52, 0, -14);   // il grattacielo con la corona
       for (let i = 0; i < 4; i++) H.cyl(sky, 9 - i * 2, 10 - i * 2.2, 9, '#b8c2cc', -52, 112 + i * 8, -14, 12);
       H.cyl(sky, 0.7, 0.7, 22, '#b8c2cc', -52, 146, -14);
-      H.at(0.12, 760, sky);
+      H.at(0.42, 760, sky);
       const lib = H.grp();   // la Statua della Libertà
       H.cyl(lib, 16, 18, 8, '#8a9478', 0, 0);
       H.box(lib, 13, 20, 13, '#b8a890', 0, 8);
@@ -720,7 +734,7 @@
       const arm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.5, 16, 8), H.mk('#5f9a84'));
       arm.position.set(5.5, 58, 0); arm.rotation.z = -0.5; lib.add(arm);
       H.sph(lib, 2, '#e8c33c', 9.5, 67);
-      H.at(-0.5, 620, lib);
+      H.at(0.0, 600, lib);   // R-308: la Statua della Libertà in fondo a Broadway
       const bb = H.grp();   // il ponte di Brooklyn
       for (const dx of [-55, 55]) { H.box(bb, 14, 56, 9, '#b0a896', dx); H.cone(bb, 5, 10, '#a09884', dx, 56, 0, 4); }
       H.box(bb, 210, 4, 11, '#8a8478', 0, 24);
@@ -1039,6 +1053,14 @@
     if (cfg.dots) for (let i = 0; i < 24; i++) { const a = rr() * TAU, d = rr() * cfg.r * 1.25; parts.push({ geo: new THREE.SphereGeometry(0.08, 6, 5), color: cfg.dots, x: Math.cos(a) * d, y: h + 0.1 + rr() * 1.3, z: Math.sin(a) * d }); }
     return merge(parts);
   }
+  // alberi delle strade famose (sezione 12): platano, tiglio, jacaranda
+  const streetTrees = {
+    platano: () => genTree({ trunk: '#b8b09a', trunk2: '#8a8a78', cols: ['#4f7f38', '#5c8e44', '#447232'], r: 1.7, h: 4.6, seed: 23 }),
+    tiglio: () => genTree({ trunk: '#6a5a46', trunk2: '#7a6a54', cols: ['#5a8a3e', '#6a9a48', '#4f7a36'], r: 1.55, h: 4.3, seed: 29 }),
+    jacaranda: () => genTree({ trunk: '#6a5a4a', cols: ['#8a6ab8', '#9a7ac8', '#7a5aa8'], r: 1.5, h: 4.2, dots: '#b89ad8', seed: 13 }),
+    pino: () => GEO.pines[0],
+    palma: () => GEO.palms[0]
+  };
   function genLamp(cfg) {
     const parts = [
       { geo: new THREE.CylinderGeometry(0.22, 0.3, 0.45, 10), color: cfg.pole, y: 0.22 },
@@ -1479,6 +1501,25 @@
       }
       return merge(parts);
     },
+    // auto generica (parcheggiata ai lati): colore della carrozzeria e, se serve, insegna da taxi
+    carGeo: (body, sign, stripe) => {
+      const parts = [
+        { geo: new THREE.BoxGeometry(1.8, 0.5, 4.3), color: body, y: 0.58 },
+        { geo: new THREE.BoxGeometry(1.65, 0.55, 2.3), color: body, y: 1.1, z: 0.1 },
+        { geo: new THREE.BoxGeometry(1.67, 0.4, 2.1), color: '#1f2a36', y: 1.13, z: 0.1 },
+        { geo: new THREE.BoxGeometry(1.82, 0.08, 4.2), color: '#111111', y: 0.84 }
+      ];
+      if (sign) parts.push({ geo: new THREE.BoxGeometry(0.5, 0.18, 0.18), color: sign, y: 1.46, z: 0.1 });
+      if (stripe) parts.push({ geo: new THREE.BoxGeometry(0.02, 0.5, 1.2), color: stripe, x: 0.92, y: 0.95, z: -0.6 }, { geo: new THREE.BoxGeometry(0.02, 0.5, 1.2), color: stripe, x: -0.92, y: 0.95, z: -0.6 });
+      for (const sz of [-1, 1]) for (const sx of [-1, 1]) parts.push({ geo: new THREE.CylinderGeometry(0.3, 0.3, 0.2, 12).rotateZ(Math.PI / 2), color: '#17191c', x: sx * 0.82, y: 0.3, z: sz * 1.4 });
+      for (const sz of [-1, 1]) for (const sx of [-1, 1]) parts.push({ geo: new THREE.BoxGeometry(0.3, 0.12, 0.04), color: sz < 0 ? '#fff2b0' : '#d8302a', x: sx * 0.58, y: 0.66, z: sz * 2.16 });
+      return merge(parts);
+    },
+    autoNapoli: () => propGeos.carGeo('#e9e6df'),
+    autoParigi: () => propGeos.carGeo('#8a9aa8'),
+    taxiLondra: () => propGeos.carGeo('#17191c', '#f4f4f4'),
+    taxiMadrid: () => propGeos.carGeo('#f4f4f4', '#f4f4f4', '#d8302a'),
+    tramZagabria: () => tramGeo({ body: '#2a6bc8', top: '#2a6bc8', roof: '#d8dde2', len: 11 }),                            // ZET blu
     taxiNY: () => {
       const parts = [
         { geo: new THREE.BoxGeometry(1.85, 0.55, 4.7), color: '#f2c230', y: 0.6 },
@@ -1523,6 +1564,78 @@
     const m = new THREE.Mesh(g, mat); m.receiveShadow = true; world.add(m);
     return m;
   }
+  // --- lati della strada vera (R-307, sezione 12 dei requisiti): mare, fori, file di alberi; numeri casuali propri, la pista non cambia ---
+  const SIDE_MATS = {
+    sea: () => new THREE.MeshStandardMaterial({ color: lin('#2f78b4'), roughness: 0.35, metalness: 0.1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }),
+    wall: () => new THREE.MeshStandardMaterial({ color: lin('#d9d2c0'), roughness: 0.9 }),
+    ruin: () => new THREE.MeshStandardMaterial({ color: lin('#c9bba0'), roughness: 0.95 }),
+    grass: () => new THREE.MeshStandardMaterial({ color: lin('#6f8a4a'), roughness: 1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 })
+  };
+  const sideMats = {};
+  const sideMat = k => sideMats[k] || (sideMats[k] = SIDE_MATS[k]());
+  // muretto che segue la curva (parapetto del lungomare, muri bassi dei fori): facce verticali e cima
+  function wallStrip(z0, len, off, w, h, mat) {
+    const n = Math.round(len / 2), pos = [], idx = [];
+    for (let i = 0; i <= n; i++) {
+      const z = z0 - i * 2, c = center(z), y0 = hgt(c + off, z) - 0.2;
+      for (const [dx, dy] of [[-w / 2, 0], [-w / 2, h], [w / 2, h], [w / 2, 0]]) pos.push(c + off + dx, y0 + dy, z);
+      if (i) { const a = (i - 1) * 4, b = i * 4; for (let k = 0; k < 3; k++) idx.push(a + k, b + k, a + k + 1, a + k + 1, b + k, b + k + 1); }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; world.add(m);
+    return m;
+  }
+  let sideRng = Math.random, sideZ = 0, treeZ = 0;
+  const STREET_SIDE = {
+    // Napoli, via Partenope: il mare con il parapetto di pietra
+    sea(z, len, s) {
+      objs.push({ type: 'side', x: center(z) + s * 60, z: z - len / 2, mesh: edgeStrip(z, len, s * 60, 76, sideMat('sea'), 0.05) });
+      objs.push({ type: 'side', x: center(z) + s * 22.4, z: z - len / 2, mesh: wallStrip(z, len, s * 22.4, 0.5, 1.0, sideMat('wall')) });
+    },
+    // Roma, via dei Fori Imperiali: prato, muri bassi di tufo e colonne spezzate
+    ruins(z, len, s) {
+      const r = sideRng;
+      objs.push({ type: 'side', x: center(z) + s * 40, z: z - len / 2, mesh: edgeStrip(z, len, s * 40, 36, sideMat('grass'), 0.05) });
+      for (let d = 2; d < len - 2; d += 4 + r() * 7) {
+        const zz = z - d, off = 24 + r() * 14, x = center(zz) + s * off;
+        if (r() < 0.55) {
+          const h = 1.5 + r() * 5, col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, h, 10), sideMat('ruin'));
+          col.position.set(x, hgt(x, zz) + h / 2 - 0.2, zz); col.castShadow = true; world.add(col);
+          objs.push({ type: 'side', x, z: zz, mesh: col });
+        } else {
+          const w = 3 + r() * 6, h = 0.8 + r() * 1.6, wl = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1.2), sideMat('ruin'));
+          wl.position.set(x, hgt(x, zz) + h / 2 - 0.2, zz); wl.rotation.y = r() * 0.6; wl.castShadow = true; world.add(wl);
+          objs.push({ type: 'side', x, z: zz, mesh: wl });
+        }
+      }
+    }
+  };
+  function spawnStreetSide(z, len, ghost) {
+    const ST = CITY_CFG[theme].street;
+    if (!ST) return;
+    for (const s of [-1, 1]) {
+      const kind = s < 0 ? ST.L : ST.R;
+      const fn = STREET_SIDE[kind];
+      if (!fn) continue;
+      if (ghost) { if (kind === 'ruins') for (let d = 2; d < len - 2; d += 4 + sideRng() * 7) { sideRng(); sideRng(); sideRng(); sideRng(); } continue; }
+      fn(z, len, s);
+    }
+  }
+  // file di alberi ai lati (platani, tigli, jacaranda, pini): ogni "every" metri, a 22 m dal centro
+  function spawnSideTrees(z, ghost) {
+    const ST = CITY_CFG[theme].street;
+    if (!ST || !ST.trees) return 18;
+    const geo = assets().sideTree, r = sideRng;
+    for (const s of ST.trees.sides || [-1, 1]) {
+      const jitter = (r() - 0.5) * 2, sc = 0.9 + r() * 0.3, ry = r() * TAU;
+      if (ghost) continue;
+      const x = center(z) + s * (ST.trees.off || 22.3) + jitter * 0.3;
+      objs.push({ type: 'sidetree', x, z, mesh: addMesh(geo, vcMat, x, z, { s: sc, ry, shadow: true }) });
+    }
+    return ST.trees.every;
+  }
+
   function spawnEdge(z, len) {
     const E = CITY_CFG[theme].edge;
     if (!E) return;
@@ -1541,6 +1654,7 @@
       ramp: ['#b07a45', '#f2c230'], gate: ['#d8302a', '#2766c6'], marker: () => GEO.bollard,
       tallCrash: 'crashTree', lowCrash: 'crashRock', markerCrash: 'crashBollard',
       walls: ['#e7b65c', '#dd8a5c', '#c9573f', '#f1d999', '#e9a98a', '#d8c7a6', '#b85a43', '#f3e6cf'],
+      street: { L: 'bldg', R: 'sea', trees: { geo: streetTrees.palma, every: 26, off: 22.6, sides: [-1] } }, props: [['autoNapoli', 4.3]],   // via Partenope: mare a destra, palazzi e palme a sinistra
       style: 'napoli', roof: '#a89a88', bldH: [10, 14], ground: stoneTexture,
       theme: { sky: ['#2a7fd6', '#86c2ee', '#e6edf1'], fog: '#e1e8ec', hemi: ['#f6ecdc', '#b3a493'], sun: '#fff0cf', spray: '#c7beb3', sprayOp: 0.55, trail: '#262321', trailOp: 0.2, rough: 0.9 }
     },
@@ -1550,6 +1664,7 @@
       ramp: ['#ddd2bc', '#c9a227'], gate: ['#8e2434', '#d4a017'], marker: markerGeos.nasone,
       tallCrash: 'crashTree', lowCrash: 'crashColumn', markerCrash: 'crashFountain',
       walls: ['#d9a35a', '#c8703f', '#b24f33', '#e6c184', '#edd7a8', '#cf8e5c', '#a9503c', '#e9c99a'],
+      street: { L: 'ruins', R: 'ruins', trees: { geo: streetTrees.pino, every: 24, off: 23 } },   // via dei Fori Imperiali: pini e ruderi su entrambi i lati
       style: 'roma', roof: '#a9583b', bldH: [10, 14], ground: sampietriniTexture,
       theme: { sky: ['#2f7cc8', '#92c1e6', '#efe5d6'], fog: '#e8e0d2', hemi: ['#f7ead8', '#b49b82'], sun: '#fff0cc', spray: '#c9bfb2', sprayOp: 0.5, trail: '#2a2623', trailOp: 0.18, rough: 0.92 }
     },
@@ -1559,7 +1674,7 @@
       ramp: ['#8a9299', '#c4372b'], gate: ['#e8e8e8', '#c4372b'], marker: markerGeos.ghisa,
       tallCrash: 'crashLamp', lowCrash: 'crashBollard', markerCrash: 'crashBollard',
       walls: ['#e8dcc8', '#d8c8ac', '#e2d0b4', '#cfc0a8', '#e8e2d2', '#d2bfa0'],
-      props: [['tramMilano', 11]], setback: 2.6,
+      street: { L: 'bldg', R: 'bldg' }, setback: 1.2,   // corso Vittorio Emanuele II: pedonale, palazzi con vetrine, niente tram
       style: 'altbau', roof: '#7d8287', bldH: [12, 16], ground: () => paveTexture({ seed: 41, size: 14, joint: '#2e2c2a', tones: [[96, 90, 86], [108, 100, 94], [88, 84, 82]], rails: true }),
       theme: { sky: ['#5a84b0', '#9fb6cc', '#e0e3e4'], fog: '#dcdfe0', fogN: 40, fogF: 150, hemi: ['#e8ecf0', '#a8adb4'], sun: '#f2ead8', spray: '#b8bcc0', sprayOp: 0.5, trail: '#2a2a2c', trailOp: 0.18, rough: 0.9 }
     },
@@ -1569,6 +1684,7 @@
       ramp: ['#3f5a42', '#5a7a5e'], gate: ['#2753b8', '#d8352a'], marker: markerGeos.potelet,
       tallCrash: 'crashColumn', lowCrash: 'crashPlanter', markerCrash: 'crashBollard',
       walls: ['#ddd2bc', '#e2d8c4', '#d8cbb2', '#e8dfcc', '#d2c6ae', '#e5dcc8'],
+      street: { L: 'bldg', R: 'bldg', trees: { geo: streetTrees.platano, every: 16 } }, props: [['autoParigi', 4.3]], setback: 2.6,   // Champs-Élysées: platani davanti ai palazzi, qualche auto
       style: 'haussmann', roof: '#6a7078', bldH: [13, 10], ground: () => paveTexture({ seed: 43, size: 18, joint: '#3a3835', tones: [[128, 122, 114], [142, 136, 126], [118, 114, 108]] }),
       theme: { sky: ['#4a7dbd', '#a4c2dd', '#e8e4da'], fog: '#e4e1d8', hemi: ['#f2ecdc', '#aaa298'], sun: '#fff0d0', spray: '#c2b8a8', sprayOp: 0.5, trail: '#2a2623', trailOp: 0.18, rough: 0.9, part: { col: '#c08a3c', size: 0.15, fall: 0.5, sway: 1.5, op: 0.9 } }
     },
@@ -1578,7 +1694,7 @@
       ramp: ['#b07a45', '#c4372b'], gate: ['#d8352a', '#2753b8'], marker: markerGeos.ukBollard,
       tallCrash: 'crashTree', lowCrash: 'crashPlanter', markerCrash: 'crashBollard',
       walls: ['#9a6a4e', '#8a5a40', '#b08060', '#7a4a34', '#a06a4a', '#8f5f44'],
-      props: [['phoneBox', 1], ['phoneBox', 1], ['busLondra', 10.5]], setback: 2.6, edge: 'lines',
+      props: [['phoneBox', 1], ['taxiLondra', 4.3], ['busLondra', 10.5], ['taxiLondra', 4.3]], setback: 2.6, edge: 'lines', street: { L: 'bldg', R: 'bldg' },   // Oxford Street: bus rossi e taxi neri
       style: 'brick', roof: '#55585c', bldH: [9, 10], ground: () => asphaltTexture({ seed: 47, base: '#3a3d40', wet: true }),
       theme: { sky: ['#6a7585', '#9aa4ae', '#d4d7d9'], fog: '#d2d5d8', hemi: ['#dde2e8', '#9aa0a8'], sun: '#e8e8e4', spray: '#bcd4e2', sprayOp: 0.65, trail: '#3a4248', trailOp: 0.3, rough: 0.6, part: { col: '#a8c2d4', size: 0.05, fall: 9, sway: 0, op: 0.45 } }
     },
@@ -1588,6 +1704,7 @@
       ramp: ['#b07a45', '#c4372b'], gate: ['#d8352a', '#e8e8e8'], marker: markerGeos.fwPole,
       tallCrash: 'crashTree', lowCrash: 'crashBarrel', markerCrash: 'crashPole',
       walls: ['#efe8da', '#e8dcc8', '#f2ece0', '#e2d4ba', '#efe4ce', '#e8dcc2'],
+      street: { L: 'bldg', R: 'bldg' },   // Römerberg: case a graticcio su entrambi i lati
       style: 'fachwerk', roof: '#6a4a3a', bldH: [8, 8], ground: () => paveTexture({ seed: 53, size: 16, joint: '#38342e', tones: [[122, 112, 100], [136, 126, 112], [110, 102, 92]] }),
       theme: { sky: ['#56759c', '#9db0c2', '#dfe1e2'], fog: '#dcdee0', hemi: ['#e8eaec', '#a4a8ac'], sun: '#f2eedd', spray: '#b8bcc0', sprayOp: 0.5, trail: '#2a2a2c', trailOp: 0.18, rough: 0.9 }
     },
@@ -1597,7 +1714,8 @@
       ramp: ['#a86a3a', ['#d8352a', '#e8c026']], gate: ['#d8352a', '#e8c026'], marker: markerGeos.bolard,
       tallCrash: 'crashTree', lowCrash: 'crashPot', markerCrash: 'crashBollard',
       walls: ['#c87f5a', '#d8a878', '#b86a48', '#e2c8a4', '#c08a5c', '#d2b490'],
-      style: 'haussmann', roof: '#8a5a3c', bldH: [12, 14], ground: () => slabTexture({ seed: 59, v0: 142 }),
+      street: { L: 'bldg', R: 'bldg' }, props: [['taxiMadrid', 4.3]], setback: 2.6,   // Gran Vía: palazzi monumentali, taxi bianchi con la riga rossa
+      style: 'haussmann', roof: '#8a5a3c', bldH: [16, 14], ground: () => slabTexture({ seed: 59, v0: 142 }),
       theme: { sky: ['#1f6fd0', '#7fb4e8', '#f0e8d8'], fog: '#ece4d4', hemi: ['#f8f0dc', '#b8a890'], sun: '#fff2c8', spray: '#c8b088', sprayOp: 0.5, trail: '#2a2623', trailOp: 0.18, rough: 0.92 }
     },
     lisbona: {
@@ -1606,7 +1724,7 @@
       ramp: ['#b07a45', '#e8c33c'], gate: ['#3f7a3a', '#d8352a'], marker: markerGeos.stonePill,
       tallCrash: 'crashTree', lowCrash: 'crashCrate', markerCrash: 'crashBollard',
       walls: ['#d8e2e4', '#c2d4dc', '#e8d2b4', '#efe4ce', '#b8d0d8', '#e2c0a4'],
-      props: [['tramLisbona', 8.5]], setback: 2.6,
+      props: [['tramLisbona', 8.5]], setback: 2.6, street: { L: 'bldg', R: 'bldg', trees: { geo: streetTrees.jacaranda, every: 15 } },   // Avenida da Liberdade: file di alberi
       style: 'azulejos', style2: 'altbau', roof: '#b4603f', bldH: [9, 10], ground: calcadaTexture,
       theme: { sky: ['#2f86d8', '#8fc4ea', '#eef0ea'], fog: '#eaece6', hemi: ['#f6f0e2', '#aab0ac'], sun: '#fff4d4', spray: '#c8c4b8', sprayOp: 0.5, trail: '#2a2a28', trailOp: 0.18, rough: 0.9 }
     },
@@ -1616,7 +1734,7 @@
       ramp: ['#b07a45', ['#d8352a', '#f4f4f4']], gate: [['#d8352a', '#f4f4f4'], ['#f4f4f4', '#d8352a']], marker: markerGeos.ghisa,
       tallCrash: 'crashLamp', lowCrash: 'crashCrate', markerCrash: 'crashBollard',
       walls: ['#e8dcc8', '#e2d0b4', '#d8c8ac', '#e8e0d0', '#dfd4bc', '#e5d8c0'],
-      props: [['umbrellaDolac', 2.8], ['umbrellaDolac', 2.8]], setback: 2.6,
+      props: [['umbrellaDolac', 2.8], ['tramZagabria', 11], ['umbrellaDolac', 2.8]], setback: 2.6, street: { L: 'bldg', R: 'bldg' },   // Ilica: il tram blu
       style: 'altbau', roof: '#8a4a3a', bldH: [10, 12], ground: () => paveTexture({ seed: 61, size: 13, joint: '#3a3632', tones: [[118, 110, 100], [132, 122, 110], [106, 100, 92]] }),
       theme: { sky: ['#5b83b8', '#a2bcd4', '#e6e8e6'], fog: '#e2e4e2', hemi: ['#eef0ec', '#a8aca4'], sun: '#f6f0dc', spray: '#bcb8b0', sprayOp: 0.5, trail: '#2a2a28', trailOp: 0.18, rough: 0.9 }
     },
@@ -1626,7 +1744,7 @@
       ramp: ['#9aa0a6', '#b05ad0', true], gate: ['#d8352a', '#d4a017'], marker: markerGeos.ampel,
       tallCrash: 'crashTree', lowCrash: 'crashBlock', markerCrash: 'crashLight',
       walls: ['#c8c2b4', '#b8ac9c', '#cfc8ba', '#a8a096', '#bfb8a8', '#c2bcae'],
-      props: [['wallBerlino', 6]], setback: 2.6, edge: 'walk',
+      props: [['wallBerlino', 6]], setback: 2.6, edge: 'walk', street: { L: 'bldg', R: 'bldg', trees: { geo: streetTrees.tiglio, every: 12 } },   // Unter den Linden: file fitte di tigli
       style: 'altbau', roof: '#6d7276', bldH: [13, 12], ground: () => asphaltTexture({ seed: 67, base: '#4a4d50' }),
       theme: { sky: ['#5d7792', '#9fb0bf', '#dfe2e4'], fog: '#dcdfe1', hemi: ['#e6e9ec', '#9ea4a8'], sun: '#eeeee6', spray: '#b4b8bc', sprayOp: 0.5, trail: '#2c2e30', trailOp: 0.18, rough: 0.9 }
     },
@@ -1636,7 +1754,7 @@
       ramp: ['#b07a45', '#5aa0d8'], gate: ['#e8e8e8', '#5aa0d8'], marker: markerGeos.zhPole,
       tallCrash: 'crashTree', lowCrash: 'crashCheese', markerCrash: 'crashPole',
       walls: ['#e2d8c4', '#d8c8b0', '#e8e0d0', '#cfc0a8', '#e5dcc8', '#d2c4ac'],
-      props: [['tramZurigo', 12]], setback: 2.6,
+      props: [['tramZurigo', 12]], setback: 2.6, street: { L: 'bldg', R: 'bldg', trees: { geo: streetTrees.tiglio, every: 20 } },   // Bahnhofstrasse: tram e tigli, niente auto
       style: 'napoli', roof: '#7a4a3a', bldH: [9, 10], ground: () => paveTexture({ seed: 71, size: 15, joint: '#3a3835', tones: [[130, 124, 116], [144, 138, 128], [120, 116, 108]], rails: true }),
       theme: { sky: ['#2e7ac8', '#93c0e6', '#ecf2f6'], fog: '#e8eef2', hemi: ['#f2f6fa', '#a8b2b8'], sun: '#fcf6e4', spray: '#c4c8cc', sprayOp: 0.5, trail: '#2a2c2e', trailOp: 0.18, rough: 0.9 }
     },
@@ -1646,8 +1764,8 @@
       ramp: ['#8a9299', '#e8c33c'], gate: ['#e8842a', '#2753b8'], marker: markerGeos.hydrant,
       tallCrash: 'crashLamp', lowCrash: 'crashTrash', markerCrash: 'crashHydrant',
       walls: ['#7a4a34', '#8a5a40', '#6a3f2c', '#9a6a4e', '#5f3a2a', '#845640'],
-      props: [['taxiNY', 4.7], ['taxiNY', 4.7]], setback: 2.6,
-      style: 'brickfe', roof: '#4a4d52', bldH: [16, 26], ground: () => asphaltTexture({ seed: 73, base: '#3f4144', lines: '#d8b02c', manholes: true }),
+      props: [['taxiNY', 4.7], ['taxiNY', 4.7]], setback: 2.6, street: { L: 'bldg', R: 'bldg' },   // Broadway: grattacieli e taxi gialli
+      style: 'brickfe', roof: '#4a4d52', bldH: [28, 32], ground: () => asphaltTexture({ seed: 73, base: '#3f4144', lines: '#d8b02c', manholes: true }),
       theme: { sky: ['#4a7bb8', '#95b4d0', '#e2e3de'], fog: '#dedfda', hemi: ['#eceee8', '#a0a4a0'], sun: '#f6eeda', spray: '#b0b4b8', sprayOp: 0.5, trail: '#28292b', trailOp: 0.18, rough: 0.9 }
     }
   };
@@ -1662,7 +1780,8 @@
         ramp: rampCity(C.ramp[0], C.ramp[1], C.ramp[2]),
         gates: [gateGeo(C.gate[0]), gateGeo(C.gate[1])],
         marker: C.marker(),
-        props: (C.props || []).map(([name, len]) => ({ geo: propGeos[name](), len }))
+        props: (C.props || []).map(([name, len]) => ({ geo: propGeos[name](), len })),
+        sideTree: C.street && C.street.trees ? C.street.trees.geo() : null
       };
     }
     return a;
@@ -2340,7 +2459,7 @@
     forestRng = mulberry32(seed ^ 0x5bd1e995);
     buildRng = mulberry32(seed ^ 0x2c1b3c6d);
     propRng = mulberry32(seed ^ 0x6a09e667);
-    buildZ = 30; propZ = 10;
+    buildZ = 30; propZ = 10; sideZ = 20; treeZ = 14; sideRng = mulberry32(seed ^ 0x1b873593);
     P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: 9, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
@@ -2373,8 +2492,10 @@
       const kind = r();
       if (xs.some(v => Math.abs(v - x) < 4.5)) continue;
       xs.push(x);
-      if (kind < 0.38) { const t = addTree(r, x, z, rr(0.75, 1.05), true, ghost); if (t) objs.push(t); }
-      else if (kind < 0.58) { const s = rr(0.8, 1.25), ry = r() * TAU; if (!ghost) objs.push({ type: 'rock', x, z, s, mesh: addMesh(isCity() ? assets().low : GEO.rock, vcMat, x, z, { s, ry }) }); }
+      // R-310 (0.10.0): ostacoli −35%. Prima: alberi fino a 0,38 e rocce fino a 0,58; ora 0,247 e 0,377, e fino a 0,58 non si mette nulla
+      if (kind < 0.247) { const t = addTree(r, x, z, rr(0.75, 1.05), true, ghost); if (t) objs.push(t); }
+      else if (kind < 0.377) { const s = rr(0.8, 1.25), ry = r() * TAU; if (!ghost) objs.push({ type: 'rock', x, z, s, mesh: addMesh(isCity() ? assets().low : GEO.rock, vcMat, x, z, { s, ry }) }); }
+      else if (kind < 0.58) { /* posto lasciato libero */ }
       else if (kind < 0.71) {
         const k = 3 + Math.floor(r() * 3);
         if (!ghost) for (let j = 0; j < k; j++) {
@@ -2398,7 +2519,9 @@
     const r = buildRng;
     const z = buildZ, c = center(z);
     let len = 0;
+    const ST = CITY_CFG[theme].street || {};
     for (const side of [-1, 1]) {
+      if ((side < 0 ? ST.L : ST.R) && (side < 0 ? ST.L : ST.R) !== 'bldg') continue;   // R-307: niente palazzi dove la strada vera ha il mare o i fori
       const bh = CITY_CFG[theme].bldH;
       const w = 9 + r() * 6, d = 9 + r() * 5, h = bh[0] + r() * bh[1];
       const x = c + side * (23.5 + (CITY_CFG[theme].setback || 0) + d / 2 + r() * 2);
@@ -2421,8 +2544,11 @@
   // un oggetto sul marciapiede (tram, cabina, bus, taxi, ombrellone, Muro), allineato alla strada
   function spawnProp(z, ghost) {
     const r = propRng, list = assets().props;
-    const side = r() < 0.5 ? -1 : 1, pick = list[Math.floor(r() * list.length)], jitter = r();
+    let side = r() < 0.5 ? -1 : 1;
+    const pick = list[Math.floor(r() * list.length)], jitter = r();
     if (!pick) return 0;
+    const ST = CITY_CFG[theme].street;
+    if (ST && (side < 0 ? ST.L : ST.R) !== 'bldg') side = -side;   // niente auto sul mare o sui fori
     if (!ghost) {
       const c = center(z), x = c + side * (23.8 + jitter * 0.4);
       const ry = -(center(z - 1) - center(z)) + (side < 0 ? Math.PI : 0);
@@ -2432,7 +2558,7 @@
   }
   function removeObj(o) {
     world.remove(o.mesh);
-    if (o.type === 'bldg' || o.type === 'edge') o.mesh.geometry.dispose();
+    if (o.type === 'bldg' || o.type === 'edge' || o.type === 'side') o.mesh.geometry.dispose();
   }
   function spawnForest(z, ghost) {
     const r = forestRng, c = center(z);
@@ -2467,6 +2593,10 @@
         if (isCity()) spawnEdge(markerZ, 22);
       }
       markerZ -= 22;
+    }
+    if (isCity() && CITY_CFG[theme].street) {
+      while (sideZ > horizon) { spawnStreetSide(sideZ, 22, sideZ > bLine); sideZ -= 22; }
+      while (treeZ > horizon) treeZ -= spawnSideTrees(treeZ, treeZ > bLine);
     }
     const behind = P.z + 16;
     if (objs.length && objs.some(o => o.z > behind)) objs = objs.filter(o => { if (o.z > behind) { removeObj(o); return false; } return true; });

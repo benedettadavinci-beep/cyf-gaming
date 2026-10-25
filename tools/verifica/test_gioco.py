@@ -77,7 +77,12 @@ with sync_playwright() as p:
         print(f' · {city}: {json.dumps(info["byType"])} · bonus {info["fa"][1]} / {info["fb"][1]} · cadute {info["crash"]}')
         check(info['city'] and info['skate'] and not info['snowb'], f'{city}: skateboard al posto dello snowboard (R-205)')
         check(info['sky'] == [key] and not info['ranges'], f'{city}: sfondo lontano della città visibile, montagne alpine nascoste', str(info['sky']))
-        check(info['byType'].get('bldg', 0) > 10 and info['byType'].get('tree', 0) > 0 and info['byType'].get('rock', 0) > 0 and info['byType'].get('marker', 0) > 10, f'{city}: palazzi ai lati, ostacoli alti e bassi, segnaletica', json.dumps(info['byType']))
+        # R-307: Roma ha i ruderi dei fori al posto dei palazzi; Napoli ha i palazzi solo a sinistra (a destra il mare)
+        n_bldg = info['byType'].get('bldg', 0)
+        bldg_ok = (info['byType'].get('side', 0) > 10 and n_bldg == 0) if city == 'Roma' else n_bldg > (5 if city == 'Napoli' else 10)
+        check(bldg_ok and info['byType'].get('tree', 0) > 0 and info['byType'].get('rock', 0) > 0 and info['byType'].get('marker', 0) > 10, f'{city}: lati come la strada vera (R-307), ostacoli alti e bassi, segnaletica', json.dumps(info['byType']))
+        if city in ('Napoli', 'Roma', 'Parigi', 'Lisbona', 'Berlino', 'Zurigo'):
+            check(info['byType'].get('sidetree', 0) > 3, f'{city}: file di alberi ai lati della strada (R-307)', json.dumps(info['byType']))
         g = info['geoOk']
         check(all(g.values()), f'{city}: ogni oggetto di gioco usa il modello della città (alto, basso, bonus, rampa, porte, paletti)', json.dumps(g))
         check(info['layout'] == layout_snow, f'{city}: stessa pista della neve con lo stesso seed (S-05)', f'{len(info["layout"])} vs {len(layout_snow)}')
@@ -173,7 +178,8 @@ with sync_playwright() as p:
     check(r['mode'] == 'finished' and 'non valido' in r['toasts'].lower() and 'Traguardo' in r['toasts'], 'al traguardo il client si ferma e il server scarta il tempo impossibile (pochi secondi per 12 km)', json.dumps(r))
     r = pg.evaluate("""() => { const D = window.__dbg; D.playVoice({ id: 'pGuest2', name: 'Ospite', data: 'QUJD', mime: 'audio/webm' }); const shown = !document.getElementById('voiceNow').hidden; document.getElementById('btnMute').click();
       D.playVoice({ id: 'pGuest2', name: 'Ospite', data: 'QUJD', mime: 'audio/webm' }); return { shown, hidden: document.getElementById('voiceNow').hidden, saved: D.store.get('cyf.muted'), muted: D.mutedIds.has('pGuest2') }; }""")
-    check(r['shown'] and r['hidden'] and r['muted'] and 'pGuest2' in (r['saved'] or ''), 'silenziare un giocatore: il suo vocale non si sente più e la scelta resta salvata', json.dumps(r))
+    # dalla 0.9.2 il fumetto compare solo dopo la decodifica (asincrona) del WAV: con dati finti non compare mai, quindi 'shown' non si controlla più qui (lo fa test_vocale.py)
+    check(r['hidden'] and r['muted'] and 'pGuest2' in (r['saved'] or ''), 'silenziare un giocatore: il suo vocale non si sente più e la scelta resta salvata', json.dumps(r))
     g.close()
     check(not errs, 'nessun errore JavaScript nelle prove di gioco', '; '.join(errs[:3]))
     br.close()
