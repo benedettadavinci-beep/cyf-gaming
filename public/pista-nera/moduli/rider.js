@@ -1,7 +1,7 @@
 // modulo: rider
 // dipende da: base
 // Il modello del rider (lo stesso per te e per gli avversari): forme arrotondate, giacca con lo stemma CYF e la maglia
-// della città o il colore scelto (JERSEYS), capelli a caso tra 6 acconciature (setLook), tavola da neve o skateboard,
+// della città o il colore scelto (JERSEYS), capelli a caso tra 6 acconciature o scelti dal giocatore (setLook, myHair), tavola da neve o skateboard,
 // posa (pose) che segue curva, salto, grab e switch.
 // Solo modello e animazione: niente fisica, niente stato di gioco.
 window.PN = window.PN || {};
@@ -129,11 +129,19 @@ PN.rider = (() => {
   const hairGeo = HAIR_STYLES.map(() => null), hairMat = {};
   const hairMaterial = c => hairMat[c] || (hairMat[c] = new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
   // acconciatura e colore scelti "a caso" ma sempre uguali per lo stesso giocatore: si parte dal suo codice (S-32)
-  function lookOf(id) {
+  // capelli scelti dal giocatore (R-225): "forma:colore", per esempio "coda:3"; una parte vuota vuol dire "a caso"
+  function lookOf(id, scelta) {
     let h = 2166136261;
     for (const ch of String(id || '')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
-    return { style: h % HAIR_STYLES.length, color: (h >>> 8) % HAIR_COLORS.length };
+    const L = { style: h % HAIR_STYLES.length, color: (h >>> 8) % HAIR_COLORS.length };
+    const [sn, ci] = String(scelta || '').split(':');
+    const si = HAIR_STYLES.findIndex(x => x.name === sn);
+    if (si >= 0) L.style = si;
+    if (/^[0-9]$/.test(ci || '') && +ci < HAIR_COLORS.length) L.color = +ci;
+    return L;
   }
+  const HAIR_RE = /^[a-z]{0,12}:[0-9]?$/;
+  const myHair = () => { const v = store.get('cyf.hair') || ''; return HAIR_RE.test(v) ? v : ''; };
 
   const JERSEYS = {
     napoli: { body: ['#1e8fd6'], sleeves: '#1e8fd6' },
@@ -291,8 +299,8 @@ PN.rider = (() => {
     const hairG = new THREE.Group();
     headG.add(hairG);
     let lookNow = '';
-    function setLook(id) {
-      const L2 = lookOf(id), key = L2.style + ':' + L2.color;
+    function setLook(id, scelta) {
+      const L2 = lookOf(id, scelta), key = L2.style + ':' + L2.color;
       if (key === lookNow) return L2;
       lookNow = key;
       while (hairG.children.length) hairG.remove(hairG.children[0]);
@@ -405,5 +413,5 @@ PN.rider = (() => {
     setBoard('snow');
     return { group, body, pose, setColor, setBoard, setLook };
   }
-  return { JERSEYS, HAIR_STYLES, lookOf, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
+  return { JERSEYS, HAIR_STYLES, HAIR_RE, lookOf, myHair, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
 })();

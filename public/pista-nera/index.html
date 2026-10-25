@@ -291,6 +291,28 @@
             </optgroup>
           </select>
         </label>
+        <div class="field" style="display:flex;flex-direction:column;gap:4px">
+          <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase" data-i18n="hair"></span>
+          <div class="row">
+            <select id="selHairStyle" style="flex:1 1 150px" data-i18n-aria="hairStyle">
+              <option value="" data-i18n="hairRandom"></option>
+              <option value="corti" data-i18n="hCorti"></option>
+              <option value="rasati" data-i18n="hRasati"></option>
+              <option value="ciuffo" data-i18n="hCiuffo"></option>
+              <option value="lunghi" data-i18n="hLunghi"></option>
+              <option value="coda" data-i18n="hCoda"></option>
+              <option value="caschetto" data-i18n="hCaschetto"></option>
+            </select>
+            <select id="selHairColor" style="flex:1 1 150px" data-i18n-aria="hairColor">
+              <option value="" data-i18n="hcRandom"></option>
+              <option value="0" data-i18n="hcNero"></option>
+              <option value="1" data-i18n="hcCastScuro"></option>
+              <option value="2" data-i18n="hcCastano"></option>
+              <option value="3" data-i18n="hcBiondo"></option>
+              <option value="4" data-i18n="hcRamato"></option>
+            </select>
+          </div>
+        </div>
         <button class="go" id="btnOnline" data-i18n="playOnline"></button>
         <button class="alt" id="btnCreate" data-i18n="createChallenge"></button>
         <div class="row">
@@ -323,6 +345,21 @@
             <kbd data-i18n="tDblTap"></kbd><span data-i18n="kThrow"></span>
           </div>
           <p class="muted" style="margin-top:8px" data-i18n="rulesText"></p>
+        </details>
+        <details id="profBox">
+          <summary data-i18n="profTitle"></summary>
+          <p class="muted" style="margin:6px 0" data-i18n="profIntro"></p>
+          <span class="muted" style="display:block;font-size:13px" data-i18n="profYourCode"></span>
+          <div class="row" style="align-items:center;margin-top:4px">
+            <strong id="profCode" class="grow" style="font-family:var(--display);font-size:18px;letter-spacing:.08em;white-space:nowrap;user-select:all"></strong>
+            <button type="button" class="ghost" id="btnProfCopy" data-i18n="profCopy" hidden></button>
+          </div>
+          <span class="muted" style="display:block;font-size:13px;margin-top:10px" data-i18n="profHave"></span>
+          <div class="row" style="margin-top:4px">
+            <input type="text" class="grow" id="inProfCode" maxlength="9" placeholder="ABCD-EFGH" data-i18n-aria="profHave" autocapitalize="characters" autocomplete="off">
+            <button type="button" class="alt" id="btnProfUse" data-i18n="profUse"></button>
+          </div>
+          <span class="err" id="profMsg" hidden></span>
         </details>
         <a class="donate" data-donate hidden target="_blank" rel="noopener" data-i18n="donateMenu"></a>
         <div class="board" id="boardBox" hidden>
@@ -453,6 +490,7 @@
 <script src="moduli/effetti.js"></script>
 <script src="moduli/audio.js"></script>
 <script src="moduli/vocali.js"></script>
+<script src="moduli/profilo.js"></script>
 <script src="moduli/oggetti.js"></script>
 <script src="moduli/avversari.js"></script>
 <script src="moduli/comandi.js"></script>

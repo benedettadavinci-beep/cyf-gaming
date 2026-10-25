@@ -10,7 +10,7 @@ window.PN = window.PN || {};
 PN.schermate = ({ diag, stato: S }) => {
   const { PALETTE, START_ALT, SLOPE, fmt, fmtTime } = PN.base;
   const { tr, ord, fmtLen } = PN.lingua;
-  const { myJersey } = PN.rider;
+  const { myJersey, myHair } = PN.rider;
   const $ = id => document.getElementById(id);
   const kmh = v => v * 3.6;
   const selScena = $('selScena'), selJersey = $('selJersey');
@@ -117,7 +117,7 @@ PN.schermate = ({ diag, stato: S }) => {
   $('selRoomJersey').addEventListener('change', () => {
     selJersey.value = $('selRoomJersey').value;
     selJersey.dispatchEvent(new Event('change'));
-    S.net.send({ t: 'jersey', j: myJersey() });
+    S.net.send({ t: 'jersey', j: myJersey(), h: myHair() });
   });
   $('selRoomCity').addEventListener('change', () => {
     selScena.value = $('selRoomCity').value;

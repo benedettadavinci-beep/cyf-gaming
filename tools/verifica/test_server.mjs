@@ -6,8 +6,8 @@ const WS = BASE.replace(/^http/, 'ws');
 const problems = [];
 const ok = (cond, label, extra = '') => { console.log((cond ? '  ✓ ' : '  ✗ ') + label + (extra ? '  [' + extra + ']' : '')); if (!cond) problems.push(label + (extra ? ' [' + extra + ']' : '')); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-// Attesa della sfida dopo "Parti" (R-119): online 25 s; cancello.sh accende wrangler dev con ATTESA_SFIDA_MS=4000
-// per non rallentare le prove (il valore di 40 s online lo controlla controlli.mjs, C5).
+// Attesa della sfida dopo "Parti" (R-119): online 25 s; cancello.sh accende wrangler dev con ATTESA_SFIDA_MS=10000
+// per non rallentare le prove (il valore di 25 s online lo controlla controlli.mjs, C5).
 const W = Number(process.env.ATTESA_SFIDA_MS) || 25000;
 
 class Client {
@@ -337,6 +337,37 @@ console.log('T9 · errori dai browser: /api/errors li riceve, li raggruppa e rif
   const list = (await api('/api/errors')).body;
   const row = Array.isArray(list) && list.find(r => r.msg === msg);
   ok(row && row.n === 2 && row.ver === 'test' && row.src === 'game.js:1:1', 'lo stesso errore due volte = una riga con conteggio 2', JSON.stringify(row));
+}
+
+console.log('T10 · capelli scelti (R-225) e profilo con codice personale (R-226)');
+{
+  const code = rnd();
+  const A = new Client(code, 'ha' + code, 'Capo'); await A.connect(); await A.waitType('welcome');
+  const B = new Client(code, 'hb' + code, 'Ospite'); await B.connect(); await B.waitType('welcome');
+  A.send({ t: 'jersey', j: 'roma', h: 'coda:3' });
+  const lh = await B.wait(m => m.t === 'lobby' && m.players.some(p => p.id === A.id && p.h === 'coda:3'), 3000);
+  ok(!!lh, 'i capelli scelti arrivano agli altri giocatori della stanza');
+  A.send({ t: 'jersey', j: 'roma', h: '<script>' });
+  const lb = await B.wait(m => m.t === 'lobby' && m.players.some(p => p.id === A.id && p.h === ''), 3000);
+  ok(!!lb, 'capelli non validi scartati (restano "a caso")');
+  A.close(); B.close();
+  const post = b => fetch(BASE + '/api/profilo', { method: 'POST', body: JSON.stringify(b), headers: { 'content-type': 'application/json' } }).then(async r => ({ status: r.status, body: await r.json().catch(() => null) }));
+  const id = 'pf' + code;
+  const c1 = await post({ id, data: { name: 'Luigi<b>', lang: 'en', scena: 'napoli', j: 'colore-verde', h: 'lunghi:4', extra: 'x' } });
+  const pc = c1.body && c1.body.code;
+  ok(c1.status === 200 && /^[A-HJ-NP-Z2-9]{8}$/.test(pc || ''), 'il primo salvataggio crea il codice personale di 8 caratteri', JSON.stringify(c1.body));
+  const g1 = await api('/api/profilo?code=' + pc);
+  ok(g1.status === 200 && g1.body.id === id && g1.body.data.name === 'Luigib' && g1.body.data.lang === 'en' && g1.body.data.scena === 'napoli' && g1.body.data.j === 'colore-verde' && g1.body.data.h === 'lunghi:4' && !('extra' in g1.body.data), 'con il codice si ritrovano giocatore e impostazioni, ripulite', JSON.stringify(g1.body));
+  const g1b = await api('/api/profilo?code=' + pc.toLowerCase().slice(0, 4) + '-' + pc.slice(4).toLowerCase());
+  ok(g1b.status === 200 && g1b.body.id === id, 'il codice vale anche scritto minuscolo e con il trattino');
+  await sleep(5);
+  const c2 = await post({ id, code: pc, data: { name: 'Luigi', lang: 'xx', scena: 'marte', j: 'roma', h: ':2' } });
+  const g2 = await api('/api/profilo?code=' + pc);
+  ok(c2.body.code === pc && g2.body.data.j === 'roma' && g2.body.data.h === ':2' && g2.body.data.lang === '' && g2.body.data.scena === '' && g2.body.at > g1.body.at, 'un nuovo salvataggio con lo stesso codice aggiorna il profilo (lingua e città sconosciute scartate)', JSON.stringify(g2.body));
+  const nf = await api('/api/profilo?code=ZZZZZZZZ'); ok(nf.status === 404, 'codice sconosciuto: 404', String(nf.status));
+  const bad = await api('/api/profilo?code=12'); ok(bad.status === 400, 'codice non valido: 400', String(bad.status));
+  const noid = await post({ data: { name: 'x' } }); ok(noid.status === 400, 'senza id il profilo non si salva (400)', String(noid.status));
+  const big = await post({ id, data: { name: 'x'.repeat(3000) } }); ok(big.status === 413, 'profilo troppo grande rifiutato (413)', String(big.status));
 }
 
 if (process.env.VELOCE === '1') console.log('T8 saltata (VELOCE=1: giro rapido del cancello; il giro completo la fa ogni notte)');

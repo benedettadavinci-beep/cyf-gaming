@@ -36,7 +36,6 @@ PN.avversari = ({ world, pista, net, stato }) => {
       const color = PALETTE[(info.color || 0) % PALETTE.length];
       const model = makeRider(color);
       model.setColor(color, JERSEYS[info.j] ? info.j : '');
-      model.setLook(id);   // gli stessi capelli che vede lui (R-220)
       model.setBoard(stato.isCity() ? 'skate' : 'snow');
       const label = nameSprite(info.name || 'Rider', color);
       label.position.y = 2.3;
@@ -45,6 +44,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
       r = { model, x: 0, z: 0, y: 0, a: 0, s: 0, tx: 0, tz: 0, ty: 0, ta: 0, v: 0, c: 0, last: 0, has: false };
       remotes.set(id, r);
     }
+    r.model.setLook(id, info.h);   // gli stessi capelli che vede lui: scelti (R-225) o a caso dal suo codice (R-220)
     const slot = net.racers.findIndex(x => x.id === id), n = net.racers.length;
     r.tx = r.x = center(0) + (slot - (n - 1) / 2) * 2.6; r.tz = r.z = 0; r.y = r.ty = 0; r.a = r.ta = 0; r.v = 0; r.has = true;
     r.model.group.visible = true;

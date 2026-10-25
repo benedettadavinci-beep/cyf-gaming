@@ -38,6 +38,20 @@ const json = (data, init = {}) =>
   });
 const board = env => env.LEADERBOARD.get(env.LEADERBOARD.idFromName('global'));
 const cleanId = s => String(s || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+// capelli scelti (R-225): "forma:colore", parti vuote = a caso
+const cleanHair = h => (typeof h === 'string' && /^[a-z]{0,12}:[0-9]?$/.test(h) ? h : '');
+// profilo con codice personale (R-226): 8 caratteri senza lettere che si confondono (0/O, 1/I/L)
+const PROFILE_ALPH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const cleanProfileCode = c => { const v = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-HJ-NP-Z2-9]{8}$/.test(v) ? v : ''; };
+const LANGS = ['it', 'en', 'fr', 'es'];
+// solo i campi conosciuti, puliti: nome, lingua, città, maglia, capelli
+function cleanProfile(d) {
+  d = d && typeof d === 'object' ? d : {};
+  return {
+    name: d.name ? cleanName(d.name) : '', lang: LANGS.includes(d.lang) ? d.lang : '', scena: PROTO.SCENE.includes(d.scena) ? d.scena : '',
+    j: typeof d.j === 'string' && /^[a-z-]{0,24}$/.test(d.j) ? d.j : '', h: cleanHair(d.h)
+  };
+}
 
 export default {
   async fetch(request, env) {
@@ -79,6 +93,23 @@ export default {
       const id = cleanId(url.searchParams.get('id'));
       if (!id) return json({ error: 'id mancante' }, { status: 400 });
       return json(await board(env).player(id));
+    }
+
+    // /api/profilo (R-226): POST { id, code?, data } salva le impostazioni e restituisce il codice personale
+    // (lo crea la prima volta); GET ?code=… restituisce { id, data, at } per ritrovarle su un altro dispositivo
+    if (url.pathname === '/api/profilo') {
+      if (request.method === 'POST') {
+        const body = await request.text();
+        if (body.length > 2000) return json({ error: 'Troppo grande' }, { status: 413 });
+        let b; try { b = JSON.parse(body); } catch (x) { return json({ error: 'JSON non valido' }, { status: 400 }); }
+        const id = cleanId(b && b.id);
+        if (!id) return json({ error: 'id mancante' }, { status: 400 });
+        return json(await board(env).saveProfile(id, cleanProfileCode(b.code), cleanProfile(b.data)));
+      }
+      const code = cleanProfileCode(url.searchParams.get('code'));
+      if (!code) return json({ error: 'Codice non valido' }, { status: 400 });
+      const p = await board(env).profile(code);
+      return p ? json(p) : json({ error: 'Codice sconosciuto' }, { status: 404 });
     }
 
     // /api/points → giocatori con più punti
@@ -169,7 +200,7 @@ export class RaceRoom extends DurableObject {
     return {
       t: 'lobby', phase: st.phase, hostId: st.pub ? null : st.hostId, round: st.round, pub: st.pub,
       minutes: st.minutes, length: lengthFor(st.minutes), autoAt: st.autoAt, now: Date.now(), scena: this.roomScena(except),
-      players: this.players(except).map(p => ({ id: p.id, name: p.name, ready: p.ready, color: p.color, j: p.j || '' }))
+      players: this.players(except).map(p => ({ id: p.id, name: p.name, ready: p.ready, color: p.color, j: p.j || '', h: p.h || '' }))
     };
   }
   // città della prossima gara: nelle sfide la sceglie chi organizza (resta anche se poi esce);
@@ -218,7 +249,7 @@ export class RaceRoom extends DurableObject {
     st.ready = [];   // chi ha premuto "Sono pronto" durante l'attesa (R-222)
     st.autoAt = 0;
     st.timeoutAt = 0;
-    st.racers = list.map(p => ({ id: p.id, name: p.name, color: p.color, j: p.j || '' }));
+    st.racers = list.map(p => ({ id: p.id, name: p.name, color: p.color, j: p.j || '', h: p.h || '' }));
     st.raceScena = this.roomScena();
     st.results = [];
     st.drops = 0;
@@ -295,7 +326,7 @@ export class RaceRoom extends DurableObject {
       const used = new Set(others.map(p => p.color));
       let color = 0; while (used.has(color)) color++;
       const j = typeof m.j === 'string' && /^[a-z-]{1,24}$/.test(m.j) ? m.j : '';
-      Object.assign(me, { id, name: cleanName(m.name), ready: false, color, j, sc: cleanScena(m.sc) });
+      Object.assign(me, { id, name: cleanName(m.name), ready: false, color, j, h: cleanHair(m.h), sc: cleanScena(m.sc) });
       ws.serializeAttachment(me);
       this.fixHost();
       if (!st.hostId) st.hostId = id;
@@ -363,6 +394,7 @@ export class RaceRoom extends DurableObject {
     if (m.t === 'jersey') {
       if (st.phase === 'countdown' || st.phase === 'racing') return;
       me.j = typeof m.j === 'string' && /^[a-z-]{0,24}$/.test(m.j) ? m.j : '';
+      if ('h' in m) me.h = cleanHair(m.h);   // anche i capelli (R-225)
       ws.serializeAttachment(me);
       this.broadcast(this.lobbyMsg());
       return;
@@ -571,6 +603,8 @@ export class Leaderboard extends DurableObject {
     sql.exec('CREATE TABLE IF NOT EXISTS seen (day TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (day, id))');
     sql.exec('CREATE TABLE IF NOT EXISTS voice_reports (at INTEGER NOT NULL, room TEXT NOT NULL, reporter TEXT NOT NULL, reported TEXT NOT NULL)');
     // errori arrivati dai browser dei giocatori: uno per giorno, versione, messaggio e punto del codice, con il conteggio
+    // profili con il codice personale (R-226): il codice è la chiave, id è il giocatore che lo usa
+    sql.exec('CREATE TABLE IF NOT EXISTS profiles (code TEXT PRIMARY KEY, id TEXT NOT NULL, data TEXT NOT NULL, at INTEGER NOT NULL)');
     sql.exec('CREATE TABLE IF NOT EXISTS errors (day TEXT NOT NULL, ver TEXT NOT NULL, msg TEXT NOT NULL, src TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 1, first INTEGER NOT NULL, last INTEGER NOT NULL, ua TEXT, stack TEXT, ctx TEXT, PRIMARY KEY (day, ver, msg, src))');
   }
   async logError(e) {
@@ -651,6 +685,25 @@ export class Leaderboard extends DurableObject {
   async player(id) {
     const row = this.ctx.storage.sql.exec('SELECT name, points, races, wins FROM players WHERE id = ?', cleanId(id)).toArray()[0];
     return row || { points: 0, races: 0, wins: 0 };
+  }
+  async saveProfile(id, code, data) {
+    const sql = this.ctx.storage.sql, at = Date.now();
+    if (code && sql.exec('SELECT 1 AS x FROM profiles WHERE code = ?', code).toArray().length) {
+      sql.exec('UPDATE profiles SET id = ?, data = ?, at = ? WHERE code = ?', id, JSON.stringify(data), at, code);
+      return { code, at };
+    }
+    if (sql.exec('SELECT COUNT(*) AS c FROM profiles').toArray()[0].c >= 200000) return { error: 'pieno' };
+    let c = '';
+    do { c = Array.from(crypto.getRandomValues(new Uint8Array(8)), b => PROFILE_ALPH[b % PROFILE_ALPH.length]).join(''); }
+    while (sql.exec('SELECT 1 AS x FROM profiles WHERE code = ?', c).toArray().length);
+    sql.exec('INSERT INTO profiles (code, id, data, at) VALUES (?, ?, ?, ?)', c, id, JSON.stringify(data), at);
+    return { code: c, at };
+  }
+  async profile(code) {
+    const row = this.ctx.storage.sql.exec('SELECT id, data, at FROM profiles WHERE code = ?', code).toArray()[0];
+    if (!row) return null;
+    let data = {}; try { data = JSON.parse(row.data); } catch (e) {}
+    return { id: row.id, data, at: row.at };
   }
   async topPoints(n = 10) {
     return this.ctx.storage.sql.exec('SELECT name, points, races, wins FROM players ORDER BY points DESC LIMIT ?', Math.min(50, n)).toArray();

@@ -81,7 +81,7 @@
   const { CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, textTexture, finishLine, rampCity, propGeos } = CITTA;
   const assets = () => CITTA.assetsFor(theme);
   const { addMesh } = PISTA;
-  const { JERSEYS, myJersey, jacketTexture, switchOf, bodyTurn, makeRider } = PN.rider;
+  const { JERSEYS, myJersey, myHair, jacketTexture, switchOf, bodyTurn, makeRider } = PN.rider;
   const me = makeRider(PALETTE[0]);
   world.add(me.group);
   const rider = me.group, body = me.body;
@@ -141,6 +141,7 @@
   selScena.addEventListener('change', () => {
     if (!THEMES[selScena.value] || racing()) return;
     store.set('cyf.scena', selScena.value);
+    PROFILO.salva();
     // in sfida la città la sceglie chi organizza: la propria scelta si manda al server
     if (net.ws) net.send({ t: 'scena', scena: selScena.value });
     if (selScena.value === theme) return;
@@ -468,9 +469,34 @@
 
   // ---------- online ----------
   const myId = store.get('cyf.id') || (() => { const v = 'p' + Math.random().toString(36).slice(2, 12); store.set('cyf.id', v); return v; })();
-  me.setLook(myId);   // capelli a caso ma sempre uguali per questo giocatore (R-220)
+  me.setLook(myId, myHair());   // capelli scelti (R-225), altrimenti a caso ma sempre uguali per questo giocatore (R-220)
   const inName = $('inName'), inCode = $('inCode');
   inName.value = store.get('cyf.name') || '';
+  // impostazioni ricordate dal server con il codice personale (R-226)
+  const PROFILO = PN.profilo({ myId, aggiorna: () => daProfilo(), say: (...a) => say(...a) });
+  inName.addEventListener('change', () => { const n = inName.value.trim(); if (n) { store.set('cyf.name', n); PROFILO.salva(); } });
+  // capelli (R-225): forma e colore, "a caso" se vuoti
+  const selHairStyle = $('selHairStyle'), selHairColor = $('selHairColor');
+  function showHair() { const [a, b] = myHair().split(':'); selHairStyle.value = a || ''; selHairColor.value = b || ''; }
+  showHair();
+  for (const el of [selHairStyle, selHairColor]) el.addEventListener('change', () => {
+    const v = selHairStyle.value || selHairColor.value ? selHairStyle.value + ':' + selHairColor.value : '';
+    store.set('cyf.hair', v);
+    me.setLook(myId, myHair());
+    if (net.ws && mode === 'lobby') net.send({ t: 'jersey', j: myJersey(), h: myHair() });
+    PROFILO.salva();
+  });
+  // il server aveva impostazioni più recenti (cambiate su un altro dispositivo): si mostrano, solo se si è nel menu
+  function daProfilo() {
+    if (mode !== 'menu') return;
+    inName.value = store.get('cyf.name') || inName.value;
+    selJersey.value = myJersey();
+    me.setColor(PALETTE[(net.myColor || 0) % PALETTE.length], myJersey());
+    showHair(); me.setLook(myId, myHair());
+    const l = store.get('cyf.lang'); if (l && l !== lang) applyLang(l);
+    const sc = store.get('cyf.scena');
+    if (!urlScena && THEMES[sc] && sc !== theme) { applyTheme(sc); reset((Math.random() * 2 ** 31) | 0, null, false); }
+  }
   const ALPH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const newCode = () => Array.from({ length: 5 }, () => ALPH[Math.floor(Math.random() * ALPH.length)]).join('');
 
@@ -495,6 +521,7 @@
     const n = inName.value.trim();
     if (!n) { menuError(tr('errName')); inName.focus(); return null; }
     store.set('cyf.name', n);
+    PROFILO.salva();
     menuError('');
     return n;
   }
@@ -540,7 +567,7 @@
     net.ws = ws;
     ws.onopen = () => {
       net.retries = 0; setBanner('');
-      ws.send(JSON.stringify({ t: 'hello', v: PN.protocollo.VERSIONE, id: myId, name: inName.value.trim() || 'Rider', j: myJersey(), sc: selScena.value }));
+      ws.send(JSON.stringify({ t: 'hello', v: PN.protocollo.VERSIONE, id: myId, name: inName.value.trim() || 'Rider', j: myJersey(), h: myHair(), sc: selScena.value }));
       clearInterval(net.pingTimer);
       net.pingAt = Date.now(); ws.send('ping');
       net.pingTimer = setInterval(() => { if (ws.readyState === 1) { net.pingAt = Date.now(); ws.send('ping'); } }, 20000);
@@ -907,13 +934,15 @@
     if (mode === 'lobby') renderLobby();
     if (mode === 'results') renderResults();
     updateVoiceBtn();
+    PROFILO.render();
   }
-  document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => applyLang(b.dataset.lang)));
+  document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => { applyLang(b.dataset.lang); PROFILO.salva(); }));
   const selJersey = $('selJersey');
   selJersey.value = myJersey();
   selJersey.addEventListener('change', () => {
     store.set('cyf.jersey', JERSEYS[selJersey.value] ? selJersey.value : '');
     me.setColor(PALETTE[(net.myColor || 0) % PALETTE.length], myJersey());
+    PROFILO.salva();
   });
   resize();
   applyTheme(theme);
@@ -925,6 +954,7 @@
   } catch (e) {}
   me.setColor(PALETTE[0], myJersey());
   loadMe();
+  PROFILO.avvio();
   reset((Math.random() * 2 ** 31) | 0, null, false);
   hudLabels();
   loadBoard();
