@@ -181,13 +181,12 @@ PN.rider = (() => {
     jacketDark.color.multiplyScalar(0.7);
     // figure: tutto il rider tranne le tavole; in città sale di LIFT, perché la tavola da skate è più alta (R-217)
     const figure = new THREE.Group();
-    body.add(figure);
     const mesh = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; (parent || figure).add(m); return m; };
     const G = RIDER_GEO;
     const snowOnly = [], streetOnly = [];   // pezzi che si vedono solo sulla neve o solo in città
     // snowboard (neve) e skateboard con le rotelle (città senza neve): se ne vede uno alla volta
     const snowG = new THREE.Group(), skateG = new THREE.Group();
-    body.add(snowG, skateG);
+    body.add(snowG, skateG, figure);   // in quest'ordine: le prove leggono body.children[0] (neve) e [1] (skate)
     mesh(G.snowboard, SHARED.board, snowG).position.y = 0.05;
     mesh(G.stripe, SHARED.stripe, snowG).position.y = 0.067;
     for (const s of [-1, 1]) {
