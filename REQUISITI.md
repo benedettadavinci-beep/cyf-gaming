@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.10.0 · aggiornato al 25 ottobre 2026, ore 09:30 · nuova sezione 12: la pista è la strada famosa della città (processo P-01), meno ostacoli, più curve"
+subtitle: "Versione 0.10.0 · aggiornato al 25 ottobre 2026, ore 09:45 · prossimi passi in sezione 11 · nuova sezione 12: la pista è la strada famosa della città (processo P-01), meno ostacoli, più curve"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -160,6 +160,8 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | D-04 | Decidere le scelte S-01…S-22: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
 | D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione | Claude |
 | D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
+| D-08 | Proteggere `main` su GitHub (A-08, passo 1 della sezione 11): 10 minuti, serve il proprietario dell'account | Luigi |
+| D-09 | Provare la v0.10.0 dal telefono: Napoli (mare a destra, Vesuvio in fondo) e Roma (pini e ruderi, Colosseo in fondo) sono le più cambiate; meno ostacoli e curve più spinte in tutte | Luigi |
 | D-07 | ~~Ricopiare sul Desktop i file Word aggiornati~~ Fatto il 25/10 alle 8: Word dei requisiti alla 0.9.2 e tabella Excel delle città aggiornata con lo stato nel gioco (tutte le 12 città "Nel gioco", in arancione i 4 punti diversi dalla tabella, vedi S-12) | Claude ✓ |
 
 # 10. Verifica completa del 25 ottobre 2026
@@ -218,6 +220,16 @@ Raccomandazioni del 25/10/2026 per far sì che, man mano che il gioco cresce, le
 
 **Ordine consigliato.** Prima il cancello dei test (A-01…A-05) e la diagnosi (A-06, A-07), fatti il 25/10. Poi la protezione di `main` e l'ambiente di prova (A-08, A-09). Poi, un pezzo alla volta e con le prove che confermano che nulla cambia, la separazione del codice (A-10…A-13). Il resto quando serve.
 
+**Prossimi passi concreti (decisi il 25/10 alle 9:40).**
+
+| Passo | Chi | Quando | Cosa |
+|---|---|---|---|
+| 1 | Luigi, 10 min | Oggi | Proteggere `main` su GitHub (A-08): github.com/benedettadavinci-beep/cyf-gaming → Settings → Branches → Add branch ruleset (o "Add rule") → nome `main` → spuntare "Require status checks to pass" e scegliere "prove" (il cancello dei test) → Save. Da quel momento Claude lavora su rami e unisce solo a cancello verde |
+| 2 | Claude, 2-3 ore | Prossima sessione | A-10 e A-11: separare `game.js` in moduli (città, pista, fisica, rider, comandi, rete, vocali, schermate, audio), un pezzo alla volta, con `npm test` che conferma che nulla cambia. Fino ad allora: una chat alla volta |
+| 3 | Claude | Subito dopo | A-12: `shared/protocollo.js`, contratto unico dei messaggi tra gioco e server |
+| 4 | Luigi | Dopo il passo 2 | Da qui si possono aprire 2-3 chat in parallelo (A-18), una per modulo |
+| 5 | Luigi, 10 min | Quando vuole | A-09: chiave Cloudflare per il sito di prova `cyf-gaming-prova`, per provare le novità dal telefono prima che le vedano tutti |
+
 | ID | Richiesta | Data | Stato | Come funziona oggi |
 |---|---|---|---|---|
 | A-01 | Cancello dei test a ogni modifica: si va online solo se le prove sono verdi | 25/10/2026 | Fatto | Su GitHub (scheda Actions, "Cancello dei test") parte da solo a ogni modifica il giro rapido: controlli statici, server delle gare, 13 scenari e diagnosi. Primo giro del 25/10 verde: 28 s di preparazione e 55 s di prove, circa un minuto e mezzo dal push all'esito. Verde = si può pubblicare; rosso = qualcosa si è rotto. Da GitHub si lancia anche il giro completo ("Run workflow" → tutto) |
@@ -236,6 +248,7 @@ Raccomandazioni del 25/10/2026 per far sì che, man mano che il gioco cresce, le
 | A-14 | Prestazioni misurate nelle prove | 25/10/2026 | Da fare | fps, peso della pagina e tempo di caricamento misurati a ogni giro, con soglie: il cancello si chiude se una modifica rende il gioco più lento |
 | A-15 | Controllo dei tipi dei dati | 25/10/2026 | Da fare | Commenti JSDoc e `// @ts-check`, senza passaggi di compilazione: l'editor e le prove trovano errori come un numero passato al posto di un testo |
 | A-16 | Aggiornare Three.js e servirlo dal sito stesso | 25/10/2026 | Da fare | Oggi si usa la r128 (2021) da un CDN esterno: se il CDN ha un problema, il gioco non parte. Va fatto dopo A-11, con le foto delle città per confrontare prima e dopo |
+| A-18 | Lavorare con 2-4 chat di Claude in parallelo, ognuna su una parte diversa del software | 25/10/2026 | Da fare | Richiede tre cose insieme: moduli separati (A-10, A-11), un ramo per ogni chat con il cancello verde prima di unire a `main` (A-08) e il contratto dei messaggi di rete (A-12). Regole quando sarà attivo: nella prima frase di ogni chat si dice su quale parte lavora ("questa chat tocca solo le città"); ogni chat aggiorna solo le proprie righe di questo file e lo storico; il controllo notturno rigenera il Word sul Desktop. Guadagno reale con 2-3 chat su parti davvero diverse (una città, un baco dei vocali, una schermata); due chat sulla stessa parte (es. la fisica di guida) no: il tempo di integrazione mangia il guadagno (legge di Brooks, dati DORA) |
 | A-17 | Interruttori per le novità | 25/10/2026 | Da fare | In `config.js`, per accendere una novità solo per Luigi (o con `?prova=nome`) prima che per tutti |
 
 **Cosa non fare.** Niente riscrittura completa: è la causa classica di progetti fermi per mesi; si sposta un pezzo alla volta, con le prove che confermano che nulla cambia. Niente framework come React per il gioco: non servono e appesantiscono. Niente server diviso in tanti servizi: con i numeri attuali Worker e Durable Objects bastano largamente.
