@@ -1,4 +1,4 @@
-# Ricostruzione fedele della tabella CYF-elementi-per-citta.xlsx (creata il 24/10 alle 15:24, mai modificata dopo)
+# Ricostruzione fedele della tabella CYF-elementi-per-citta.xlsx (creata il 24/10 alle 15:24; il 25/10 aggiornati solo la riga "Stato" e i colori, i valori sono gli stessi)
 from openpyxl import Workbook
 CITIES = ["Napoli", "Roma", "Milano", "Parigi", "Londra", "Francoforte", "Madrid", "Lisbona", "Zagabria", "Berlino", "Zurigo", "New York"]
 ROWS = [

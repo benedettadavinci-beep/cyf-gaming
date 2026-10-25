@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.9.2 · aggiornato al 25 ottobre 2026, ore 08:00 · verifica completa dei requisiti (sezione 10)"
+subtitle: "Versione 0.9.2 · aggiornato al 25 ottobre 2026, ore 08:00 · verifica completa dei requisiti (sezione 10) · copie sul Desktop aggiornate"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -159,7 +159,7 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | D-04 | Decidere le scelte S-01…S-22: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
 | D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione | Claude |
 | D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
-| D-07 | Ricopiare sul Desktop i file Word aggiornati (requisiti 0.9.1): il PC era spento quando sono stati generati | Claude, appena il PC è collegato |
+| D-07 | ~~Ricopiare sul Desktop i file Word aggiornati~~ Fatto il 25/10 alle 8: Word dei requisiti alla 0.9.2 e tabella Excel delle città aggiornata con lo stato nel gioco (tutte le 12 città "Nel gioco", in arancione i 4 punti diversi dalla tabella, vedi S-12) | Claude ✓ |
 
 # 10. Verifica completa del 25 ottobre 2026
 
@@ -202,7 +202,7 @@ Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel
 | R-306 | ✓ dopo correzione | Tabella Excel (15 righe × 12 città) confrontata riga per riga: le 7 righe di gioco erano tutte conformi; nelle righe di scena mancavano gli oggetti ai lati (tram, cabine, bus, taxi, ombrelloni, Muro), le linee gialle di Londra, i marciapiedi di Berlino, il fiume Meno, le porte a scacchi di Zagabria e i dettagli delle rampe di Madrid e Berlino: aggiunti nella 0.9.1. La pista resta identica in ogni città (stesso seed, stessi ostacoli) |
 | R-401 | ✓ | Gli sfondi seguono la telecamera; 12 foto a 120 m senza schermate a tinta unita |
 | R-402, R-403, R-404 | ✓ | Foto del rider da 6 angolazioni |
-| R-501, R-502, R-504 | ✓ | Questo file e il Word; legenda; nota D-07 per la copia sul Desktop |
+| R-501, R-502, R-504 | ✓ | Questo file e il Word; legenda; copia sul Desktop aggiornata il 25/10 (D-07) |
 | R-503 | ✓ | Attività pianificata attiva: primo giro 24/10 dalle 21:33 alle 22:12, riuscito (ha pubblicato la 0.8.3); prossimo 25/10 alle 21:33 |
 | R-505 | ✓ | `BUSINESS-PLAN.md` nel repo e Word sul Desktop |
 | S-01 … S-21 | ✓ | Ogni scelta corrisponde al codice (S-12 aggiornata: le porte di Zagabria ora sono a scacchi) |
