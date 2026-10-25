@@ -80,6 +80,29 @@ const wk = read('src/worker.js'), wr = read('wrangler.jsonc');
 ok(/const ATTESA_SFIDA_MS = 40000;/.test(wk), 'nella sfida si aspettano 40 s dopo "Parti"');
 ok(!/ATTESA_SFIDA_MS/.test(wr), 'online nessuna variabile accorcia l\'attesa (ATTESA_SFIDA_MS solo nelle prove locali)');
 
+console.log('C6 · schede delle città (citta/<nome>.js): tutti i campi, nell\'ordine di index.html');
+{
+  const CAMPI = ['tall', 'low', 'fa', 'faG', 'fb', 'fbG', 'ramp', 'gate', 'marker', 'tallCrash', 'lowCrash', 'markerCrash', 'walls', 'style', 'roof', 'bldH', 'ground', 'theme'];
+  const TEMA = ['sky', 'fog', 'hemi', 'sun', 'spray', 'sprayOp', 'trail', 'trailOp', 'rough'];
+  const finto = new Proxy(() => finto, { get: (t, k) => (k === Symbol.toPrimitive ? () => 0 : finto), apply: () => finto });   // catalogo K finto: ogni cosa è una funzione che restituisce se stessa
+  const box = { window: {}, PN: { citta: { schede: {} } } }; box.window.PN = box.PN;
+  const inHtml = [...read('public/pista-nera/index.html').matchAll(/<script src="citta\/([a-z]+)\.js">/g)].map(m => m[1]);
+  const files = existsSync(join(ROOT, 'public/pista-nera/citta')) ? readdirSync(join(ROOT, 'public/pista-nera/citta')).filter(f => f.endsWith('.js')).map(f => f.slice(0, -3)) : [];
+  ok(files.length >= 12 && files.every(f => inHtml.includes(f)) && inHtml.every(f => files.includes(f)), 'ogni file in citta/ ha il suo <script> in index.html e viceversa', files.filter(f => !inHtml.includes(f)).concat(inHtml.filter(f => !files.includes(f))).join(', '));
+  for (const name of files) {
+    try { vm.runInNewContext(read('public/pista-nera/citta/' + name + '.js'), box); } catch (e) { ok(false, name + ': il file si carica', String(e.message)); continue; }
+    const fn = box.PN.citta.schede[name];
+    let card = null;
+    try { card = fn(finto); } catch (e) { ok(false, name + ': la scheda si costruisce', String(e.message)); continue; }
+    const manca = CAMPI.filter(k => !(k in card)).concat(TEMA.filter(k => !card.theme || !(k in card.theme)).map(k => 'theme.' + k));
+    const colori = ['ramp', 'gate'].filter(k => !Array.isArray(card[k]) || card[k].length < 2).concat(!Array.isArray(card.walls) || card.walls.length < 4 ? ['walls'] : []);
+    ok(!manca.length && !colori.length && typeof card.fa === 'string' && typeof card.fb === 'string', name + ': scheda completa (' + CAMPI.length + ' campi, tema con ' + TEMA.length + ' voci)', manca.concat(colori).join(', '));
+  }
+  const protocollo = read('public/shared/protocollo.js');
+  const inProto = (/const SCENE = \[([^\]]+)\]/.exec(protocollo) || ['', ''])[1].replace(/['\s]/g, '').split(',').filter(Boolean);
+  ok(inHtml.every(c => inProto.includes(c)) && inProto.length === inHtml.length + 1, 'le città sono le stesse in index.html e in shared/protocollo.js (SCENE)', inHtml.filter(c => !inProto.includes(c)).join(', '));
+}
+
 console.log('\n' + (problems.length ? 'PROBLEMI:' : 'NESSUN PROBLEMA'));
 for (const p of problems) console.log(' -', p);
 process.exit(problems.length ? 1 : 0);

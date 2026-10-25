@@ -903,7 +903,7 @@
     net.ws = ws;
     ws.onopen = () => {
       net.retries = 0; setBanner('');
-      ws.send(JSON.stringify({ t: 'hello', id: myId, name: inName.value.trim() || 'Rider', j: myJersey(), sc: selScena.value }));
+      ws.send(JSON.stringify({ t: 'hello', v: PN.protocollo.VERSIONE, id: myId, name: inName.value.trim() || 'Rider', j: myJersey(), sc: selScena.value }));
       clearInterval(net.pingTimer);
       net.pingAt = Date.now(); ws.send('ping');
       net.pingTimer = setInterval(() => { if (ws.readyState === 1) { net.pingAt = Date.now(); ws.send('ping'); } }, 20000);
@@ -927,6 +927,7 @@
         net.want = false; toMenu(); menuError(tr('errFull')); return;
       }
       if (ev.code === 4000) { net.want = false; toMenu(); menuError(tr('errOtherTab')); return; }
+      if (ev.code === 4001) { net.want = false; toMenu(); menuError(tr('errAggiorna')); return; }   // versione del protocollo diversa
       if (net.retries < 6) {
         net.retries++;
         setBanner(tr('reconnecting'));
@@ -995,6 +996,9 @@
       removeRemote(m.id);
     } else if (m.t === 'full') {
       menuError(tr('errFull'));
+    } else if (m.t === 'aggiorna') {
+      // il server parla una versione nuova del protocollo: questa pagina è vecchia (la chiusura 4001 porta al menu)
+      say(tr('errAggiorna'), '#d8302a');
     } else if (m.t === 'voice') {
       playVoice(m);
     } else if (m.t === 'voiceOk') {

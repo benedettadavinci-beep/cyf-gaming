@@ -8,7 +8,8 @@
     "deploy": "wrangler deploy",
     "test": "bash tools/verifica/cancello.sh rapido",
     "test:tutto": "bash tools/verifica/cancello.sh tutto",
-    "controlli": "node tools/verifica/controlli.mjs"
+    "controlli": "node tools/verifica/controlli.mjs",
+    "matrice": "node tools/verifica/matrice.mjs"
   },
   "devDependencies": {
     "wrangler": "4.148.0"

@@ -7,10 +7,13 @@
 // Classifica dei tempi e punti collezionati stanno nel Durable Object Leaderboard (SQLite).
 
 import { DurableObject } from 'cloudflare:workers';
+// il contratto dei messaggi condiviso con il gioco (A-12): tipi, campi obbligatori, città, durate, costi, versione
+import '../public/shared/protocollo.js';
+const PROTO = globalThis.CYF_PROTOCOLLO;
 
-const MAX_PLAYERS = 8;
+const MAX_PLAYERS = PROTO.MAX_PLAYERS;
 const AVG_SPEED_MS = 40;                     // velocità media di un giocatore medio: serve a trasformare minuti in metri
-const DURATIONS = [5, 10, 15];               // minuti
+const DURATIONS = PROTO.DURATIONS;            // minuti
 const lengthFor = min => min * 60 * AVG_SPEED_MS;
 const MAX_SPEED_MS = 52;                     // velocità massima possibile nel gioco (m/s), con margine
 const COUNTDOWN_MS = 5000;
@@ -23,10 +26,9 @@ const AUTO_START_MS = 30000;                 // stanze pubbliche: la gara parte 
 const VOICE_COOLDOWN_MS = 3 * 60 * 1000;     // un messaggio vocale ogni 3 minuti per giocatore
 const VOICE_MAX_CHARS = 300000;              // 8 s di WAV a 12 kHz e 16 bit sono 192 KB, cioè 256.000 caratteri in base64
 const VOICE_MIME = ['audio/wav', 'audio/x-wav', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg', 'audio/mp4', 'audio/aac'];
-const DROP_KINDS = ['banana', 'bomb'];
+const DROP_KINDS = PROTO.DROP_KINDS;
 // scenari: ogni città ha la sua pista, quindi in una gara tutti corrono nella stessa città (R-118, R-312)
-const SCENE = ['neve', 'napoli', 'roma', 'milano', 'parigi', 'londra', 'francoforte', 'madrid', 'lisbona', 'zagabria', 'berlino', 'zurigo', 'newyork'];
-const cleanScena = s => (SCENE.includes(s) ? s : 'neve');
+const cleanScena = PROTO.cleanScena;
 const PLACE_POINTS = [100, 70, 50];          // punti per 1°, 2°, 3°; chi arriva dopo ne prende 30
 
 const json = (data, init = {}) =>
@@ -268,11 +270,14 @@ export class RaceRoom extends DurableObject {
     if (raw.length > 2000 && !(raw.length <= VOICE_MAX_CHARS + 500 && raw.startsWith('{"t":"voice"'))) return;
     let m;
     try { m = JSON.parse(raw); } catch (e) { return; }
+    if (PROTO.valida(m, 'client')) return;   // fuori dal contratto (tipo sconosciuto o campo mancante): si ignora
     const st = await this.load();
     const me = ws.deserializeAttachment() || {};
     const now = Date.now();
 
     if (m.t === 'hello') {
+      // pagina vecchia ancora aperta: versione del protocollo diversa → "aggiorna la pagina" invece di errori strani
+      if (m.v !== PROTO.VERSIONE) { this.send(ws, { t: 'aggiorna', v: PROTO.VERSIONE }); ws.close(4001, 'Aggiorna la pagina'); return; }
       const others = this.players(ws);
       if (others.length >= MAX_PLAYERS) { this.send(ws, { t: 'full' }); ws.close(1008, 'Stanza piena'); return; }
       const id = cleanId(m.id);

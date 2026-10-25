@@ -1,5 +1,5 @@
 // modulo: oggetti
-// dipende da: base, lingua, geometria, pista, effetti, audio
+// dipende da: base, lingua, geometria, pista, effetti, audio, protocollo
 // Banane e bombe (R-113): modelli, lancio e posa, urto con il rider, pulsanti e doppio clic sulla pista.
 // Si crea con PN.oggetti({ world, ground, camera, cvs, pista, effetti, audio, net, say, crash, stato }) dal gioco:
 // stato dà lo stato del gioco (P, mode, invuln, bonus in lettura e scrittura, myId).
@@ -13,7 +13,7 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
   const { thump } = audio;
   const $ = id => document.getElementById(id);
   // ---------- banane e bombe: si pagano con i punti della gara e fanno cadere gli altri ----------
-  const COST = { banana: 50, bomb: 150 };
+  const COST = PN.protocollo.COSTI;   // i costi li conosce anche il server (shared/protocollo.js)
   const HAZ_GEO = {
     // buccia di banana: arco giallo con le punte scure, appoggiato sulla pista
     banana: merge([

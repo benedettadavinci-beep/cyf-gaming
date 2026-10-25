@@ -1,4 +1,6 @@
 // Prove del server delle gare (src/worker.js) con client WebSocket simulati, contro wrangler dev su 127.0.0.1:8787
+import '../../public/shared/protocollo.js';
+const PROTO = globalThis.CYF_PROTOCOLLO;
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const WS = BASE.replace(/^http/, 'ws');
 const problems = [];
@@ -13,7 +15,7 @@ class Client {
   connect() {
     return new Promise((res, rej) => {
       this.ws = new WebSocket(WS + '/api/room/' + this.code);
-      this.ws.onopen = () => { this.send({ t: 'hello', id: this.id, name: this.name, j: this.j, sc: this.sc }); res(); };
+      this.ws.onopen = () => { this.send({ t: 'hello', v: this.v === undefined ? PROTO.VERSIONE : this.v, id: this.id, name: this.name, j: this.j, sc: this.sc }); res(); };
       this.ws.onmessage = ev => {
         if (ev.data === 'pong') return;
         let m = JSON.parse(ev.data);
@@ -129,6 +131,20 @@ console.log('T2c · attesa dei concorrenti prima del via (R-119) e maglia nella 
   const go = await A.waitType('go', W + 10000);   // la sveglia del server può tardare un po' se la macchina è carica
   ok(go && go.now - g.gatherUntil > -200 && go.now - g.gatherUntil < 5000 && Math.abs(go.startAt - go.now - 5000) < 50, 'chi non carica mai e chi esce non bloccano: a fine attesa si parte con chi c\'è (5 s di conto alla rovescia)', go && String(go.now - g.now));
   A.close(); B.close(); await sleep(300);
+}
+
+console.log('T1b · protocollo condiviso (A-12): versione nel hello, messaggi fuori contratto ignorati');
+{
+  const code = rnd();
+  const old = new Client(code, 'old' + code, 'Vecchio'); old.v = PROTO.VERSIONE + 1; await old.connect();
+  const agg = await old.waitType('aggiorna', 3000); const cl = await old.wait(m => m.t === '__closed', 3000);
+  ok(!!agg && cl && cl.code === 4001, 'pagina con un\'altra versione del protocollo: "aggiorna" e chiusura 4001', JSON.stringify({ agg: !!agg, close: cl && cl.code }));
+  const A = new Client(code, 'pa' + code, 'A'); await A.connect(); await A.waitType('welcome');
+  A.send({ t: 'boh' }); A.send({ t: 'settings' }); A.send({ t: 'drop', kind: 'banana' }); A.send('{"t":5}');
+  await sleep(400);
+  ok(!A.closed && A.ws.readyState === 1, 'messaggi fuori contratto (tipo sconosciuto, campi mancanti) ignorati senza chiudere');
+  ok(PROTO.valida({ t: 'hello', id: 'x', name: 'y', v: 1 }, 'client') === null && PROTO.valida({ t: 'pos', x: 1 }, 'client') !== null, 'valida(): accetta i messaggi giusti e segnala i campi mancanti');
+  A.close(); await sleep(200);
 }
 
 console.log('T2 · stanza piena (8 giocatori, il 9° rifiutato) e pulizia dei nomi');
