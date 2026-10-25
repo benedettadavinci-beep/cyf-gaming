@@ -7,7 +7,7 @@ THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/buil
 REPO = os.environ.get('CYF_REPO', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GAME = open(os.path.join(REPO, 'public', 'pista-nera', 'game.js'), encoding='utf-8').read()
 hook = "  applyLang(lang);\n"
-GAME = GAME.replace(hook, hook + "  window.__dbg = { get P() { return P; }, get objs() { return objs; }, set mode(v) { mode = v; }, get mode() { return mode; }, reset, applyTheme, assets, CITY_CFG, center, camera, god() { invuln = 1e9; lives = 99; }, frames(n) { return new Promise(res => { let k = 0; const f = () => { if (++k >= n) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); }); } };\n")
+GAME = GAME.replace(hook, hook + "  window.__dbg = { get P() { return P; }, get objs() { return GEN.objs; }, set mode(v) { mode = v; }, get mode() { return mode; }, reset, applyTheme, assets, CITY_CFG, center, camera, god() { invuln = 1e9; lives = 99; }, frames(n) { return new Promise(res => { let k = 0; const f = () => { if (++k >= n) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); }); } };\n")
 SIDE = float(sys.argv[2]) if len(sys.argv) > 2 else 0
 cities = sys.argv[1].split(',') if len(sys.argv) > 1 else ['napoli','roma','milano','parigi','londra','francoforte','madrid','lisbona','zagabria','berlino','zurigo','newyork']
 with sync_playwright() as p:

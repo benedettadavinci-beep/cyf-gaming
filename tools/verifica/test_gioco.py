@@ -11,10 +11,10 @@ hook = "  applyLang(lang);\n"
 assert GAME.count(hook) == 1
 GAME = GAME.replace(hook, hook + """
   window.__dbg = {
-    get P() { return P; }, get objs() { return objs; }, get mode() { return mode; }, set mode(v) { mode = v; }, get theme() { return theme; },
+    get P() { return P; }, get objs() { return GEN.objs; }, get mode() { return mode; }, set mode(v) { mode = v; }, get theme() { return theme; },
     get bonus() { return bonus; }, set bonus(v) { bonus = v; }, get lives() { return lives; }, set invuln(v) { invuln = v; }, get raceLen() { return raceLen; },
     get finishObj() { return finishObj; }, get hazards() { return hazards; }, get PART() { return PART; }, get tuckS() { return tuckS; }, get brakeS() { return brakeS; },
-    reset, applyTheme, ensureSpawned, TRACKS, assets, CITY_CFG, THEMES, builtSky, bay, rome, ranges, camera, me, scene, renderer, collide, keys, stick, net, center, hgt, tr,
+    reset, applyTheme, ensureSpawned, TRACKS, assets, CITY_CFG, THEMES, builtSky, bay: builtSky.napoli, rome: builtSky.roma, ranges, camera, me, scene, renderer, collide, keys, stick, net, center, hgt, tr,
     store, mutedIds, playVoice, useItem, jump, PALETTE, flakes, groundMat, sky, hemi, sun, trailMesh, sprayPts, isCity, remotes, standings, GEO, GROUND_TEX,
     jacketTexture, JERSEYS, myJersey, THREE, world, god() { invuln = 1e9; lives = 99; }, setLives(n) { lives = n; renderLives(); }, lastToast() { const t = window.__toasts; return t.length ? t[t.length - 1] : ''; },
     frames(n) { return new Promise(res => { let k = 0; const f = () => { if (++k >= n) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); }); }

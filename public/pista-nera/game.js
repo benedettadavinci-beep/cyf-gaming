@@ -80,117 +80,6 @@
   const CITTA = PN.citta({ world, ANISO, pista: PISTA });
   const { CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, textTexture, finishLine, rampCity, propGeos } = CITTA;
   const assets = () => CITTA.assetsFor(theme);
-  // --- bordi della strada (riga "Fondo stradale"): doppia linea gialla al marciapiede (Londra), marciapiede a mosaico (Berlino) ---
-  function mosaicTexture() {
-    const c = document.createElement('canvas'); c.width = 64; c.height = 256;
-    const g = c.getContext('2d'); const rr = mulberry32(52);
-    g.fillStyle = '#8d8a84'; g.fillRect(0, 0, 64, 256);
-    for (let y = 0; y < 256; y += 8) for (let x = 0; x < 64; x += 8) { const v = 150 + Math.floor(rr() * 50); g.fillStyle = 'rgb(' + v + ',' + (v - 3) + ',' + (v - 8) + ')'; g.fillRect(x + 1, y + 1, 6.4, 6.4); }
-    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = Math.min(8, ANISO);
-    return t;
-  }
-  const EDGE_MATS = {
-    lines: () => new THREE.MeshBasicMaterial({ color: lin('#e8c026'), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 }),
-    walk: () => new THREE.MeshStandardMaterial({ map: mosaicTexture(), roughness: 0.95, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 })
-  };
-  const edgeMats = {};
-  // striscia che segue la curva della strada da z a z-len, a "off" metri dal centro, larga w
-  function edgeStrip(z0, len, off, w, mat, uvScale) {
-    const n = Math.round(len), pos = [], uv = [], idx = [];
-    for (let i = 0; i <= n; i++) {
-      const z = z0 - i, c = center(z);
-      for (const k of [-1, 1]) { const x = c + off + k * w / 2; pos.push(x, hgt(x, z) + 0.04, z); uv.push(k > 0 ? 1 : 0, i * uvScale); }
-      if (i) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }   // facce rivolte in alto
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    g.setIndex(idx); g.computeVertexNormals();
-    const m = new THREE.Mesh(g, mat); m.receiveShadow = true; world.add(m);
-    return m;
-  }
-  // --- lati della strada vera (R-307, sezione 12 dei requisiti): mare, fori, file di alberi; numeri casuali propri, la pista non cambia ---
-  const SIDE_MATS = {
-    sea: () => new THREE.MeshStandardMaterial({ color: lin('#2f78b4'), roughness: 0.35, metalness: 0.1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }),
-    wall: () => new THREE.MeshStandardMaterial({ color: lin('#d9d2c0'), roughness: 0.9 }),
-    ruin: () => new THREE.MeshStandardMaterial({ color: lin('#c9bba0'), roughness: 0.95 }),
-    grass: () => new THREE.MeshStandardMaterial({ color: lin('#6f8a4a'), roughness: 1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 })
-  };
-  const sideMats = {};
-  const sideMat = k => sideMats[k] || (sideMats[k] = SIDE_MATS[k]());
-  // muretto che segue la curva (parapetto del lungomare, muri bassi dei fori): facce verticali e cima
-  function wallStrip(z0, len, off, w, h, mat) {
-    const n = Math.round(len / 2), pos = [], idx = [];
-    for (let i = 0; i <= n; i++) {
-      const z = z0 - i * 2, c = center(z), y0 = hgt(c + off, z) - 0.2;
-      for (const [dx, dy] of [[-w / 2, 0], [-w / 2, h], [w / 2, h], [w / 2, 0]]) pos.push(c + off + dx, y0 + dy, z);
-      if (i) { const a = (i - 1) * 4, b = i * 4; for (let k = 0; k < 3; k++) idx.push(a + k, b + k, a + k + 1, a + k + 1, b + k, b + k + 1); }
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
-    const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; world.add(m);
-    return m;
-  }
-  let sideRng = Math.random, sideZ = 0, treeZ = 0;
-  const STREET_SIDE = {
-    // Napoli, via Partenope: il mare con il parapetto di pietra
-    sea(z, len, s) {
-      objs.push({ type: 'side', x: center(z) + s * 60, z: z - len / 2, mesh: edgeStrip(z, len, s * 60, 76, sideMat('sea'), 0.05) });
-      objs.push({ type: 'side', x: center(z) + s * 22.4, z: z - len / 2, mesh: wallStrip(z, len, s * 22.4, 0.5, 1.0, sideMat('wall')) });
-    },
-    // Roma, via dei Fori Imperiali: prato, muri bassi di tufo e colonne spezzate
-    ruins(z, len, s) {
-      const r = sideRng;
-      objs.push({ type: 'side', x: center(z) + s * 40, z: z - len / 2, mesh: edgeStrip(z, len, s * 40, 36, sideMat('grass'), 0.05) });
-      for (let d = 2; d < len - 2; d += 4 + r() * 7) {
-        const zz = z - d, off = 24 + r() * 14, x = center(zz) + s * off;
-        if (r() < 0.55) {
-          const h = 1.5 + r() * 5, col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, h, 10), sideMat('ruin'));
-          col.position.set(x, hgt(x, zz) + h / 2 - 0.2, zz); col.castShadow = true; world.add(col);
-          objs.push({ type: 'side', x, z: zz, mesh: col });
-        } else {
-          const w = 3 + r() * 6, h = 0.8 + r() * 1.6, wl = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1.2), sideMat('ruin'));
-          wl.position.set(x, hgt(x, zz) + h / 2 - 0.2, zz); wl.rotation.y = r() * 0.6; wl.castShadow = true; world.add(wl);
-          objs.push({ type: 'side', x, z: zz, mesh: wl });
-        }
-      }
-    }
-  };
-  function spawnStreetSide(z, len, ghost) {
-    const ST = CITY_CFG[theme].street;
-    if (!ST) return;
-    for (const s of [-1, 1]) {
-      const kind = s < 0 ? ST.L : ST.R;
-      const fn = STREET_SIDE[kind];
-      if (!fn) continue;
-      if (ghost) { if (kind === 'ruins') for (let d = 2; d < len - 2; d += 4 + sideRng() * 7) { sideRng(); sideRng(); sideRng(); sideRng(); } continue; }
-      fn(z, len, s);
-    }
-  }
-  // file di alberi ai lati (platani, tigli, jacaranda, pini): ogni "every" metri, a 22 m dal centro
-  function spawnSideTrees(z, ghost) {
-    const ST = CITY_CFG[theme].street;
-    if (!ST || !ST.trees) return 18;
-    const geo = assets().sideTree, r = sideRng;
-    for (const s of ST.trees.sides || [-1, 1]) {
-      const jitter = (r() - 0.5) * 2, sc = 0.9 + r() * 0.3, ry = r() * TAU;
-      if (ghost) continue;
-      const x = center(z) + s * (ST.trees.off || 22.3) + jitter * 0.3;
-      objs.push({ type: 'sidetree', x, z, mesh: addMesh(geo, vcMat, x, z, { s: sc, ry, shadow: true }) });
-    }
-    return ST.trees.every;
-  }
-
-  function spawnEdge(z, len) {
-    const E = CITY_CFG[theme].edge;
-    if (!E) return;
-    const mat = edgeMats[E] || (edgeMats[E] = EDGE_MATS[E]());
-    for (const s of [-1, 1]) {
-      if (E === 'lines') { for (const d of [20.25, 20.75]) objs.push({ type: 'edge', x: center(z) + s * d, z: z - len / 2, mesh: edgeStrip(z, len, s * d, 0.3, mat, 0.1) }); }
-      else objs.push({ type: 'edge', x: center(z) + s * 23.3, z: z - len / 2, mesh: edgeStrip(z, len, s * 23.3, 3.2, mat, 0.25) });
-    }
-  }
-
   const { addMesh } = PISTA;
   const { JERSEYS, myJersey, jacketTexture, switchOf, bodyTurn, makeRider } = PN.rider;
   const me = makeRider(PALETTE[0]);
@@ -263,8 +152,8 @@
   // mode: menu | solo | pause | over | lobby | countdown | race | finished | results
   let mode = 'menu';
   let best = parseInt(store.get('pistaNera.best') || '0', 10) || 0;
-  let wallT = 0, tricksN = 0, near500 = false, P, objs = [], bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, rowZ, forestZ, markerZ, camYaw, lean, camY, squash, armsUp;
-  let rowRng = Math.random, forestRng = Math.random, buildRng = Math.random, propRng = Math.random, buildZ = 0, propZ = 0, finishObj = null, raceLen = 2000;
+  let wallT = 0, tricksN = 0, near500 = false, P, bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, camYaw, lean, camY, squash, armsUp;
+  let finishObj = null, raceLen = 2000;
   const racing = () => mode === 'countdown' || mode === 'race' || mode === 'finished';
   const distM = () => Math.max(0, -P.z);
   const score = () => Math.floor(distM()) + bonus;
@@ -274,10 +163,9 @@
   const stato = {
     get P() { return P; }, get mode() { return mode; }, get invuln() { return invuln; }, get raceLen() { return raceLen; },
     get bonus() { return bonus; }, set bonus(v) { bonus = v; },
-    get myId() { return myId; }, racing, isCity
+    get myId() { return myId; }, get theme() { return theme; }, racing, isCity
   };
 
-  let bigZones = [];   // spazio libero attorno ai trampolini giganti
   // Altezza della superficie della rampa (sopra la sua base) nel punto z della pista. Ricalca il modello: profilo
   // quadratico da (-0,6; 0) a (4; 1,1) più lo spessore del bordo arrotondato (0,25 sulla neve, 0,2 in città),
   // scalato ×2 per il trampolino gigante. La rampa inizia RAMP_FOOT·k metri prima del suo centro (il rider ci sale 0,9 m prima, quando ci arriva
@@ -292,8 +180,7 @@
     return (1.1 * (1 - u) + bev) * k;
   }
   function clearWorld() {
-    for (const o of objs) removeObj(o);
-    objs = [];
+    GEN.svuota();
     if (finishObj) { world.remove(finishObj); finishObj = null; }
   }
   let lastSeed = 0;
@@ -301,18 +188,13 @@
     lastSeed = seed;
     diag.log('pista', 'seed ' + seed + ' · ' + theme + (withFinish ? ' · con traguardo' : ''));
     clearWorld();
-    rowRng = mulberry32(seed);
-    forestRng = mulberry32(seed ^ 0x5bd1e995);
-    buildRng = mulberry32(seed ^ 0x2c1b3c6d);
-    propRng = mulberry32(seed ^ 0x6a09e667);
-    buildZ = 30; propZ = 10; sideZ = 20; treeZ = 14; sideRng = mulberry32(seed ^ 0x1b873593);
-    bigZones = [];
+    GEN.riparti(seed);
     P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: 9, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
     maxSpeed = 0; bestSpin = 0; overTimer = 0; overReason = ''; tricksN = 0; near500 = false;
     clearHazards();
-    rowZ = -28; forestZ = 22; markerZ = 10; camYaw = 0; lean = 0; camY = NaN; squash = 0; armsUp = 0;
+    camYaw = 0; lean = 0; camY = NaN; squash = 0; armsUp = 0;
     renderLives();
     PISTA.resetGround();
     updateGround(P.x, P.z);
@@ -320,247 +202,14 @@
     ensureSpawned();
   }
 
-  // ---------- spawning (seeded: everybody in a race gets the same course) ----------
-  function addTree(rng, x, z, s, shadow, ghost) {
-    const tilt = [(rng() - 0.5) * 0.1, (rng() - 0.5) * 0.1];
-    const geo = GEO.trees[rng() < 0.3 ? 1 : 0];
-    const sy = 0.9 + rng() * 0.25, ry = rng() * TAU;   // stessi numeri casuali in ogni scenario: la pista resta identica
-    if (ghost) return null;
-    if (isCity()) return { type: 'tree', x, z, s, mesh: addMesh(assets().tall, vcMat, x, z, { s: s * 1.05, sy, ry, tilt, shadow }) };
-    return { type: 'tree', x, z, s, mesh: addMesh(geo, vcMat, x, z, { s, sy, ry, tilt, shadow }) };
-  }
-  function spawnRow(z, ghost) {
-    const r = rowRng, rr = (a, b) => a + r() * (b - a);
-    const d = -z, c = center(z);
-    const n = r() < Math.min(0.8, 0.4 + d / 3500) ? 2 : 1;
-    const xs = [];
-    for (let i = 0; i < n; i++) {
-      let x = c + rr(-15.5, 15.5);
-      const kind = r();
-      if (xs.some(v => Math.abs(v - x) < 4.5) || inBigZone(x, z, 1.3)) continue;
-      xs.push(x);
-      // R-310 (0.10.0): ostacoli −35%. Prima: alberi fino a 0,38 e rocce fino a 0,58; ora 0,247 e 0,377, e fino a 0,58 non si mette nulla
-      if (kind < 0.247) { const t = addTree(r, x, z, rr(0.75, 1.05), true, ghost); if (t) objs.push(t); }
-      else if (kind < 0.377) { const s = rr(0.8, 1.25), ry = r() * TAU; if (!ghost) objs.push({ type: 'rock', x, z, s, mesh: addMesh(isCity() ? assets().low : GEO.rock, vcMat, x, z, { s, ry }) }); }
-      else if (kind < 0.58) { /* posto lasciato libero */ }
-      else if (kind < 0.71) {
-        const k = 3 + Math.floor(r() * 3);
-        if (!ghost) for (let j = 0; j < k; j++) {
-          const gz = z - j * 2.2, gx = x + (center(gz) - c) + Math.sin(j * 0.9) * 0.8;   // la fila di bonus segue la curva della strada: uguale in ogni città (R-309)
-          if (inBigZone(gx, gz, 0.5)) continue;
-          const alt = (Math.round(z) + j) % 2;
-          const CC = CITY_CFG[theme];
-          const food = CC ? (alt ? assets().fa : assets().fb) : null;
-          objs.push({ type: 'gem', x: gx, z: gz, mesh: food ? addMesh(food, vcMat, gx, gz, { y: 0.9 }) : addMesh(gemGeo, gemMat, gx, gz, { y: 0.9 }), phase: j, food: CC ? (alt ? CC.fa : CC.fb) : null });
-        }
-      }
-      else if (kind < 0.83) {
-        // circa una rampa su sette (15%) è un trampolino gigante: grande il doppio, fa saltare molto più in alto (R-214)
-        const big = r() < 0.15;
-        if (big) x = clamp(x, c - 13.5, c + 13.5);   // largo 6 m: resta tutto dentro la strada
-        if (big) {
-          const zone = { x, z0: z + 5, z1: z - 5.5, hw: 3.6 };
-          bigZones.push(zone);
-          // via quello che il trampolino coprirebbe (anche dalla fila prima): stessa scelta su ogni dispositivo
-          objs = objs.filter(o => {
-            if (o.type === 'tree' || o.type === 'rock' || o.type === 'gem' || o.type === 'ramp' || o.type === 'gate') {
-              const hw = zone.hw + (o.type === 'gate' ? o.half + 0.3 : o.type === 'gem' ? 0.5 : 1.3);
-              if (o.z <= zone.z0 && o.z >= zone.z1 && Math.abs(o.x - x) < hw) { removeObj(o); return false; }
-            }
-            return true;
-          });
-        }
-        if (!ghost) objs.push({ type: 'ramp', x, z, used: false, big, mesh: addMesh(isCity() ? assets().ramp : GEO.ramp, vcMat, x, z, big ? { recv: true, s: 2 } : { recv: true }) });
-      }
-      else {
-        const gx = c + rr(-9, 9), gi = r() < 0.5 ? 0 : 1;
-        const CG = CITY_CFG[theme];
-        if (!ghost && !inBigZone(gx, z, 2.7)) objs.push({ type: 'gate', x: gx, z, half: 2.4, done: false, mesh: addMesh(CG ? assets().gates[gi] : (gi ? GEO.gateBlue : GEO.gateRed), vcMat, gx, z), col: CG ? CG.gate[gi] : (gi ? '#2766c6' : '#d8302a') });
-      }
-    }
-  }
-  function inBigZone(x, z, pad) {
-    for (const b of bigZones) if (z <= b.z0 && z >= b.z1 && Math.abs(x - b.x) < b.hw + pad) return true;
-    return false;
-  }
-  // palazzi ai lati della strada (solo estetica: non cambiano la pista)
-  function spawnBuildings(ghost) {
-    const r = buildRng;
-    const z = buildZ, c = center(z);
-    let len = 0;
-    const ST = CITY_CFG[theme].street || {};
-    for (const side of [-1, 1]) {
-      if ((side < 0 ? ST.L : ST.R) && (side < 0 ? ST.L : ST.R) !== 'bldg') continue;   // R-307: niente palazzi dove la strada vera ha il mare o i fori
-      const bh = CITY_CFG[theme].bldH;
-      const w = 9 + r() * 6, d = 9 + r() * 5, h = bh[0] + r() * bh[1];
-      const x = c + side * (23.5 + (CITY_CFG[theme].setback || 0) + d / 2 + r() * 2);
-      const matI = Math.floor(r() * 8);
-      const rot = (r() - 0.5) * 0.06;
-      if (!ghost) {
-        const mats = facadesFor(theme), roof = roofFor(theme);
-        const mat = mats[matI % mats.length];
-        const m = new THREE.Mesh(buildingGeo(d, h, w), [mat, mat, roof, roof, mat, mat]);
-        m.receiveShadow = true;
-        m.position.set(x, hgt(x, z), z);
-        m.rotation.y = rot;
-        world.add(m);
-        objs.push({ type: 'bldg', x, z, mesh: m });
-      }
-      len = Math.max(len, w);
-    }
-    buildZ -= len + 0.6 + r() * 1.2;
-  }
-  // un oggetto sul marciapiede (tram, cabina, bus, taxi, ombrellone, Muro), allineato alla strada
-  function spawnProp(z, ghost) {
-    const r = propRng, list = assets().props;
-    let side = r() < 0.5 ? -1 : 1;
-    const pick = list[Math.floor(r() * list.length)], jitter = r();
-    if (!pick) return 0;
-    const ST = CITY_CFG[theme].street;
-    if (ST && (side < 0 ? ST.L : ST.R) !== 'bldg') side = -side;   // niente auto sul mare o sui fori
-    if (!ghost) {
-      const c = center(z), x = c + side * (23.8 + jitter * 0.4);
-      const ry = -(center(z - 1) - center(z)) + (side < 0 ? Math.PI : 0);
-      objs.push({ type: 'prop', x, z, mesh: addMesh(pick.geo, vcMat, x, z, { ry }) });
-    }
-    return pick.len;
-  }
-  function removeObj(o) {
-    world.remove(o.mesh);
-    if (o.type === 'bldg' || o.type === 'edge' || o.type === 'side') o.mesh.geometry.dispose();
-  }
-  function spawnForest(z, ghost) {
-    const r = forestRng, c = center(z);
-    for (const side of [-1, 1]) {
-      const k = r() < 0.65 ? 2 : 1;
-      for (let i = 0; i < k; i++) {
-        const x = c + side * (22 + r() * 26), tz = z + (r() - 0.5) * 3;
-        const t = addTree(r, x, tz, 0.85 + r() * 0.55, Math.abs(x - c) < 32, ghost);
-        if (t) objs.push(t);
-      }
-    }
-  }
-  function ensureSpawned() {
-    const horizon = P.z - 200;
-    const bLine = P.z + 16;   // quello che è già alle spalle non va costruito: solo "consumato"
-    const soloWorld = mode === 'solo' || mode === 'over' || mode === 'pause';
-    while (rowZ > horizon) {
-      // in gara niente ostacoli negli ultimi 25 m prima del traguardo
-      if (soloWorld || (racing() && -rowZ < raceLen - 25)) spawnRow(rowZ, rowZ > bLine);
-      rowZ -= (6 + rowRng() * 4) * Math.max(0.5, 1 - (-rowZ) / 3200);
-    }
-    if (isCity()) {
-      while (buildZ > horizon) spawnBuildings(buildZ > bLine);
-      if (assets().props.length) while (propZ > horizon) { const len = propRng() < 0.6 ? spawnProp(propZ, propZ > bLine) : 0; propZ -= 14 + len + propRng() * 30; }
-    } else {
-      while (forestZ > horizon) { spawnForest(forestZ, forestZ > bLine); forestZ -= 2.4 + forestRng() * 1.6; }
-    }
-    while (markerZ > horizon) {
-      const c = center(markerZ);
-      if (markerZ <= bLine) {
-        for (const s of [-1, 1]) objs.push({ type: 'marker', x: c + s * 19.5, z: markerZ, mesh: addMesh(isCity() ? assets().marker : GEO.marker, vcMat, c + s * 19.5, markerZ) });
-        if (isCity()) spawnEdge(markerZ, 22);
-      }
-      markerZ -= 22;
-    }
-    if (isCity() && CITY_CFG[theme].street) {
-      while (sideZ > horizon) { spawnStreetSide(sideZ, 22, sideZ > bLine); sideZ -= 22; }
-      while (treeZ > horizon) treeZ -= spawnSideTrees(treeZ, treeZ > bLine);
-    }
-    const behind = P.z + 16;
-    if (bigZones.length && bigZones[0].z1 > behind) bigZones = bigZones.filter(b => b.z1 <= behind);
-    if (objs.length && objs.some(o => o.z > behind)) objs = objs.filter(o => { if (o.z > behind) { removeObj(o); return false; } return true; });
-  }
+  const GEN = PN.generazione({ world, ANISO, pista: PISTA, citta: CITTA, stato });
+  const { ensureSpawned, removeObj } = GEN;
 
-  // ---------- input ----------
-  const keys = { left: false, right: false, up: false, down: false };
-  // rotellina sul telefono: x da -1 (sinistra) a 1 (destra), y da -1 (su = accelera) a 1 (giù = frena)
-  const stick = { x: 0, y: 0, on: false };
-  const inSteer = () => clamp((keys.right ? 1 : 0) - (keys.left ? 1 : 0) + stick.x, -1, 1);
-  const inFast = () => (keys.down && !keys.up) || stick.y < -0.35;   // posizione raccolta, più veloce
-  const inSlow = () => keys.up || stick.y > 0.35;                    // peso in avanti, frena
-  window.addEventListener('keydown', e => {
-    if (e.target && e.target.tagName === 'INPUT') { if (e.key === 'Enter' && inCode.value.trim()) joinFromMenu(); return; }
-    const k = e.key;
-    if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.left = true; e.preventDefault(); }
-    else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = true; e.preventDefault(); }
-    else if (k === ' ') { if (mode === 'solo' || mode === 'race') e.preventDefault(); if (!e.repeat) jump(); }
-    else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
-      // a terra frena (peso in avanti); in aria salto mortale in avanti
-      if (mode === 'solo' || mode === 'race') e.preventDefault();
-      keys.up = true;
-    }
-    else if (k === 'ArrowDown' || k === 's' || k === 'S') { e.preventDefault(); keys.down = true; }
-    else if (k === 'p' || k === 'P' || k === 'Escape') togglePause();
-    else if (k === 'm' || k === 'M') setMuted(!AUDIO.muted);
-    else if (k === 'v' || k === 'V') { if (!e.repeat) voiceButton(); }
-    else if (k === 'b' || k === 'B') { if (!e.repeat) useItem('banana'); }
-    else if (k === 'n' || k === 'N') { if (!e.repeat) useItem('bomb'); }
-  });
-  window.addEventListener('keyup', e => {
-    const k = e.key;
-    if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.left = false;
-    if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.right = false;
-    if (k === 'ArrowUp' || k === 'w' || k === 'W') keys.up = false;
-    if (k === 'ArrowDown' || k === 's' || k === 'S') keys.down = false;
-  });
-  window.addEventListener('blur', () => { keys.left = keys.right = keys.up = keys.down = false; stick.x = stick.y = 0; if (mode === 'solo') togglePause(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'solo') togglePause(); });
-  function holdButton(el, key) {
-    const on = e => { e.preventDefault(); keys[key] = true; el.classList.add('on'); };
-    const off = () => { keys[key] = false; el.classList.remove('on'); };
-    el.addEventListener('pointerdown', on);
-    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, off));
-    el.addEventListener('contextmenu', e => e.preventDefault());
-  }
-  // sul telefono: Salta a terra salta, tenuto premuto in aria fa il salto mortale all'indietro
-  const tJump = $('tJump');
-  tJump.addEventListener('pointerdown', e => { e.preventDefault(); tJump.classList.add('on'); if (P && P.air) keys.down = true; else jump(); });
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => tJump.addEventListener(ev, () => { keys.down = false; tJump.classList.remove('on'); }));
-  tJump.addEventListener('contextmenu', e => e.preventDefault());
-  // rotellina: compare dove si appoggia il dito; spostandolo a destra/sinistra si curva (più lo sposti, più curvi),
-  // in su si accelera, in giù si frena; in aria destra/sinistra = avvitamento, su/giù = salto mortale
-  const stickEl = $('stick'), stickBase = $('stickBase'), stickKnob = $('stickKnob');
-  const STICK_R = 54;
-  let stickId = null, stickCx = 0, stickCy = 0;
-  function stickRest() {
-    const r = stickEl.getBoundingClientRect();
-    stickBase.style.left = (r.width * 0.56) + 'px'; stickBase.style.top = (r.height * 0.58) + 'px';
-    stickKnob.style.transform = '';
-  }
-  function stickMove(e) {
-    const dx = e.clientX - stickCx, dy = e.clientY - stickCy;
-    const d = Math.hypot(dx, dy), k = d > STICK_R ? STICK_R / d : 1;
-    const kx = dx * k, ky = dy * k;
-    stickKnob.style.transform = 'translate(' + kx + 'px,' + ky + 'px)';
-    const dead = (v) => Math.abs(v) < 0.14 ? 0 : (v - Math.sign(v) * 0.14) / 0.86;
-    stick.x = dead(kx / STICK_R); stick.y = dead(ky / STICK_R);
-  }
-  stickEl.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    if (stickId !== null) return;
-    stickId = e.pointerId;
-    try { stickEl.setPointerCapture(e.pointerId); } catch (err) {}
-    const r = stickEl.getBoundingClientRect();
-    // il centro della rotellina va sotto il dito, senza uscire dalla zona
-    const cx = clamp(e.clientX - r.left, 66, r.width - 66), cy = clamp(e.clientY - r.top, 66, r.height - 66);
-    stickCx = r.left + cx; stickCy = r.top + cy;
-    stickBase.style.left = cx + 'px'; stickBase.style.top = cy + 'px';
-    stick.on = true; stickEl.classList.add('on');
-    stickMove(e);
-    initAudio();
-  });
-  stickEl.addEventListener('pointermove', e => { if (e.pointerId === stickId) stickMove(e); });
-  const stickEnd = e => {
-    if (e.pointerId !== stickId) return;
-    stickId = null; stick.x = stick.y = 0; stick.on = false;
-    stickEl.classList.remove('on'); stickRest();
-  };
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => stickEl.addEventListener(ev, stickEnd));
-  stickEl.addEventListener('contextmenu', e => e.preventDefault());
-  window.addEventListener('resize', stickRest);
-  stickRest();
-
+  const COMANDI = PN.comandi({ audio: AUDIO, stato, azioni: {
+    jump: () => jump(), togglePause: () => togglePause(), setMuted, voiceButton: () => voiceButton(), useItem: (...a) => useItem(...a),
+    enterInInput: () => { if (inCode.value.trim()) joinFromMenu(); }
+  } });
+  const { keys, stick, inSteer, inFast, inSlow, stickRest } = COMANDI;
   // ---------- overlays & HUD ----------
   const OVERLAYS = ['menu', 'lobby', 'raceResults', 'over', 'pause'];
   function show(id) { for (const o of OVERLAYS) $(o).hidden = o !== id; diag.log('schermata', id || 'gioco'); }
@@ -774,7 +423,7 @@
     if (!auto && !frozen && !braking) collide();
     if (mode === 'race') collideHazards();
     updateHazards(dt);
-    for (const o of objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = hgt(o.x, o.z) + 0.9 + Math.sin(t * 3 + o.phase) * 0.15; }
+    for (const o of GEN.objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = hgt(o.x, o.z) + 0.9 + Math.sin(t * 3 + o.phase) * 0.15; }
     updateSpray(dt);
     updateSparks(dt);
     updateFlakes(dt, P.x, P.z, P.speed);
@@ -785,6 +434,7 @@
   function collide() {
     if (mode === 'solo' && lives <= 0) return;
     let taken = false;
+    const objs = GEN.objs;
     for (const o of objs) {
       const dz = o.z - P.z;
       if (dz < -7 || dz > 6) continue;   // -7: il trampolino gigante si tocca già 6,6 m prima del suo centro
@@ -812,7 +462,7 @@
         }
       }
     }
-    if (taken) objs = objs.filter(o => !o.taken);
+    if (taken) GEN.objs = objs.filter(o => !o.taken);
   }
 
   function soloOver() {
@@ -1331,7 +981,7 @@
     if (isCity()) { const cc = center(cz); cx = clamp(cx, cc - 22.4, cc + 22.4); }   // la telecamera non entra nei palazzi
     // gli alberi troppo vicini alla telecamera spariscono, così non si finisce dentro le chiome
     const hideR = theme === 'neve' ? 2.5 : 0.9;
-    for (const o of objs) {
+    for (const o of GEN.objs) {
       if (o.type !== 'tree') continue;
       const dx = o.x - cx, dz = o.z - cz, r = hideR * o.s + 0.3;
       o.mesh.visible = dx * dx + dz * dz > r * r;

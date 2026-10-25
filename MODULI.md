@@ -40,7 +40,9 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/avversari.js` | avversari | 121 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (JERSEYS, makeRider, bodyTurn, switchOf) |
 | `moduli/base.js` | base | 38 | nessuno |
 | `moduli/citta.js` | citta | 881 | pista (center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_MAKE); base (TAU, lin, mulberry32); lingua (tr, fmtLen); geometria (merge, lumpy, vcMat, GEO, gateGeo) |
+| `moduli/comandi.js` | comandi | 104 | base (clamp); audio (initAudio, muted) |
 | `moduli/effetti.js` | effetti | 132 | base (isPhone, lin, rand, reduceMotion) |
+| `moduli/generazione.js` | generazione | 303 | base (TAU, clamp, lin, mulberry32); geometria (GEO, vcMat); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/lingua.js` | lingua | 37 | base (store) |
 | `moduli/oggetti.js` | oggetti | 129 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
@@ -48,7 +50,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/rider.js` | rider | 290 | base (TAU, lin, store) |
 | `moduli/sfondi.js` | sfondi | 522 | base (TAU, lin, mulberry32); geometria (lumpy) |
 | `moduli/vocali.js` | vocali | 180 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr) |
-| `game.js` | — | 1494 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, jacketTexture, switchOf, bodyTurn, makeRider); effetti (); audio (); protocollo (VERSIONE); vocali (); oggetti (); avversari () |
+| `game.js` | — | 1144 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, jacketTexture, switchOf, bodyTurn, makeRider); effetti (); audio (); generazione (); comandi (); protocollo (VERSIONE); vocali (); oggetti (); avversari () |
 | `diagnosi.js` | — | 149 | nessuno |
 | `i18n.js` | — | 361 | nessuno |
 | `shared/protocollo.js` | protocollo | 80 | nessuno |

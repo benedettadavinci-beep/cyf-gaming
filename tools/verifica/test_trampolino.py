@@ -10,7 +10,7 @@ GAME = open(os.path.join(REPO, 'public', 'pista-nera', 'game.js'), encoding='utf
 hook = "  applyLang(lang);\n"
 assert GAME.count(hook) == 1
 GAME = GAME.replace(hook, hook + """
-  window.__dbg = { get P() { return P; }, get objs() { return objs; }, set mode(v) { mode = v; }, reset, applyTheme, ensureSpawned, center, hgt, rider, world, THREE,
+  window.__dbg = { get P() { return P; }, get objs() { return GEN.objs; }, set mode(v) { mode = v; }, reset, applyTheme, ensureSpawned, center, hgt, rider, world, THREE,
     god() { invuln = 1e9; lives = 99; }, frames(n) { return new Promise(res => { let k = 0; const f = () => { if (++k >= n) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); }); } };
 """)
 
