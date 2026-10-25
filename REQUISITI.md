@@ -227,6 +227,13 @@ Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel
 | R-505 | ✓ | `BUSINESS-PLAN.md` nel repo e Word sul Desktop |
 | S-01 … S-21 | ✓ | Ogni scelta corrisponde al codice (S-12 aggiornata: le porte di Zagabria ora sono a scacchi) |
 
+**Controllo della 0.12.1 (25/10, ore 16)**: cancello rapido, `test_gioco.py` (165 controlli) e `test_trampolino.py` a Napoli e Berlino superati, più le foto del rider prima e dopo:
+
+| ID | Esito | Come è stato verificato |
+|---|---|---|
+| R-217 | ✓ | Foto ravvicinata della tavola: ruote da 9 cm con mozzo e bordo, carrelli e tavola sopra; le scarpe appoggiano sulla tavola. Trampolini in città: il rider (ruote comprese) entra nella superficie al massimo di 4 cm, come prima |
+| R-218 | ✓ | Foto in città da 4 angolazioni e del viso: casco da skate, viso scoperto, mani nude, scarpe da skate. Foto sulla neve uguali a prima (casco, maschera, scaldacollo, guanti, scarponi) |
+
 **Controllo della 0.12.0 (25/10, pomeriggio)**: dopo la divisione in moduli, tutte le prove (cancello rapido su GitHub a ogni passo, giro completo in locale: server 76 controlli, 13 scenari, gioco, trampolini, risultati, lingue, comandi, vocali) e il confronto delle foto:
 
 | ID | Esito | Come è stato verificato |
