@@ -19,6 +19,7 @@ npx wrangler dev --port 8787 &
 | `python3 test_lingue.py` | Home e gioco nelle 4 lingue, su telefono e PC | ~6 min |
 | `python3 test_risultati.py` | Schermata dei risultati e testo condiviso nelle 4 lingue (`SOLO=telefono-it,pc-en` per limitare) | ~6 min |
 | `python3 test_comandi.py` | Rotellina, Salta e microfono sul telefono simulato (i tempi reali del 3D software falsano i confronti di velocità: per quelli vale `cmp_input.py`) | ~4 min |
+| `python3 test_vocale.py` | Vocale da telefono a telefono con il microfono finto di Chromium: registrazione Web Audio, WAV, server, riproduzione, conto alla rovescia dei 3 minuti | ~1 min |
 | `python3 cmp_input.py` | Rotellina contro tastiera a parità di tempo di gioco | ~2 min |
 | `python3 foto_citta.py [città,…] [spostamento]` | Foto di ogni città, anche guardando verso il lato (spostamento 13) | ~1 min/città |
 | `python3 rider_view.py [cartella] [scena]` | Primi piani del rider da 6 angolazioni | ~1 min |

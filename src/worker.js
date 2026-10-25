@@ -19,8 +19,8 @@ const PUBLIC_RE = /^ONLINE\d{1,2}$/;
 const PUBLIC_ROOMS = 20;
 const AUTO_START_MS = 30000;                 // stanze pubbliche: la gara parte 30 s dopo che ci sono almeno 2 giocatori
 const VOICE_COOLDOWN_MS = 3 * 60 * 1000;     // un messaggio vocale ogni 3 minuti per giocatore
-const VOICE_MAX_CHARS = 200000;              // circa 150 KB di audio (base64): bastano ~10 s
-const VOICE_MIME = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg', 'audio/mp4', 'audio/aac'];
+const VOICE_MAX_CHARS = 300000;              // 8 s di WAV a 12 kHz e 16 bit sono 192 KB, cioè 256.000 caratteri in base64
+const VOICE_MIME = ['audio/wav', 'audio/x-wav', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg', 'audio/mp4', 'audio/aac'];
 const DROP_KINDS = ['banana', 'bomb'];
 const PLACE_POINTS = [100, 70, 50];          // punti per 1°, 2°, 3°; chi arriva dopo ne prende 30
 

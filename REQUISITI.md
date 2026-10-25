@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.9.1 · aggiornato al 25 ottobre 2026, ore 01:30 · verifica completa dei requisiti (sezione 10)"
+subtitle: "Versione 0.9.2 · aggiornato al 25 ottobre 2026, ore 08:00 · verifica completa dei requisiti (sezione 10)"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -42,7 +42,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-103 | Stessa pista e stessa partenza per tutti; vince il tempo migliore sui 2.000 m | ott 2026 | Fatto | Il tempo lo misura il server. Dalla 0.6.0 la distanza non è più fissa a 2.000 m: è quella della durata scelta (R-108) |
 | R-104 | Si vedono gli avversari in pista, ognuno con il proprio colore e il nome sopra la testa | ott 2026 | Fatto | 8 colori di giacca |
 | R-105 | Classifica dei migliori tempi | ott 2026 | Fatto | Il server tiene i primi 20 tempi per ogni durata (5, 10, 15 min); il menu mostra i primi 10 della gara da 5 minuti |
-| R-106 | Messaggi vocali: si preme un pulsante, si registra, tutti gli altri lo sentono; al massimo uno ogni 3 minuti | 24/10/2026 | Fatto | Durata massima circa 8 s; limite controllato dal server |
+| R-106 | Messaggi vocali: si preme un pulsante, si registra, tutti gli altri lo sentono; al massimo uno ogni 3 minuti | 24/10/2026 | Fatto | Durata massima circa 8 s; limite controllato dal server. Dalla 0.9.2 la registrazione non dipende più dal registratore del browser (MediaRecorder, assente o diverso su alcuni Android e nei browser interni delle app): si usa Web Audio e il vocale viaggia in WAV, che ogni telefono sa riprodurre; la riproduzione passa da Web Audio (funziona anche senza un tocco recente) con ripiego sull'elemento audio classico; se il telefono nega il microfono, il messaggio spiega come consentirlo o di aprire il link in Chrome/Safari |
 | R-107 | Pulsante del microfono ben visibile durante la gara, per mandare i vocali agli altri concorrenti (uno ogni 3 minuti a testa) | 24/10/2026 | Fatto | Pulsante tondo arancione con il microfono, dalla 0.9.0 in alto a sinistra (R-212); mostra il conto alla rovescia dei 3 minuti |
 | R-108 | La gara finisce al traguardo. Durata di circa 5 minuti, che si può cambiare all'inizio in 10 o 15 minuti | 24/10/2026 | Fatto | La sceglie chi crea la sfida (5/10/15 min); lunghezza = minuti × 40 m/s (12, 24 o 36 km); striscione ARRIVO, striscia a scacchi e avviso a 500 m |
 | R-109 | Durante la gara, in alto a destra, classifica dal vivo degli altri concorrenti | 24/10/2026 | Fatto | Posizioni, colori, nomi e distacco dal primo; chi è arrivato mostra il tempo |
@@ -68,7 +68,8 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-209 | Maglia dell'omino a scelta con un menu a tendina: la maglia della squadra di calcio della propria città o di un'altra città | 24/10/2026 | Fatto | 8 maglie con i colori delle città (Napoli, Roma, Milano ×2, Torino ×2, Palermo, Bologna); gli avversari la vedono. Solo colori, senza nomi o stemmi delle squadre, che sono marchi registrati |
 | R-210 | Sul telefono una rotellina al posto delle freccette: dove si appoggia il dito si sposta a destra o a sinistra per curvare, in alto o in basso per accelerare o frenare | 24/10/2026 | Fatto | Zona in basso a destra; la rotellina compare sotto il dito. Più la sposti di lato, più curvi. ▲ accelera (come freccia giù sulla tastiera), ▼ frena; in aria ◀ ▶ avvitamento, ▲ ▼ salto mortale. Provato: stessa velocità della tastiera (21 m/s accelerando, 10 m/s frenando) |
 | R-211 | Sul telefono il pulsante Salta a sinistra | 24/10/2026 | Fatto | Pulsante tondo arancione in basso a sinistra; tenuto premuto in aria fa il backflip. Banane e bombe sopra il Salta |
-| R-212 | Simbolo del microfono in alto per mandare i vocali agli altri giocatori durante il gioco | 24/10/2026 | Fatto | In alto a sinistra, sempre visibile mentre si gioca. In sfida e online è arancione e manda il vocale; in allenamento è grigio e, toccato, spiega che i vocali sono per le sfide |
+| R-212 | Simbolo del microfono in alto per mandare i vocali agli altri giocatori durante il gioco | 24/10/2026 | Fatto | In alto a sinistra, sempre visibile mentre si gioca, su qualsiasi telefono. In sfida e online è arancione e manda il vocale; in allenamento è grigio e, toccato, spiega che i vocali sono per le sfide |
+| R-213 | Il microfono deve essere presente e funzionare anche sugli altri telefoni Android, non solo su quello di Luigi | 25/10/2026 | Fatto | Vedi R-106: registrazione Web Audio + WAV, riproduzione con doppia via, messaggi chiari se manca il permesso o il browser dell'app non dà il microfono. Provato da telefono a telefono con un microfono simulato (`tools/verifica/test_vocale.py`) |
 
 # 4. Scenari e città
 
@@ -127,6 +128,7 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-19 | Revisione delle traduzioni: in francese "Feu rouge !" (prima "Feu !", cioè "Fuoco!"), "Le plus de figures" (prima "Plus de figures", che si legge anche "basta figure"), "Borne d'incendie", "double appui"; in inglese "Run complete" (prima "Run over", che vuol dire anche "investito"); in spagnolo "Reanudar" | 24/10/2026 | Da confermare |
 | S-20 | Rotellina: ▲ (dito in alto) accelera e ▼ frena, come un joystick; sulla tastiera resta freccia giù = accelera, freccia su = frena (R-206, R-207) | 24/10/2026 | Da confermare |
 | S-21 | Sul telefono l'interruttore dell'audio è in alto accanto al microfono, i messaggi del vocale ("sta parlando…") compaiono a metà schermo; su PC il microfono è in alto a sinistra e i comandi touch non si vedono | 24/10/2026 | Da confermare |
+| S-22 | I vocali viaggiano in WAV a 11-12 kHz (qualità da telefonata, circa 25 KB al secondo) invece che in Opus compresso: pesa di più ma si registra e si riproduce su ogni telefono senza dipendere dal browser | 25/10/2026 | Da confermare |
 
 # 8. Idee per il futuro (da confermare)
 
@@ -154,7 +156,7 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | D-01 | Provare la v0.9.1 dai telefoni con qualche amico (microfono su iPhone, comandi touch, fluidità) e scrivere a Claude i numeri dei requisiti che vanno bene ("R-303 controllato") | Luigi |
 | D-02 | Leggere il rapporto del primo controllo notturno (parte stasera alle 21:33) | Luigi |
 | D-03 | Comprare il dominio (es. cyfgaming.it, ~10-15 €/anno) e collegarlo: Cloudflare → Workers & Pages → cyf-gaming → Domains. Claude guida se serve | Luigi, ~10 min |
-| D-04 | Decidere le scelte S-01…S-21: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
+| D-04 | Decidere le scelte S-01…S-22: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
 | D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione | Claude |
 | D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
 | D-07 | Ricopiare sul Desktop i file Word aggiornati (requisiti 0.9.1): il PC era spento quando sono stati generati | Claude, appena il PC è collegato |
@@ -175,7 +177,7 @@ Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel
 | R-103 | ✓ | Stesso seed e stesso istante di partenza per tutti; tempo misurato dal server |
 | R-104 | ✓ | Avversario in pista con nome; 8 colori diversi; maglia trasmessa agli altri |
 | R-105 | ✓ | Un tempo valido entra nella classifica della sua durata e non in quelle delle altre |
-| R-106 | ✓ | Vocale inoltrato con nome e colore; secondo vocale entro 3 minuti rifiutato; formati sconosciuti scartati |
+| R-106, R-213 | ✓ | Vocale inoltrato con nome e colore; secondo vocale entro 3 minuti rifiutato; formati sconosciuti scartati. 25/10 ore 8: vocale registrato con Web Audio da un telefono simulato, ricevuto in WAV e riprodotto dall'altro (fumetto "sta parlando", poi sparisce) |
 | R-107, R-212 | ✓ | Pulsante visibile in gara e in allenamento (foto); conto alla rovescia nel codice |
 | R-108 | ✓ | Traguardo a 12.000 m in gara; avviso a 500 m; 10 min → 24.000 m; durate non ammesse ignorate |
 | R-109 | ✓ | Classifica dal vivo con i 2 nomi durante la gara |
@@ -222,3 +224,4 @@ Difetto trovato e corretto nella 0.9.1: una banana o bomba lasciata mentre un te
 | 0.8.3 | 24/10/2026 | Controllo notturno: descrizioni rimaste alla versione dei 2.000 m aggiornate (anteprima dei link condivisi di Pista Nera, che diceva ancora "2.000 metri" e "Napoli e Roma", e README con regole e limiti attuali); nessun baco trovato nel codice: sintassi, chiavi delle 4 lingue, server locale, 13 scenari e una gara a due giocatori provati e a posto |
 | 0.9.0 | 24/10/2026 | Rotellina sul telefono (curva, accelera, frena), Salta a sinistra, microfono in alto sempre visibile, omino più umano, messaggi a schermo che vanno a capo, riga dei risultati più compatta |
 | 0.9.1 | 25/10/2026 | Verifica completa dei requisiti (sezione 10). Città completate come da tabella: oggetti ai lati (tram, cabine, bus, taxi, ombrelloni, Muro), linee gialle a Londra, marciapiedi a Berlino, fiume Meno, porte e rampa a scacchi a Zagabria, rampe di Madrid e Berlino; banane accettate anche durante il conto alla rovescia |
+| 0.9.2 | 25/10/2026 | Microfono su tutti i telefoni (R-213): registrazione con Web Audio e vocali in WAV, riproduzione con doppia via, messaggi chiari se il microfono è negato o il browser dell'app non lo dà |

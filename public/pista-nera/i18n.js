@@ -2,6 +2,7 @@
 // Chiave → testo; {n}, {t}, {s}… sono valori inseriti dal gioco. Se manca una traduzione si usa l'italiano.
 window.CYF_I18N = {
   it: {
+    voiceBadFormat: 'Il vocale di {n} non si può riprodurre su questo telefono',
     voiceOnlyChallenge: 'I vocali si mandano agli altri giocatori in sfida o online',
     tStick: 'appoggia il dito a destra: ◀ ▶ curva, ▲ accelera, ▼ frena; in aria avvitamento e salto mortale',
     tStickKey: 'Rotellina',
@@ -70,8 +71,8 @@ window.CYF_I18N = {
     rematch: 'Rivincita', exit: 'Esci', rematchHint: 'Premi Rivincita per una nuova pista con gli stessi giocatori.',
     waitRematch: 'In attesa che {n} lanci la rivincita.', nextRaceIn: 'Prossima gara tra {s} s.',
     voiceAria: 'Messaggio vocale', voiceTalk: 'Parla', voiceSend: 'Invia', isTalking: 'sta parlando…',
-    voiceSent: 'Vocale inviato', voiceWait: 'Prossimo vocale tra {t}', voiceNoRec: 'Questo browser non registra audio',
-    voiceNoMic: 'Microfono non disponibile', voiceTooLong: 'Vocale troppo lungo', voiceMuted: '{n} ha mandato un vocale (audio spento)',
+    voiceSent: 'Vocale inviato', voiceWait: 'Prossimo vocale tra {t}', voiceNoRec: 'Questo browser non dà accesso al microfono: apri il link in Chrome o Safari',
+    voiceNoMic: 'Microfono non disponibile: consenti il microfono al sito nelle impostazioni del browser', voiceTooLong: 'Vocale troppo lungo', voiceMuted: '{n} ha mandato un vocale (audio spento)',
     bananaTitle: 'B: lascia una banana dietro di te (50 punti). Doppio clic sulla pista: lanciala.',
     bombTitle: 'N: lascia una bomba dietro di te (150 punti).',
     itemsRaceOnly: 'Banane e bombe si usano in gara contro gli altri', needPoints: 'Servono {p} punti',
@@ -87,6 +88,7 @@ window.CYF_I18N = {
     audioOn: 'Audio: sì', audioOff: 'Audio: no', turnLeft: 'Curva a sinistra', turnRight: 'Curva a destra'
   },
   en: {
+    voiceBadFormat: '{n}’s voice message cannot be played on this phone',
     voiceOnlyChallenge: 'Voice messages go to other players in a challenge or online',
     tStick: 'put your finger on the right: ◀ ▶ turn, ▲ speed up, ▼ brake; in the air spin and flip',
     tStickKey: 'Wheel',
@@ -155,8 +157,8 @@ window.CYF_I18N = {
     rematch: 'Rematch', exit: 'Leave', rematchHint: 'Press Rematch for a new slope with the same players.',
     waitRematch: 'Waiting for {n} to start the rematch.', nextRaceIn: 'Next race in {s} s.',
     voiceAria: 'Voice message', voiceTalk: 'Talk', voiceSend: 'Send', isTalking: 'is talking…',
-    voiceSent: 'Voice message sent', voiceWait: 'Next voice message in {t}', voiceNoRec: 'This browser cannot record audio',
-    voiceNoMic: 'Microphone not available', voiceTooLong: 'Voice message too long', voiceMuted: '{n} sent a voice message (sound off)',
+    voiceSent: 'Voice message sent', voiceWait: 'Next voice message in {t}', voiceNoRec: 'This browser has no microphone access: open the link in Chrome or Safari',
+    voiceNoMic: 'Microphone not available: allow the microphone for this site in the browser settings', voiceTooLong: 'Voice message too long', voiceMuted: '{n} sent a voice message (sound off)',
     bananaTitle: 'B: drop a banana behind you (50 points). Double click on the slope: throw it.',
     bombTitle: 'N: drop a bomb behind you (150 points).',
     itemsRaceOnly: 'Bananas and bombs are for races against other players', needPoints: 'You need {p} points',
@@ -172,6 +174,7 @@ window.CYF_I18N = {
     audioOn: 'Sound: on', audioOff: 'Sound: off', turnLeft: 'Turn left', turnRight: 'Turn right'
   },
   fr: {
+    voiceBadFormat: 'Le message vocal de {n} ne peut pas être lu sur ce téléphone',
     voiceOnlyChallenge: 'Les messages vocaux s’envoient aux autres joueurs en défi ou en ligne',
     tStick: 'pose le doigt à droite : ◀ ▶ tourner, ▲ accélérer, ▼ freiner ; en l’air vrille et salto',
     tStickKey: 'Molette',
@@ -240,8 +243,8 @@ window.CYF_I18N = {
     rematch: 'Revanche', exit: 'Quitter', rematchHint: 'Appuie sur Revanche pour une nouvelle piste avec les mêmes joueurs.',
     waitRematch: 'En attente que {n} lance la revanche.', nextRaceIn: 'Prochaine course dans {s} s.',
     voiceAria: 'Message vocal', voiceTalk: 'Parler', voiceSend: 'Envoyer', isTalking: 'parle…',
-    voiceSent: 'Message vocal envoyé', voiceWait: 'Prochain message vocal dans {t}', voiceNoRec: 'Ce navigateur n\'enregistre pas l\'audio',
-    voiceNoMic: 'Micro non disponible', voiceTooLong: 'Message vocal trop long', voiceMuted: '{n} a envoyé un message vocal (son coupé)',
+    voiceSent: 'Message vocal envoyé', voiceWait: 'Prochain message vocal dans {t}', voiceNoRec: 'Ce navigateur n’a pas accès au micro : ouvre le lien dans Chrome ou Safari',
+    voiceNoMic: 'Micro non disponible : autorise le micro pour ce site dans les réglages du navigateur', voiceTooLong: 'Message vocal trop long', voiceMuted: '{n} a envoyé un message vocal (son coupé)',
     bananaTitle: 'B : laisse une banane derrière toi (50 points). Double clic sur la piste : lance-la.',
     bombTitle: 'N : laisse une bombe derrière toi (150 points).',
     itemsRaceOnly: 'Bananes et bombes s\'utilisent en course contre les autres', needPoints: 'Il faut {p} points',
@@ -257,6 +260,7 @@ window.CYF_I18N = {
     audioOn: 'Son : oui', audioOff: 'Son : non', turnLeft: 'Tourner à gauche', turnRight: 'Tourner à droite'
   },
   es: {
+    voiceBadFormat: 'El mensaje de voz de {n} no se puede reproducir en este teléfono',
     voiceOnlyChallenge: 'Los mensajes de voz se envían a los demás jugadores en un desafío o en línea',
     tStick: 'apoya el dedo a la derecha: ◀ ▶ girar, ▲ acelerar, ▼ frenar; en el aire giro y mortal',
     tStickKey: 'Rueda',
@@ -325,8 +329,8 @@ window.CYF_I18N = {
     rematch: 'Revancha', exit: 'Salir', rematchHint: 'Pulsa Revancha para una nueva pista con los mismos jugadores.',
     waitRematch: 'Esperando a que {n} lance la revancha.', nextRaceIn: 'Próxima carrera en {s} s.',
     voiceAria: 'Mensaje de voz', voiceTalk: 'Hablar', voiceSend: 'Enviar', isTalking: 'está hablando…',
-    voiceSent: 'Mensaje de voz enviado', voiceWait: 'Próximo mensaje de voz en {t}', voiceNoRec: 'Este navegador no graba audio',
-    voiceNoMic: 'Micrófono no disponible', voiceTooLong: 'Mensaje de voz demasiado largo', voiceMuted: '{n} ha enviado un mensaje de voz (sonido apagado)',
+    voiceSent: 'Mensaje de voz enviado', voiceWait: 'Próximo mensaje de voz en {t}', voiceNoRec: 'Este navegador no tiene acceso al micrófono: abre el enlace en Chrome o Safari',
+    voiceNoMic: 'Micrófono no disponible: permite el micrófono para este sitio en los ajustes del navegador', voiceTooLong: 'Mensaje de voz demasiado largo', voiceMuted: '{n} ha enviado un mensaje de voz (sonido apagado)',
     bananaTitle: 'B: deja un plátano detrás de ti (50 puntos). Doble clic en la pista: lánzalo.',
     bombTitle: 'N: deja una bomba detrás de ti (150 puntos).',
     itemsRaceOnly: 'Plátanos y bombas se usan en carrera contra los demás', needPoints: 'Necesitas {p} puntos',
