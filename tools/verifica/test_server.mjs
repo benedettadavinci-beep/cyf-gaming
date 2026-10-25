@@ -339,7 +339,7 @@ console.log('T9 · errori dai browser: /api/errors li riceve, li raggruppa e rif
   ok(row && row.n === 2 && row.ver === 'test' && row.src === 'game.js:1:1', 'lo stesso errore due volte = una riga con conteggio 2', JSON.stringify(row));
 }
 
-console.log('T10 · capelli scelti (R-225) e profilo con codice personale (R-226)');
+console.log('T10 · personaggio: capelli, pantaloni, casco, tavola (R-225, R-229) e profilo con codice personale (R-226)');
 {
   const code = rnd();
   const A = new Client(code, 'ha' + code, 'Capo'); await A.connect(); await A.waitType('welcome');
@@ -347,17 +347,20 @@ console.log('T10 · capelli scelti (R-225) e profilo con codice personale (R-226
   A.send({ t: 'jersey', j: 'roma', h: 'coda:3' });
   const lh = await B.wait(m => m.t === 'lobby' && m.players.some(p => p.id === A.id && p.h === 'coda:3'), 3000);
   ok(!!lh, 'i capelli scelti arrivano agli altri giocatori della stanza');
+  A.send({ t: 'jersey', j: 'roma', h: 'coda:3', p: '4', e: 'integrale:2', s: 'longboard:6' });
+  const lg = await B.wait(m => m.t === 'lobby' && m.players.some(p => p.id === A.id && p.p === '4' && p.e === 'integrale:2' && p.s === 'longboard:6'), 3000);
+  ok(!!lg, 'pantaloni, casco e tavola scelti arrivano agli altri giocatori (R-229)');
   A.send({ t: 'jersey', j: 'roma', h: '<script>' });
   const lb = await B.wait(m => m.t === 'lobby' && m.players.some(p => p.id === A.id && p.h === ''), 3000);
   ok(!!lb, 'capelli non validi scartati (restano "a caso")');
   A.close(); B.close();
   const post = b => fetch(BASE + '/api/profilo', { method: 'POST', body: JSON.stringify(b), headers: { 'content-type': 'application/json' } }).then(async r => ({ status: r.status, body: await r.json().catch(() => null) }));
   const id = 'pf' + code;
-  const c1 = await post({ id, data: { name: 'Luigi<b>', lang: 'en', scena: 'napoli', j: 'colore-verde', h: 'lunghi:4', extra: 'x' } });
+  const c1 = await post({ id, data: { name: 'Luigi<b>', lang: 'en', scena: 'napoli', j: 'colore-verde', h: 'lunghi:4', p: '2', e: 'sci:1', s: 'cruiser:3', extra: 'x' } });
   const pc = c1.body && c1.body.code;
   ok(c1.status === 200 && /^[A-HJ-NP-Z2-9]{8}$/.test(pc || ''), 'il primo salvataggio crea il codice personale di 8 caratteri', JSON.stringify(c1.body));
   const g1 = await api('/api/profilo?code=' + pc);
-  ok(g1.status === 200 && g1.body.id === id && g1.body.data.name === 'Luigib' && g1.body.data.lang === 'en' && g1.body.data.scena === 'napoli' && g1.body.data.j === 'colore-verde' && g1.body.data.h === 'lunghi:4' && !('extra' in g1.body.data), 'con il codice si ritrovano giocatore e impostazioni, ripulite', JSON.stringify(g1.body));
+  ok(g1.status === 200 && g1.body.id === id && g1.body.data.name === 'Luigib' && g1.body.data.lang === 'en' && g1.body.data.scena === 'napoli' && g1.body.data.j === 'colore-verde' && g1.body.data.h === 'lunghi:4' && g1.body.data.p === '2' && g1.body.data.e === 'sci:1' && g1.body.data.s === 'cruiser:3' && !('extra' in g1.body.data), 'con il codice si ritrovano giocatore e impostazioni, ripulite', JSON.stringify(g1.body));
   const g1b = await api('/api/profilo?code=' + pc.toLowerCase().slice(0, 4) + '-' + pc.slice(4).toLowerCase());
   ok(g1b.status === 200 && g1b.body.id === id, 'il codice vale anche scritto minuscolo e con il trattino');
   await sleep(5);

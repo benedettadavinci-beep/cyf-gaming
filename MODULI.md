@@ -16,7 +16,7 @@ usano a vicenda. Il cancello dei test la esegue a ogni modifica: così la matric
 ## Come sono fatti i moduli
 
 - **Puri** (`PN.base`, `PN.lingua`, `PN.geometria`, `PN.rider`): un oggetto pronto all'uso, creato quando il file si carica.
-- **Con istanza** (`PN.pista`, `PN.sfondi`, `PN.citta`, `PN.generazione`, `PN.effetti`, `PN.audio`, `PN.vocali`, `PN.profilo`, `PN.oggetti`, `PN.avversari`, `PN.comandi`, `PN.schermate`):
+- **Con istanza** (`PN.pista`, `PN.sfondi`, `PN.citta`, `PN.generazione`, `PN.effetti`, `PN.audio`, `PN.vocali`, `PN.profilo`, `PN.personaggio`, `PN.oggetti`, `PN.avversari`, `PN.comandi`, `PN.schermate`):
   una funzione che il gioco chiama una volta sola passando quello che serve (la scena 3D, il terreno, la rete…) e che
   restituisce l'istanza. Quello che un modulo riceve è scritto nel commento in testa al file.
 - **Lo stato del gioco** (posizione del rider, modalità, punti…) resta in `game.js`. I moduli che devono leggerlo
@@ -37,7 +37,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | File | Modulo (PN.…) | Righe | Dipende da (cosa usa) |
 |---|---|---|---|
 | `moduli/audio.js` | audio | 62 | base (store); lingua (tr) |
-| `moduli/avversari.js` | avversari | 129 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (JERSEYS, makeRider, bodyTurn, switchOf) |
+| `moduli/avversari.js` | avversari | 130 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (JERSEYS, makeRider, bodyTurn, switchOf) |
 | `moduli/base.js` | base | 38 | nessuno |
 | `moduli/citta.js` | citta | 881 | pista (center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_MAKE); base (TAU, lin, mulberry32); lingua (tr, fmtLen); geometria (merge, lumpy, vcMat, GEO, gateGeo) |
 | `moduli/comandi.js` | comandi | 104 | base (clamp); audio (initAudio, muted) |
@@ -46,13 +46,14 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/lingua.js` | lingua | 37 | base (store) |
 | `moduli/oggetti.js` | oggetti | 167 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
+| `moduli/personaggio.js` | personaggio | 104 | base (store, lin); rider (JERSEYS, myJersey, myHair, myGear, makeRider) |
 | `moduli/pista.js` | pista | 176 | base (TAU, clamp, isPhone, lin, mulberry32) |
-| `moduli/profilo.js` | profilo | 99 | base (store); lingua (tr) |
-| `moduli/rider.js` | rider | 418 | base (TAU, lin, store) |
-| `moduli/schermate.js` | schermate | 255 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (tr, ord, fmtLen); rider (myJersey, myHair); protocollo (COSTI) |
+| `moduli/profilo.js` | profilo | 100 | base (store); lingua (tr) |
+| `moduli/rider.js` | rider | 520 | base (TAU, lin, store) |
+| `moduli/schermate.js` | schermate | 245 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (tr, ord, fmtLen); protocollo (COSTI) |
 | `moduli/sfondi.js` | sfondi | 522 | base (TAU, lin, mulberry32); geometria (lumpy) |
 | `moduli/vocali.js` | vocali | 180 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr) |
-| `game.js` | — | 980 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, jacketTexture, switchOf, bodyTurn, …); effetti (); audio (); generazione (); comandi (); schermate (); profilo (); protocollo (VERSIONE); vocali (); oggetti (); avversari () |
+| `game.js` | — | 975 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); generazione (); comandi (); schermate (); profilo (); personaggio (); protocollo (VERSIONE); vocali (); oggetti (); avversari () |
 | `diagnosi.js` | — | 149 | nessuno |
 | `i18n.js` | — | 361 | nessuno |
 | `shared/protocollo.js` | protocollo | 83 | nessuno |
@@ -68,10 +69,11 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | gli sfondi lontani (Vesuvio, Colosseo, skyline) | `moduli/sfondi.js` |
 | forme condivise (abete, roccia, rampa della neve, porta) | `moduli/geometria.js` |
 | i modelli e i colori di una città, le facciate, il traguardo | `moduli/citta.js` e `citta/<nome>.js` |
-| il modello del rider, la maglia, i capelli, lo stemma, la posa | `moduli/rider.js` |
+| il modello del rider, la maglia, i capelli, pantaloni, casco e tavole, lo stemma, la posa | `moduli/rider.js` |
 | scia, spruzzi, scintille, fiocchi | `moduli/effetti.js` |
 | suoni e pulsante audio | `moduli/audio.js` |
 | messaggi vocali, silenzia, segnala | `moduli/vocali.js` |
+| schermata "Modifica il personaggio" con l'anteprima 3D (R-227) | `moduli/personaggio.js` (i modelli di casco, tavole e pantaloni in `moduli/rider.js`) |
 | impostazioni ricordate dal server, codice personale (R-226) | `moduli/profilo.js` (il server in `src/worker.js`, `/api/profilo`) |
 | banane e bombe | `moduli/oggetti.js` |
 | gli avversari in pista e la classifica dal vivo | `moduli/avversari.js` |

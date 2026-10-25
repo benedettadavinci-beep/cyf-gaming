@@ -11,7 +11,7 @@
 // quella del server, il server risponde { t: 'aggiorna' } e chiude: chi ha ancora la pagina vecchia aperta vede
 // "aggiorna la pagina" invece di errori strani.
 globalThis.CYF_PROTOCOLLO = (() => {
-  const VERSIONE = 3;   // 2 (0.13.0): "pronto" e banana lanciata ("throw"); 3 (0.14.0): capelli scelti (h) in hello, jersey, lobby e racers
+  const VERSIONE = 4;   // 2 (0.13.0): "pronto" e banana lanciata ("throw"); 3 (0.14.0): capelli (h); 4 (0.15.0): pantaloni (p), casco (e), tavola (s)
 
   // città: ogni città ha la sua pista, quindi in una gara tutti corrono nella stessa città (R-118, R-312)
   const SCENE = ['neve', 'napoli', 'roma', 'milano', 'parigi', 'londra', 'francoforte', 'madrid', 'lisbona', 'zagabria', 'berlino', 'zurigo', 'newyork'];
@@ -23,10 +23,10 @@ globalThis.CYF_PROTOCOLLO = (() => {
 
   // messaggi dal gioco al server: tipo → campi obbligatori con il loro tipo ("n" numero, "s" testo, "b" vero/falso)
   const CLIENT = {
-    hello:       { id: 's', name: 's', v: 'n' },                  // j (maglia), h (capelli "forma:colore", R-225) e sc (città) facoltativi
+    hello:       { id: 's', name: 's', v: 'n' },                  // facoltativi: j (maglia), h (capelli), p (pantaloni), e (casco), s (tavola), sc (città)
     settings:    { minutes: 'n' },                                // solo l'organizzatore
     scena:       { scena: 's' },                                  // solo l'organizzatore
-    jersey:      { j: 's' },                                      // h (capelli) facoltativo
+    jersey:      { j: 's' },                                      // aspetto del personaggio (R-229): h, p, e, s facoltativi
     ready:       {},
     start:       {},                                              // solo l'organizzatore
     loaded:      {},                                              // la pista è caricata e disegnata (R-119)

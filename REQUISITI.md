@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.14.0 · aggiornato al 25 ottobre 2026, ore 17:30 · capelli a scelta (R-225) e impostazioni ricordate dal server con un codice personale, anche su un altro telefono (R-226)"
+subtitle: "Versione 0.15.0 · aggiornato al 25 ottobre 2026, ore 19 · schermata \"Modifica il personaggio\" con anteprima 3D: maglia, pantaloni, capelli, casco e tavola (R-227, R-228, R-229)"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -86,6 +86,9 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-224 | Banana lanciata: il rider fa il gesto del lancio con il braccio e il giocatore che gli sta davanti viene fermato 1 secondo | 25/10/2026 | Fatto | Il lancio si fa con il doppio tocco (o doppio clic) sulla pista. Il rider porta il braccio indietro e lo distende in avanti; la banana vola fino al giocatore più vicino davanti (entro 120 m) e lo ferma 1 s; tutti vedono il gesto e la banana in volo. Se davanti non c'è nessuno, la banana cade sulla pista davanti come prima. Il tasto B e il pulsante 🍌 continuano a lasciarla a terra dietro. Scelta S-34 |
 | R-225 | Il giocatore sceglie forma e colore dei capelli, e la scelta viene ricordata | 25/10/2026 | Fatto | Nel menu, sotto "Maglia", c'è "Capelli" con due scelte: forma (corti, rasati, ciuffo, lunghi, coda, caschetto) e colore (nero, castano scuro, castano, biondo, ramato). "A caso" lascia i capelli decisi dal codice del giocatore, come prima. Gli avversari vedono i capelli scelti. La scelta resta salvata sul dispositivo e nel profilo (R-226) |
 | R-226 | Le impostazioni scelte dall'utente vengono ricordate dal server, anche su un altro telefono o PC | 25/10/2026 | Fatto | Senza registrazione: la prima volta che il giocatore ha un nome, il server crea il suo profilo e gli dà un **codice personale** di 8 caratteri (es. K7QM-2HXP), visibile nel menu sotto "Le tue impostazioni". Nel profilo: nome, lingua, città, maglia o colore, capelli. A ogni cambio il profilo si aggiorna da solo. Su un altro dispositivo si scrive il codice in "Hai già un codice?" e si ritrovano impostazioni e punti collezionati. Se il server non risponde, il gioco usa le impostazioni salvate sul dispositivo (S-35) |
+| R-227 | Una sezione dedicata "Modifica il personaggio": ci si clicca sopra e si sceglie come è fatto il proprio omino | 25/10/2026 | Fatto | Pulsante "Modifica il personaggio" nel menu e nella stanza della sfida (chi entra dal link lo trova lì). Si apre una schermata con l'omino in 3D che gira, e l'anteprima in città (skate) o sulla neve (snowboard). Ogni scelta si vede subito. Dentro: maglia o colore della giacca, colore dei pantaloni, capelli (forma e colore), casco (tipo e colore), tavola (tipo e colore). "Fatto" chiude e salva |
+| R-228 | Si scelgono colore della maglia, colore dei pantaloni, tipo di casco e tipo di skate | 25/10/2026 | Fatto | Pantaloni: blu (normale), jeans, neri, grigi, beige, verde militare, rossi, bianchi. Casco: nessuno (normale, come chiesto con R-220), da skate, integrale, da sci; 6 colori. Tavola: skate classico, cruiser (corto con le ruote colorate) o longboard (lungo, senza code); 8 colori, che valgono anche per lo snowboard sulla neve. L'altezza della tavola non cambia, quindi rampe e salti restano uguali per tutti (S-36) |
+| R-229 | Le scelte del personaggio valgono in tutto il gioco | 25/10/2026 | Fatto | Le scelte si vedono in allenamento, in sfida e online, sul PC e sui telefoni; gli altri giocatori vedono il personaggio come lo hai fatto tu; sono salvate sul dispositivo e nel profilo con il codice personale (R-226), quindi si ritrovano anche su un altro telefono |
 
 # 4. Scenari e città
 
@@ -159,6 +162,7 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-33 | "Colore del personaggio" letto come colore della giacca, scelto nello stesso menu delle maglie (gruppo "Colori"); il colore della pelle non è cambiato. Se intendevi altro (per esempio la pelle o i capelli), dimmelo (R-221) | 25/10/2026 | Da confermare |
 | S-34 | "Rallentato di 1 secondo" letto come fermo 1 secondo, come per la banana a terra; il bersaglio è il giocatore più vicino davanti entro 120 m (R-224) | 25/10/2026 | Da confermare |
 | S-35 | Impostazioni ricordate (R-226), scelte di Claude: niente email né password (si potrà aggiungere l'accesso con Google nella fase 2); il codice personale è la chiave del profilo, quindi chi lo conosce può usarlo: va tenuto per sé come una password. Il codice non è mai legato al codice del giocatore che gli altri vedono in gara. Usando il codice su un altro dispositivo, quel dispositivo diventa lo stesso giocatore (stessi punti). Vince l'ultima modifica, da qualunque dispositivo. Il profilo si crea solo quando c'è un nome, per non riempire il server di profili vuoti | 25/10/2026 | Da confermare |
+| S-36 | Personaggio (R-227…R-229), scelte di Claude: le scelte sono menu a tendina (funzionano allo stesso modo su PC, Android e iPhone) con l'omino in 3D accanto; maglia e capelli si sono spostati dal menu principale alla nuova schermata. Senza scelta il personaggio resta com'era (niente casco, pantaloni blu, skate classico in legno). Con il casco i capelli corti non si vedono, quelli lunghi e la coda escono sotto. I tre tipi di tavola hanno la stessa altezza dal suolo, così nessuno è avvantaggiato | 25/10/2026 | Da confermare |
 
 # 8. Idee per il futuro (da confermare)
 
@@ -239,6 +243,14 @@ Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel
 | R-503 | ✓ | Attività pianificata attiva: primo giro 24/10 dalle 21:33 alle 22:12, riuscito (ha pubblicato la 0.8.3); prossimo 25/10 alle 21:33 |
 | R-505 | ✓ | `BUSINESS-PLAN.md` nel repo e Word sul Desktop |
 | S-01 … S-21 | ✓ | Ogni scelta corrisponde al codice (S-12 aggiornata: le porte di Zagabria ora sono a scacchi) |
+
+**Controllo della 0.15.0 (25/10, ore 19)**: cancello rapido superato (server T10 con pantaloni, casco e tavola tra i giocatori e nel profilo), prova mirata `test_profilo.py` (due telefoni: il secondo ritrova anche pantaloni, casco e tavola) e foto della schermata su telefono e PC e dei 3 caschi e delle 3 tavole. Le prove lunghe nel giro notturno (R-506):
+
+| ID | Esito | Come è stato verificato |
+|---|---|---|
+| R-227 | ✓ | Pulsante "Modifica il personaggio" nel menu e nella stanza; la schermata si apre con l'omino in 3D che gira, si passa da Città a Neve, "Fatto" chiude. Foto su telefono (390 px) e PC |
+| R-228 | ✓ | Foto: casco da skate, integrale e da sci (sulla neve con la maschera sopra), senza casco; skate classico, cruiser, longboard e snowboard con i colori; pantaloni beige, neri, jeans, rossi. Ogni scelta resta salvata sul dispositivo |
+| R-229 | ✓ | T10: le scelte arrivano agli altri giocatori della stanza e restano nel profilo; `test_profilo.py`: su un altro telefono con il codice si ritrovano tutte. In gara gli avversari usano le stesse scelte (`setGear` in `avversari.js`) |
 
 **Controllo della 0.14.0 (25/10, ore 17:45)**: cancello rapido superato (con la nuova prova del server T10: 10 controlli su capelli e profilo), più un controllo mirato nel browser che ora è la prova `test_profilo.py` (va nel giro notturno, R-506), e le foto del menu su telefono e PC:
 
@@ -414,3 +426,4 @@ Richiesta del 25/10/2026. Il processo da seguire per ogni città, oggi e per le 
 | 0.12.2 | 25/10/2026 | Baco: salto premuto sulla rampa e rider che sprofonda sotto terra (R-219); niente casco, capelli a caso tra 6 acconciature maschili e femminili (R-220, S-32); colore del personaggio a scelta nel menu delle maglie (R-221, S-33) |
 | 0.13.0 | 25/10/2026 | Attesa della sfida 25 s (R-119); pulsante verde "Sono pronto" con la mano alzata, se tutti sono pronti si parte subito (R-222); bomba ferma 4 s, banana 1 s (R-223); banana lanciata con il gesto del braccio sul giocatore davanti (R-224, S-34). Protocollo di rete versione 2 (messaggi `pronto` e `throw`) |
 | 0.14.0 | 25/10/2026 | Capelli a scelta, forma e colore (R-225); profilo sul server con codice personale: impostazioni ricordate e portabili su un altro dispositivo (R-226, S-35); protocollo v3 (capelli nel saluto e nel cambio maglia) |
+| 0.15.0 | 25/10/2026 | Schermata "Modifica il personaggio" con anteprima 3D (R-227): pantaloni, casco (nessuno, skate, integrale, sci) e tavola (classico, cruiser, longboard) con i colori (R-228), validi in tutto il gioco e nel profilo (R-229, S-36); protocollo v4 |

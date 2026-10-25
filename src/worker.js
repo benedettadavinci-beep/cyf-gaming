@@ -40,16 +40,21 @@ const board = env => env.LEADERBOARD.get(env.LEADERBOARD.idFromName('global'));
 const cleanId = s => String(s || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
 // capelli scelti (R-225): "forma:colore", parti vuote = a caso
 const cleanHair = h => (typeof h === 'string' && /^[a-z]{0,12}:[0-9]?$/.test(h) ? h : '');
+// personaggio (R-228): pantaloni "3", casco e tavola "tipo:colore"; vuoto = normale
+const cleanGear = m => ({
+  p: typeof m.p === 'string' && /^[0-9]?$/.test(m.p) ? m.p : '',
+  e: cleanHair(m.e), s: cleanHair(m.s)
+});
 // profilo con codice personale (R-226): 8 caratteri senza lettere che si confondono (0/O, 1/I/L)
 const PROFILE_ALPH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const cleanProfileCode = c => { const v = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-HJ-NP-Z2-9]{8}$/.test(v) ? v : ''; };
 const LANGS = ['it', 'en', 'fr', 'es'];
-// solo i campi conosciuti, puliti: nome, lingua, città, maglia, capelli
+// solo i campi conosciuti, puliti: nome, lingua, città, maglia, capelli, pantaloni, casco, tavola
 function cleanProfile(d) {
   d = d && typeof d === 'object' ? d : {};
   return {
     name: d.name ? cleanName(d.name) : '', lang: LANGS.includes(d.lang) ? d.lang : '', scena: PROTO.SCENE.includes(d.scena) ? d.scena : '',
-    j: typeof d.j === 'string' && /^[a-z-]{0,24}$/.test(d.j) ? d.j : '', h: cleanHair(d.h)
+    j: typeof d.j === 'string' && /^[a-z-]{0,24}$/.test(d.j) ? d.j : '', h: cleanHair(d.h), ...cleanGear(d)
   };
 }
 
@@ -200,7 +205,7 @@ export class RaceRoom extends DurableObject {
     return {
       t: 'lobby', phase: st.phase, hostId: st.pub ? null : st.hostId, round: st.round, pub: st.pub,
       minutes: st.minutes, length: lengthFor(st.minutes), autoAt: st.autoAt, now: Date.now(), scena: this.roomScena(except),
-      players: this.players(except).map(p => ({ id: p.id, name: p.name, ready: p.ready, color: p.color, j: p.j || '', h: p.h || '' }))
+      players: this.players(except).map(p => ({ id: p.id, name: p.name, ready: p.ready, color: p.color, j: p.j || '', h: p.h || '', p: p.p || '', e: p.e || '', s: p.s || '' }))
     };
   }
   // città della prossima gara: nelle sfide la sceglie chi organizza (resta anche se poi esce);
@@ -249,7 +254,7 @@ export class RaceRoom extends DurableObject {
     st.ready = [];   // chi ha premuto "Sono pronto" durante l'attesa (R-222)
     st.autoAt = 0;
     st.timeoutAt = 0;
-    st.racers = list.map(p => ({ id: p.id, name: p.name, color: p.color, j: p.j || '', h: p.h || '' }));
+    st.racers = list.map(p => ({ id: p.id, name: p.name, color: p.color, j: p.j || '', h: p.h || '', p: p.p || '', e: p.e || '', s: p.s || '' }));
     st.raceScena = this.roomScena();
     st.results = [];
     st.drops = 0;
@@ -326,7 +331,7 @@ export class RaceRoom extends DurableObject {
       const used = new Set(others.map(p => p.color));
       let color = 0; while (used.has(color)) color++;
       const j = typeof m.j === 'string' && /^[a-z-]{1,24}$/.test(m.j) ? m.j : '';
-      Object.assign(me, { id, name: cleanName(m.name), ready: false, color, j, h: cleanHair(m.h), sc: cleanScena(m.sc) });
+      Object.assign(me, { id, name: cleanName(m.name), ready: false, color, j, h: cleanHair(m.h), ...cleanGear(m), sc: cleanScena(m.sc) });
       ws.serializeAttachment(me);
       this.fixHost();
       if (!st.hostId) st.hostId = id;
@@ -395,6 +400,7 @@ export class RaceRoom extends DurableObject {
       if (st.phase === 'countdown' || st.phase === 'racing') return;
       me.j = typeof m.j === 'string' && /^[a-z-]{0,24}$/.test(m.j) ? m.j : '';
       if ('h' in m) me.h = cleanHair(m.h);   // anche i capelli (R-225)
+      if ('p' in m || 'e' in m || 's' in m) Object.assign(me, cleanGear(m));   // e pantaloni, casco, tavola (R-229)
       ws.serializeAttachment(me);
       this.broadcast(this.lobbyMsg());
       return;

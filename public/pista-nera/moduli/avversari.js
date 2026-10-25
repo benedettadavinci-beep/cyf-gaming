@@ -45,6 +45,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
       remotes.set(id, r);
     }
     r.model.setLook(id, info.h);   // gli stessi capelli che vede lui: scelti (R-225) o a caso dal suo codice (R-220)
+    r.model.setGear(info);   // pantaloni, casco e tavola scelti da lui (R-229)
     const slot = net.racers.findIndex(x => x.id === id), n = net.racers.length;
     r.tx = r.x = center(0) + (slot - (n - 1) / 2) * 2.6; r.tz = r.z = 0; r.y = r.ty = 0; r.a = r.ta = 0; r.v = 0; r.has = true;
     r.model.group.visible = true;

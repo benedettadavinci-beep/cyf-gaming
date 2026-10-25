@@ -27,7 +27,7 @@ npx wrangler dev --port 8787 &
 | `python3 test_risultati.py` | Schermata dei risultati e testo condiviso nelle 4 lingue (`SOLO=telefono-it,pc-en` per limitare) | ~6 min |
 | `python3 test_comandi.py` | Rotellina, Salta e microfono sul telefono simulato (i tempi reali del 3D software falsano i confronti di velocità: per quelli vale `cmp_input.py`) | ~4 min |
 | `python3 test_vocale.py` | Vocale da telefono a telefono con il microfono finto di Chromium: registrazione Web Audio, WAV, server, riproduzione, conto alla rovescia dei 3 minuti | ~1 min |
-| `python3 test_profilo.py` | Capelli a scelta e impostazioni ricordate con il codice personale, come su due telefoni (R-225, R-226) | ~1 min |
+| `python3 test_profilo.py` | "Modifica il personaggio" (maglia, pantaloni, capelli, casco, tavola) e impostazioni ricordate con il codice personale, come su due telefoni (R-225…R-229) | ~1 min |
 | `python3 cmp_input.py` | Rotellina contro tastiera a parità di tempo di gioco | ~2 min |
 | `python3 piste.py` | I 13 tracciati (R-312): ampiezza, pendenza massima, raggio minimo, rettilinei e fattore di tempo rispetto alla Neve (serve numpy, non il server) | pochi secondi |
 | `python3 foto_citta.py [città,…] [spostamento]` | Foto di ogni città, anche guardando verso il lato (spostamento 13) | ~1 min/città |

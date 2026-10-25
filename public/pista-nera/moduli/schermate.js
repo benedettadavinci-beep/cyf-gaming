@@ -1,5 +1,5 @@
 // modulo: schermate
-// dipende da: base, lingua, rider, protocollo
+// dipende da: base, lingua, protocollo
 // Tutto quello che il giocatore legge sullo schermo, fuori dalla scena 3D: schermate (menu, stanza, risultati, pausa),
 // avvisi a scomparsa (say), striscione (setBanner), stanza della sfida con link e condivisione, risultati con premi,
 // HUD in alto (tempo, posizione, velocità, distanza, punti, vite) e classifica dei migliori tempi del menu.
@@ -10,13 +10,13 @@ window.PN = window.PN || {};
 PN.schermate = ({ diag, stato: S }) => {
   const { PALETTE, START_ALT, SLOPE, fmt, fmtTime } = PN.base;
   const { tr, ord, fmtLen } = PN.lingua;
-  const { myJersey, myHair } = PN.rider;
   const $ = id => document.getElementById(id);
   const kmh = v => v * 3.6;
-  const selScena = $('selScena'), selJersey = $('selJersey');
+  const selScena = $('selScena');
   // ---------- overlays & HUD ----------
   const OVERLAYS = ['menu', 'lobby', 'raceResults', 'over', 'pause'];
-  function show(id) { for (const o of OVERLAYS) $(o).hidden = o !== id; diag.log('schermata', id || 'gioco'); }
+  // cambiando schermata si chiude anche "Modifica il personaggio" (per esempio quando parte la gara)
+  function show(id) { for (const o of OVERLAYS) $(o).hidden = o !== id; $('look').hidden = true; diag.log('schermata', id || 'gioco'); }
   const banner = $('banner');
   function setBanner(text) { banner.hidden = !text; banner.textContent = text || ''; if (!text) banner.classList.remove('wait'); }
 
@@ -78,10 +78,6 @@ PN.schermate = ({ diag, stato: S }) => {
     for (let i = 0; i < rc.options.length; i++) rc.options[i].textContent = selScena.options[i].textContent;
     rc.value = S.net.roomScena || selScena.value;
     rc.disabled = !isHost;
-    const rj = $('selRoomJersey');
-    if (rj.options.length !== selJersey.options.length) rj.innerHTML = selJersey.innerHTML;
-    for (let i = 0; i < rj.options.length; i++) rj.options[i].textContent = selJersey.options[i].textContent;
-    rj.value = myJersey();
     $('cityLabel').textContent = tr('raceCity') + (isHost ? '' : ' · ' + tr(pub ? 'raceCityPub' : 'raceCityHost'));
     const mine = S.net.players.find(p => p.id === S.myId);
     $('btnReady').textContent = mine && mine.ready ? tr('notReady') : tr('imReady');
@@ -113,12 +109,6 @@ PN.schermate = ({ diag, stato: S }) => {
     else if (S.mode === 'results') renderResultsStatus();
   }, 500);
   document.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => S.net.send({ t: 'settings', minutes: +b.dataset.min })));
-  // maglia: la sceglie ognuno anche dentro la stanza (chi arriva dal link non passa dal menu)
-  $('selRoomJersey').addEventListener('change', () => {
-    selJersey.value = $('selRoomJersey').value;
-    selJersey.dispatchEvent(new Event('change'));
-    S.net.send({ t: 'jersey', j: myJersey(), h: myHair() });
-  });
   $('selRoomCity').addEventListener('change', () => {
     selScena.value = $('selRoomCity').value;
     selScena.dispatchEvent(new Event('change'));

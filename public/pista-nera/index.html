@@ -104,6 +104,20 @@
   .banner { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); background: rgba(12,24,40,.78); color: #fff; padding: 8px 14px; border-radius: 10px; font-size: 18px; font-weight: 600; text-align: center; max-width: calc(100% - 24px); }
   .banner.wait { bottom: auto; top: 30%; width: min(440px, calc(100% - 32px)); line-height: 1.35; }   /* attesa prima del via: in alto al centro, lontano da Salta e dalla rotellina */
 
+  .look-btn { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 800; font-size: 17px; border: 2px dashed var(--flare); border-radius: 10px; padding: 12px 14px; background: rgba(255,90,31,.08); color: var(--ink); cursor: pointer; }
+  .look-ico { font-size: 22px; line-height: 1; }
+  #look { z-index: 7; }
+  .look-panel { width: min(620px, 100%); gap: 12px; }
+  .look-panel h2 { margin: 0; font-family: var(--display); font-size: 24px; }
+  .look-preview, .look-grid, #btnLookDone { flex-shrink: 0; }
+  .look-preview { position: relative; border-radius: 10px; overflow: hidden; background: linear-gradient(#cfe0ee, #eef3f7); }
+  #lookCanvas { display: block; width: 100%; height: 230px; }
+  .look-seg { position: absolute; left: 8px; top: 8px; width: auto; grid-template-columns: 1fr 1fr; }
+  .look-seg button { padding: 6px 12px; font-size: 13px; }
+  .look-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+  .look-grid select { width: 100%; font-size: 16px; padding: 9px 10px; }
+  .look-grid label.field { letter-spacing: .06em; font-size: 12px; }
+  @media (max-height: 560px) { #lookCanvas { height: 150px; } }
   .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(12,24,40,.45); backdrop-filter: blur(2px); }
   .panel { width: min(480px, 100%); max-height: 100%; overflow: auto; background: var(--snow); border-radius: 12px; padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
   .panel h1, .panel h2 { margin: 0; font-family: var(--display); font-weight: 400; letter-spacing: .02em; line-height: 1; text-wrap: balance; }
@@ -266,53 +280,7 @@
             <option value="newyork" data-i18n="newyorkCity"></option>
           </select>
         </div>
-        <label class="field" for="selJersey"><span data-i18n="jersey"></span>
-          <select id="selJersey">
-            <option value="" data-i18n="jerseyDefault"></option>
-            <optgroup data-i18n-label="jerseyGroup" label="Maglie delle città">
-            <option value="napoli" data-i18n="jNapoli">Napoli · azzurra</option>
-            <option value="roma" data-i18n="jRoma">Roma · giallorossa</option>
-            <option value="milano-rossonera" data-i18n="jMilanoRN">Milano · rossonera</option>
-            <option value="milano-nerazzurra" data-i18n="jMilanoNA">Milano · nerazzurra</option>
-            <option value="torino-granata" data-i18n="jTorinoG">Torino · granata</option>
-            <option value="torino-bianconera" data-i18n="jTorinoBN">Torino · bianconera</option>
-            <option value="palermo" data-i18n="jPalermo">Palermo · rosanero</option>
-            <option value="bologna" data-i18n="jBologna">Bologna · rossoblù</option>
-            </optgroup>
-            <optgroup data-i18n-label="colorGroup" label="Colori">
-              <option value="colore-arancione" data-i18n="cOrange"></option>
-              <option value="colore-blu" data-i18n="cBlue"></option>
-              <option value="colore-verde" data-i18n="cGreen"></option>
-              <option value="colore-giallo" data-i18n="cYellow"></option>
-              <option value="colore-viola" data-i18n="cPurple"></option>
-              <option value="colore-rosso" data-i18n="cRed"></option>
-              <option value="colore-nero" data-i18n="cBlack"></option>
-              <option value="colore-bianco" data-i18n="cWhite"></option>
-            </optgroup>
-          </select>
-        </label>
-        <div class="field" style="display:flex;flex-direction:column;gap:4px">
-          <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase" data-i18n="hair"></span>
-          <div class="row">
-            <select id="selHairStyle" style="flex:1 1 150px" data-i18n-aria="hairStyle">
-              <option value="" data-i18n="hairRandom"></option>
-              <option value="corti" data-i18n="hCorti"></option>
-              <option value="rasati" data-i18n="hRasati"></option>
-              <option value="ciuffo" data-i18n="hCiuffo"></option>
-              <option value="lunghi" data-i18n="hLunghi"></option>
-              <option value="coda" data-i18n="hCoda"></option>
-              <option value="caschetto" data-i18n="hCaschetto"></option>
-            </select>
-            <select id="selHairColor" style="flex:1 1 150px" data-i18n-aria="hairColor">
-              <option value="" data-i18n="hcRandom"></option>
-              <option value="0" data-i18n="hcNero"></option>
-              <option value="1" data-i18n="hcCastScuro"></option>
-              <option value="2" data-i18n="hcCastano"></option>
-              <option value="3" data-i18n="hcBiondo"></option>
-              <option value="4" data-i18n="hcRamato"></option>
-            </select>
-          </div>
-        </div>
+        <button type="button" class="look-btn" id="btnLook"><span class="look-ico" aria-hidden="true">🎨</span><span data-i18n="editLook"></span></button>
         <button class="go" id="btnOnline" data-i18n="playOnline"></button>
         <button class="alt" id="btnCreate" data-i18n="createChallenge"></button>
         <div class="row">
@@ -395,9 +363,7 @@
             <button type="button" data-min="15" aria-pressed="false">15 min</button>
           </div>
         </div>
-        <label class="field" for="selRoomJersey"><span data-i18n="jersey"></span>
-          <select id="selRoomJersey"></select>
-        </label>
+        <button type="button" class="look-btn" id="btnRoomLook"><span class="look-ico" aria-hidden="true">🎨</span><span data-i18n="editLook"></span></button>
         <div class="field" id="cityBox" style="display:flex;flex-direction:column;gap:4px">
           <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase" id="cityLabel"></span>
           <select id="selRoomCity" data-i18n-aria="raceCity"></select>
@@ -456,6 +422,126 @@
         <button class="go" id="btnResume" data-i18n="resume"></button>
       </div>
     </div>
+    <div class="overlay" id="look" hidden>
+      <div class="panel look-panel">
+        <h2 data-i18n="editLookTitle"></h2>
+        <div class="look-preview">
+          <canvas id="lookCanvas" aria-hidden="true"></canvas>
+          <div class="seg look-seg" role="group" data-i18n-aria="lookWhere">
+            <button type="button" id="btnLookCity" data-i18n="lookCity" aria-pressed="true"></button>
+            <button type="button" id="btnLookSnow" data-i18n="lookSnow" aria-pressed="false"></button>
+          </div>
+        </div>
+        <div class="look-grid">
+          <label class="field" style="min-width:0">
+            <span data-i18n="jersey"></span>
+            <select id="selJersey">
+              <option value="" data-i18n="jerseyDefault"></option>
+              <optgroup data-i18n-label="jerseyGroup" label="Maglie delle città">
+              <option value="napoli" data-i18n="jNapoli">Napoli · azzurra</option>
+              <option value="roma" data-i18n="jRoma">Roma · giallorossa</option>
+              <option value="milano-rossonera" data-i18n="jMilanoRN">Milano · rossonera</option>
+              <option value="milano-nerazzurra" data-i18n="jMilanoNA">Milano · nerazzurra</option>
+              <option value="torino-granata" data-i18n="jTorinoG">Torino · granata</option>
+              <option value="torino-bianconera" data-i18n="jTorinoBN">Torino · bianconera</option>
+              <option value="palermo" data-i18n="jPalermo">Palermo · rosanero</option>
+              <option value="bologna" data-i18n="jBologna">Bologna · rossoblù</option>
+              </optgroup>
+              <optgroup data-i18n-label="colorGroup" label="Colori">
+                <option value="colore-arancione" data-i18n="cOrange"></option>
+                <option value="colore-blu" data-i18n="cBlue"></option>
+                <option value="colore-verde" data-i18n="cGreen"></option>
+                <option value="colore-giallo" data-i18n="cYellow"></option>
+                <option value="colore-viola" data-i18n="cPurple"></option>
+                <option value="colore-rosso" data-i18n="cRed"></option>
+                <option value="colore-nero" data-i18n="cBlack"></option>
+                <option value="colore-bianco" data-i18n="cWhite"></option>
+              </optgroup>
+            </select>
+          </label>
+          <label class="field" style="min-width:0">
+            <span data-i18n="pants"></span>
+            <select id="selPants">
+              <option value="" data-i18n="pDefault"></option>
+              <option value="0" data-i18n="pJeans"></option>
+              <option value="1" data-i18n="pNeri"></option>
+              <option value="2" data-i18n="pGrigi"></option>
+              <option value="3" data-i18n="pBeige"></option>
+              <option value="4" data-i18n="pMilitare"></option>
+              <option value="5" data-i18n="pRossi"></option>
+              <option value="6" data-i18n="pBianchi"></option>
+            </select>
+          </label>
+          <label class="field" style="min-width:0">
+            <span data-i18n="hair"></span>
+            <select id="selHairStyle" data-i18n-aria="hairStyle">
+              <option value="" data-i18n="hairRandom"></option>
+              <option value="corti" data-i18n="hCorti"></option>
+              <option value="rasati" data-i18n="hRasati"></option>
+              <option value="ciuffo" data-i18n="hCiuffo"></option>
+              <option value="lunghi" data-i18n="hLunghi"></option>
+              <option value="coda" data-i18n="hCoda"></option>
+              <option value="caschetto" data-i18n="hCaschetto"></option>
+            </select>
+          </label>
+          <label class="field" style="min-width:0">
+            <span data-i18n="hairColor"></span>
+            <select id="selHairColor" data-i18n-aria="hairColor">
+              <option value="" data-i18n="hcRandom"></option>
+              <option value="0" data-i18n="hcNero"></option>
+              <option value="1" data-i18n="hcCastScuro"></option>
+              <option value="2" data-i18n="hcCastano"></option>
+              <option value="3" data-i18n="hcBiondo"></option>
+              <option value="4" data-i18n="hcRamato"></option>
+            </select>
+          </label>
+          <label class="field" style="min-width:0">
+            <span data-i18n="helmet"></span>
+            <select id="selHelmet">
+              <option value="" data-i18n="eNone"></option>
+              <option value="skate" data-i18n="eSkate"></option>
+              <option value="integrale" data-i18n="eIntegrale"></option>
+              <option value="sci" data-i18n="eSci"></option>
+            </select>
+          </label>
+          <label class="field" style="min-width:0">
+            <span data-i18n="helmetColor"></span>
+            <select id="selHelmetColor" data-i18n-aria="helmetColor">
+              <option value="" data-i18n="kDefaultNero"></option>
+              <option value="0" data-i18n="kBianco"></option>
+              <option value="1" data-i18n="kNero"></option>
+              <option value="2" data-i18n="kRosso"></option>
+              <option value="3" data-i18n="kBlu"></option>
+              <option value="4" data-i18n="kGiallo"></option>
+              <option value="5" data-i18n="kArancione"></option>
+            </select>
+          </label>
+          <label class="field" style="min-width:0">
+            <span data-i18n="board"></span>
+            <select id="selBoard">
+              <option value="" data-i18n="bClassico"></option>
+              <option value="cruiser" data-i18n="bCruiser"></option>
+              <option value="longboard" data-i18n="bLongboard"></option>
+            </select>
+          </label>
+          <label class="field" style="min-width:0">
+            <span data-i18n="boardColor"></span>
+            <select id="selBoardColor" data-i18n-aria="boardColor">
+              <option value="" data-i18n="kDefaultLegno"></option>
+              <option value="0" data-i18n="kNero"></option>
+              <option value="1" data-i18n="kRosso"></option>
+              <option value="2" data-i18n="kBlu"></option>
+              <option value="3" data-i18n="kVerde"></option>
+              <option value="4" data-i18n="kGiallo"></option>
+              <option value="5" data-i18n="kRosa"></option>
+              <option value="6" data-i18n="kBianco"></option>
+              <option value="7" data-i18n="kViola"></option>
+            </select>
+          </label>
+        </div>
+        <button type="button" class="go" id="btnLookDone" data-i18n="lookDone"></button>
+      </div>
+    </div>
 
     <span class="err" id="glErr" hidden>Questo browser non supporta la grafica 3D (WebGL) · This browser does not support 3D graphics (WebGL). Chrome, Edge, Firefox.</span>
   </div>
@@ -491,6 +577,7 @@
 <script src="moduli/audio.js"></script>
 <script src="moduli/vocali.js"></script>
 <script src="moduli/profilo.js"></script>
+<script src="moduli/personaggio.js"></script>
 <script src="moduli/oggetti.js"></script>
 <script src="moduli/avversari.js"></script>
 <script src="moduli/comandi.js"></script>

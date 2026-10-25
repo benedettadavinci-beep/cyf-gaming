@@ -1,6 +1,7 @@
 // modulo: profilo
 // dipende da: base, lingua
-// Impostazioni ricordate dal server con un codice personale (R-226, S-35): nome, lingua, città, maglia e capelli.
+// Impostazioni ricordate dal server con un codice personale (R-226, S-35): nome, lingua, città e personaggio
+// (maglia, capelli, pantaloni, casco, tavola: R-229).
 // Le impostazioni restano anche sul dispositivo (localStorage), così il gioco funziona pure senza server; il profilo
 // sul server serve a ritrovarle su un altro telefono o PC. Il codice personale (8 caratteri) è la chiave del profilo:
 // non coincide con il codice del giocatore che gli altri vedono in gara.
@@ -14,7 +15,7 @@ PN.profilo = ({ myId, aggiorna, say }) => {
   const { tr } = PN.lingua;
   const $ = id => document.getElementById(id);
   // dove stanno le impostazioni sul dispositivo
-  const KEYS = { name: 'cyf.name', lang: 'cyf.lang', scena: 'cyf.scena', j: 'cyf.jersey', h: 'cyf.hair' };
+  const KEYS = { name: 'cyf.name', lang: 'cyf.lang', scena: 'cyf.scena', j: 'cyf.jersey', h: 'cyf.hair', p: 'cyf.pants', e: 'cyf.helmet', s: 'cyf.board' };
   const pulisci = c => { const v = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-HJ-NP-Z2-9]{8}$/.test(v) ? v : ''; };
   const mostra = c => c.slice(0, 4) + '-' + c.slice(4);
   let code = pulisci(store.get('cyf.codice'));
@@ -30,7 +31,7 @@ PN.profilo = ({ myId, aggiorna, say }) => {
   function scrivi(d) {
     d = d || {};
     for (const k of ['name', 'lang', 'scena']) if (d[k]) store.set(KEYS[k], d[k]);
-    for (const k of ['j', 'h']) if (typeof d[k] === 'string') store.set(KEYS[k], d[k]);
+    for (const k of ['j', 'h', 'p', 'e', 's']) if (typeof d[k] === 'string') store.set(KEYS[k], d[k]);
   }
   function render() {
     $('profCode').textContent = code ? mostra(code) : tr('profNone');

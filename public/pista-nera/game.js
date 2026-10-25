@@ -81,7 +81,7 @@
   const { CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, textTexture, finishLine, rampCity, propGeos } = CITTA;
   const assets = () => CITTA.assetsFor(theme);
   const { addMesh } = PISTA;
-  const { JERSEYS, myJersey, myHair, jacketTexture, switchOf, bodyTurn, makeRider } = PN.rider;
+  const { JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, bodyTurn, makeRider } = PN.rider;
   const me = makeRider(PALETTE[0]);
   world.add(me.group);
   const rider = me.group, body = me.body;
@@ -475,24 +475,25 @@
   // impostazioni ricordate dal server con il codice personale (R-226)
   const PROFILO = PN.profilo({ myId, aggiorna: () => daProfilo(), say: (...a) => say(...a) });
   inName.addEventListener('change', () => { const n = inName.value.trim(); if (n) { store.set('cyf.name', n); PROFILO.salva(); } });
-  // capelli (R-225): forma e colore, "a caso" se vuoti
-  const selHairStyle = $('selHairStyle'), selHairColor = $('selHairColor');
-  function showHair() { const [a, b] = myHair().split(':'); selHairStyle.value = a || ''; selHairColor.value = b || ''; }
-  showHair();
-  for (const el of [selHairStyle, selHairColor]) el.addEventListener('change', () => {
-    const v = selHairStyle.value || selHairColor.value ? selHairStyle.value + ':' + selHairColor.value : '';
-    store.set('cyf.hair', v);
+  // "Modifica il personaggio" (R-227…R-229): maglia, pantaloni, capelli, casco e tavola. Ogni scelta vale subito
+  // per il proprio rider, arriva agli altri giocatori della stanza (prima del via) e va nel profilo
+  me.setGear(myGear());
+  const aspetto = () => ({ j: myJersey(), h: myHair(), ...myGear() });
+  function aspettoCambiato() {
+    me.setColor(PALETTE[(net.myColor || 0) % PALETTE.length], myJersey());
     me.setLook(myId, myHair());
-    if (net.ws && mode === 'lobby') net.send({ t: 'jersey', j: myJersey(), h: myHair() });
+    me.setGear(myGear());
+    if (net.ws && mode === 'lobby') net.send({ t: 'jersey', ...aspetto() });
     PROFILO.salva();
-  });
+  }
+  const PERS = PN.personaggio({ colore: () => PALETTE[(net.myColor || 0) % PALETTE.length], inCitta: () => isCity(), cambiato: aspettoCambiato });
   // il server aveva impostazioni più recenti (cambiate su un altro dispositivo): si mostrano, solo se si è nel menu
   function daProfilo() {
     if (mode !== 'menu') return;
     inName.value = store.get('cyf.name') || inName.value;
-    selJersey.value = myJersey();
+    PERS.mostra();
     me.setColor(PALETTE[(net.myColor || 0) % PALETTE.length], myJersey());
-    showHair(); me.setLook(myId, myHair());
+    me.setLook(myId, myHair()); me.setGear(myGear());
     const l = store.get('cyf.lang'); if (l && l !== lang) applyLang(l);
     const sc = store.get('cyf.scena');
     if (!urlScena && THEMES[sc] && sc !== theme) { applyTheme(sc); reset((Math.random() * 2 ** 31) | 0, null, false); }
@@ -567,7 +568,7 @@
     net.ws = ws;
     ws.onopen = () => {
       net.retries = 0; setBanner('');
-      ws.send(JSON.stringify({ t: 'hello', v: PN.protocollo.VERSIONE, id: myId, name: inName.value.trim() || 'Rider', j: myJersey(), h: myHair(), sc: selScena.value }));
+      ws.send(JSON.stringify({ t: 'hello', v: PN.protocollo.VERSIONE, id: myId, name: inName.value.trim() || 'Rider', ...aspetto(), sc: selScena.value }));
       clearInterval(net.pingTimer);
       net.pingAt = Date.now(); ws.send('ping');
       net.pingTimer = setInterval(() => { if (ws.readyState === 1) { net.pingAt = Date.now(); ws.send('ping'); } }, 20000);
@@ -937,13 +938,7 @@
     PROFILO.render();
   }
   document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => { applyLang(b.dataset.lang); PROFILO.salva(); }));
-  const selJersey = $('selJersey');
-  selJersey.value = myJersey();
-  selJersey.addEventListener('change', () => {
-    store.set('cyf.jersey', JERSEYS[selJersey.value] ? selJersey.value : '');
-    me.setColor(PALETTE[(net.myColor || 0) % PALETTE.length], myJersey());
-    PROFILO.salva();
-  });
+  PERS.mostra();
   resize();
   applyTheme(theme);
   applyLang(lang);

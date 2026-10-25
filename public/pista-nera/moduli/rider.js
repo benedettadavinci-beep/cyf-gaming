@@ -2,6 +2,7 @@
 // dipende da: base
 // Il modello del rider (lo stesso per te e per gli avversari): forme arrotondate, giacca con lo stemma CYF e la maglia
 // della città o il colore scelto (JERSEYS), capelli a caso tra 6 acconciature o scelti dal giocatore (setLook, myHair), tavola da neve o skateboard,
+// pantaloni, casco e tipo di tavola scelti nella schermata "Modifica il personaggio" (setGear, myGear, R-227…R-229),
 // posa (pose) che segue curva, salto, grab e switch.
 // Solo modello e animazione: niente fisica, niente stato di gioco.
 window.PN = window.PN || {};
@@ -9,12 +10,12 @@ PN.rider = (() => {
   const { TAU, lin, store } = PN.base;
   // ---------- riders (local and remote share the same model) ----------
   const RM = c => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.7, metalness: 0 });
-  const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), boot: RM('#1b1b1b'), skin: RM('#dfae8c'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
+  const SHARED = { stripe: RM('#ff5a1f'), glove: RM('#141414'), boot: RM('#1b1b1b'), skin: RM('#dfae8c'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
   // skateboard (R-217): ruote da 9 cm di diametro e 4 cm di larghezza, da cruiser, con il mozzo scuro e il cuscinetto
   const WHEEL_R = 0.045, WHEEL_W = 0.04;
   const SKATE = {
-    deck: RM('#b9783f'), grip: RM('#1c1c1e'), truck: new THREE.MeshStandardMaterial({ color: lin('#9aa3ad'), roughness: 0.35, metalness: 0.7 }),
-    wheel: new THREE.MeshStandardMaterial({ color: lin('#f1e4c4'), roughness: 0.55, metalness: 0 }), hub: RM('#3a3f46'),
+    grip: RM('#1c1c1e'), truck: new THREE.MeshStandardMaterial({ color: lin('#9aa3ad'), roughness: 0.35, metalness: 0.7 }),
+    hub: RM('#3a3f46'),
     wheelGeo: new THREE.CylinderGeometry(WHEEL_R, WHEEL_R, WHEEL_W, 28), hubGeo: new THREE.CylinderGeometry(WHEEL_R * 0.45, WHEEL_R * 0.45, WHEEL_W + 0.002, 18),
     lipGeo: new THREE.TorusGeometry(WHEEL_R - 0.004, 0.006, 8, 28)   // bordo arrotondato della ruota
   };
@@ -84,10 +85,6 @@ PN.rider = (() => {
     snowboard: roundedSlab(0.3, 1.5, 0.15, 0.03),
     stripe: roundedSlab(0.05, 1.1, 0.025, 0.006),
     binding: new THREE.CylinderGeometry(0.11, 0.11, 0.035, 18, 1, true, -Math.PI / 2, Math.PI).scale(1, 1, 0.75),
-    deck: roundedSlab(0.21, 0.56, 0.02, 0.018),
-    tail: roundedSlab(0.21, 0.17, 0.1, 0.018),
-    grip: roundedSlab(0.2, 0.55, 0.02, 0.004),
-    hanger: new THREE.CylinderGeometry(0.013, 0.013, 0.17, 10).rotateZ(Math.PI / 2),
     baseplate: new THREE.CylinderGeometry(0.03, 0.036, 0.034, 12),
     kingpin: new THREE.CylinderGeometry(0.02, 0.024, 0.03, 10),
     // in città (R-218): viso e scarpe da skate
@@ -142,6 +139,62 @@ PN.rider = (() => {
   }
   const HAIR_RE = /^[a-z]{0,12}:[0-9]?$/;
   const myHair = () => { const v = store.get('cyf.hair') || ''; return HAIR_RE.test(v) ? v : ''; };
+
+  // ---------- pantaloni, casco e tavola (R-228) ----------
+  // Si salvano come testo corto: pantaloni "3" (indice del colore), casco e tavola "tipo:colore" (es. "integrale:2").
+  // Vuoto = come prima (pantaloni blu, niente casco, skate classico in legno e snowboard blu notte).
+  const PANTS_DEFAULT = '#2a3d58';
+  const PANTS = ['#3d5f8f', '#1f2126', '#6d727a', '#b8a07a', '#4f5b36', '#a3312a', '#e4e4df'];   // jeans, neri, grigi, beige, verde militare, rossi, bianchi
+  const HELMETS = ['skate', 'integrale', 'sci'];
+  const HELMET_COLORS = ['#eef0f2', '#1d1f24', '#d4322a', '#2a63c9', '#f0c419', '#ff6a1f'];     // bianco, nero, rosso, blu, giallo, arancione
+  const BOARDS = ['classico', 'cruiser', 'longboard'];
+  const BOARD_COLORS = ['#1d1f24', '#d4322a', '#2a63c9', '#1f8a4c', '#f0c419', '#e889b5', '#eef0f2', '#8a4fc4'];   // nero, rosso, blu, verde, giallo, rosa, bianco, viola
+  const GEAR_RE = /^[a-z]{0,12}:[0-9]?$/, PANTS_RE = /^[0-9]?$/;
+  const gearVal = (v, re) => (typeof v === 'string' && re.test(v) ? v : '');
+  // pulisce le scelte (arrivate dal dispositivo, dal server o da un altro giocatore)
+  const cleanGear = g => ({ p: gearVal(g && g.p, PANTS_RE), e: gearVal(g && g.e, GEAR_RE), s: gearVal(g && g.s, GEAR_RE) });
+  const myGear = () => cleanGear({ p: store.get('cyf.pants') || '', e: store.get('cyf.helmet') || '', s: store.get('cyf.board') || '' });
+  const pick = (list, i, def) => (/^[0-9]$/.test(i || '') && +i < list.length ? list[+i] : def);
+  // forme dei caschi, condivise da tutti i rider. Coordinate della testa: davanti +x, cima a y = 0,142.
+  // Nella SphereGeometry di three.js phi = π è il davanti (+x): l'integrale lascia aperto il viso attorno a phi = π.
+  const helmetGeo = {};
+  function helmetParts(type) {
+    if (helmetGeo[type]) return helmetGeo[type];
+    const shell = (r, th, tilt, sx = 1.06, sz = 0.96) => { const g = new THREE.SphereGeometry(r, 30, 14, 0, TAU, 0, Math.PI * th).scale(sx, 1.02, sz); g.rotateZ(tilt); g.translate(-0.008, 0.024, 0); return g; };
+    let parts;
+    if (type === 'skate') parts = [{ g: shell(0.14, 0.52, 0.14) }, { g: new THREE.TorusGeometry(0.139, 0.007, 6, 40).rotateX(Math.PI / 2).scale(1.06, 1, 0.96).translate(0, -0.0025, 0).rotateZ(0.14).translate(-0.008, 0.024, 0), dark: true }];
+    else if (type === 'sci') {
+      const pad = s => { const g = new THREE.SphereGeometry(0.05, 14, 10).scale(0.7, 1, 0.42); g.translate(-0.012, -0.03, s * 0.112); return { g, dark: true }; };
+      parts = [{ g: shell(0.143, 0.56, 0.24) }, pad(1), pad(-1)];
+    } else {
+      // integrale: calotta intera in alto, sotto aperta davanti per il viso, mentoniera e frontino
+      const top = new THREE.SphereGeometry(0.146, 30, 10, 0, TAU, 0, Math.PI * 0.42).scale(1.04, 1.04, 0.95);
+      const low = new THREE.SphereGeometry(0.146, 30, 8, Math.PI + 0.68, TAU - 1.36, Math.PI * 0.42, Math.PI * 0.28).scale(1.04, 1.04, 0.95);
+      // mentoniera: un arco basso davanti alla bocca, che si unisce ai lati della calotta
+      const chin = new THREE.TorusGeometry(0.13, 0.016, 8, 24, Math.PI * 0.5).rotateX(Math.PI / 2).rotateY(Math.PI * 0.25).scale(1.06, 1.4, 0.93);
+      chin.translate(-0.004, -0.088, 0);
+      const peak = new THREE.BoxGeometry(0.06, 0.007, 0.15); peak.rotateZ(-0.3); peak.translate(0.152, 0.098, 0);
+      for (const g of [top, low]) g.translate(-0.004, 0.012, 0);
+      parts = [{ g: top }, { g: low }, { g: chin }, { g: peak, dark: true }];
+    }
+    return (helmetGeo[type] = parts);
+  }
+  // tavole da skate (R-228): stessa altezza dal suolo per tutte (le ruote sono uguali), cambiano forma, lunghezza e carrelli
+  const SKATE_TYPES = {
+    classico: { w: 0.21, l: 0.56, tail: 0.17, tailA: 0.38, truck: 0.2, axle: 0.17, wheel: '#f1e4c4' },
+    cruiser: { w: 0.235, l: 0.6, tail: 0.09, tailA: 0.22, truck: 0.2, axle: 0.19, wheel: '#7fd1c1' },
+    longboard: { w: 0.235, l: 1.0, tail: 0, tailA: 0, truck: 0.36, axle: 0.2, wheel: '#f39c3d' }
+  };
+  const skateGeo = {};
+  const skateParts = type => skateGeo[type] || (skateGeo[type] = (() => {
+    const T = SKATE_TYPES[type];
+    return {
+      deck: roundedSlab(T.w, T.l, Math.min(0.1, T.w / 2 - 0.005) * (T.tail ? 0.2 : 1), 0.018), grip: roundedSlab(T.w - 0.01, T.l - 0.01, T.tail ? 0.02 : 0.1, 0.004),
+      tail: T.tail ? roundedSlab(T.w, T.tail, Math.min(0.1, T.tail * 0.6), 0.018) : null,
+      hanger: new THREE.CylinderGeometry(0.013, 0.013, T.axle, 10).rotateZ(Math.PI / 2),
+      wheel: new THREE.MeshStandardMaterial({ color: lin(T.wheel), roughness: 0.55, metalness: 0 })
+    };
+  })());
 
   const JERSEYS = {
     napoli: { body: ['#1e8fd6'], sleeves: '#1e8fd6' },
@@ -217,6 +270,9 @@ PN.rider = (() => {
     group.add(body);
     const jacket = new THREE.MeshStandardMaterial({ map: jacketTexture(jacketHex), roughness: 0.75, metalness: 0 });   // la maglia arriva con setColor
     const sleeve = RM(jacketHex), jacketDark = RM(jacketHex);
+    // materiali propri di questo rider, perché pantaloni, casco e tavola li sceglie ognuno (R-228)
+    const pants = RM(PANTS_DEFAULT), boardMat = RM('#121c2b'), deckMat = RM('#b9783f');
+    const helmetMat = new THREE.MeshStandardMaterial({ color: lin(HELMET_COLORS[1]), roughness: 0.35, metalness: 0.1, side: THREE.DoubleSide }), helmetDark = RM('#202227');
     jacketDark.color.multiplyScalar(0.7);
     // figure: tutto il rider tranne le tavole; in città sale di LIFT, perché la tavola da skate è più alta (R-217)
     const figure = new THREE.Group();
@@ -226,7 +282,7 @@ PN.rider = (() => {
     // snowboard (neve) e skateboard con le rotelle (città senza neve): se ne vede uno alla volta
     const snowG = new THREE.Group(), skateG = new THREE.Group();
     body.add(snowG, skateG, figure);   // in quest'ordine: le prove leggono body.children[0] (neve) e [1] (skate)
-    mesh(G.snowboard, SHARED.board, snowG).position.y = 0.05;
+    mesh(G.snowboard, boardMat, snowG).position.y = 0.05;
     mesh(G.stripe, SHARED.stripe, snowG).position.y = 0.067;
     for (const s of [-1, 1]) {
       const bind = mesh(G.binding, SHARED.boot, snowG);
@@ -242,23 +298,39 @@ PN.rider = (() => {
       const lace = mesh(G.lace, STREET.lace); lace.position.set(0.07, 0.152, s * 0.25); lace.rotation.z = -0.35;
       streetOnly.push(sole, shoe, lace);
     }
-    // tavola da skate: ruote a terra (il fondo delle ruote a y = 0), carrelli sopra, poi la tavola
+    // tavola da skate: ruote a terra (il fondo delle ruote a y = 0), carrelli sopra, poi la tavola.
+    // Un gruppo per tipo (classico, cruiser, longboard), costruito la prima volta che serve; se ne vede uno.
     const AX = WHEEL_R;   // altezza dell'asse delle ruote
-    mesh(G.deck, SKATE.deck, skateG).position.y = DECK_Y;
-    mesh(G.grip, SKATE.grip, skateG).position.y = DECK_Y + 0.012;
-    for (const s of [-1, 1]) {
-      const tail = mesh(G.tail, SKATE.deck, skateG);
-      tail.position.set(0, DECK_Y + 0.016, s * 0.34); tail.rotation.x = -s * 0.38;
-      mesh(G.baseplate, SKATE.truck, skateG).position.set(0, DECK_Y - 0.026, s * 0.2);
-      mesh(G.kingpin, SKATE.truck, skateG).position.set(0, AX + 0.02, s * 0.2);
-      mesh(G.hanger, SKATE.truck, skateG).position.set(0, AX, s * 0.2);
-      for (const w of [-1, 1]) {
-        const x = w * (0.085 + WHEEL_W / 2);
-        const wheel = mesh(SKATE.wheelGeo, SKATE.wheel, skateG); wheel.position.set(x, AX, s * 0.2); wheel.rotation.z = Math.PI / 2;
-        const hub = mesh(SKATE.hubGeo, SKATE.hub, skateG); hub.position.set(x, AX, s * 0.2); hub.rotation.z = Math.PI / 2;
-        for (const e of [-1, 1]) { const lip = mesh(SKATE.lipGeo, SKATE.wheel, skateG); lip.position.set(x + e * (WHEEL_W / 2 - 0.004), AX, s * 0.2); lip.rotation.y = Math.PI / 2; }
+    const skateBuilt = {};
+    function buildSkate(type) {
+      const T = SKATE_TYPES[type], P = skateParts(type), sg = new THREE.Group();
+      mesh(P.deck, deckMat, sg).position.y = DECK_Y;
+      mesh(P.grip, SKATE.grip, sg).position.y = DECK_Y + 0.012;
+      for (const s of [-1, 1]) {
+        if (P.tail) { const tail = mesh(P.tail, deckMat, sg); tail.position.set(0, DECK_Y + 0.016, s * (T.l / 2 + T.tail / 2 - 0.025)); tail.rotation.x = -s * T.tailA; }
+        const z = s * T.truck;
+        mesh(G.baseplate, SKATE.truck, sg).position.set(0, DECK_Y - 0.026, z);
+        mesh(G.kingpin, SKATE.truck, sg).position.set(0, AX + 0.02, z);
+        mesh(P.hanger, SKATE.truck, sg).position.set(0, AX, z);
+        for (const w of [-1, 1]) {
+          const x = w * (T.axle / 2 + WHEEL_W / 2);
+          const wheel = mesh(SKATE.wheelGeo, P.wheel, sg); wheel.position.set(x, AX, z); wheel.rotation.z = Math.PI / 2;
+          const hub = mesh(SKATE.hubGeo, SKATE.hub, sg); hub.position.set(x, AX, z); hub.rotation.z = Math.PI / 2;
+          for (const e of [-1, 1]) { const lip = mesh(SKATE.lipGeo, P.wheel, sg); lip.position.set(x + e * (WHEEL_W / 2 - 0.004), AX, z); lip.rotation.y = Math.PI / 2; }
+        }
       }
+      skateG.add(sg);
+      return sg;
     }
+    let skateNow = '';
+    function showSkate(type) {
+      if (!SKATE_TYPES[type]) type = 'classico';
+      if (type === skateNow) return;
+      skateNow = type;
+      if (!skateBuilt[type]) skateBuilt[type] = buildSkate(type);
+      for (const k in skateBuilt) skateBuilt[k].visible = k === type;
+    }
+    showSkate('classico');
     skateG.visible = false;
     function setBoard(kind) {
       const city = kind === 'skate';
@@ -271,14 +343,14 @@ PN.rider = (() => {
     const limb = (r, mat) => mesh(G.limb(r), mat);
     const joint = (r, mat) => mesh(G.joint(r), mat);
     const L = {
-      thighL: mesh(G.thigh, SHARED.pants), thighR: mesh(G.thigh, SHARED.pants), shinL: mesh(G.shin, SHARED.pants), shinR: mesh(G.shin, SHARED.pants),
+      thighL: mesh(G.thigh, pants), thighR: mesh(G.thigh, pants), shinL: mesh(G.shin, pants), shinR: mesh(G.shin, pants),
       uarmL: mesh(G.uarm, sleeve), uarmR: mesh(G.uarm, sleeve), farmL: mesh(G.farm, sleeve), farmR: mesh(G.farm, sleeve)
     };
     const JM = {
-      kneeL: joint(0.085, SHARED.pants), kneeR: joint(0.085, SHARED.pants), hipL: joint(0.098, SHARED.pants), hipR: joint(0.098, SHARED.pants),
+      kneeL: joint(0.085, pants), kneeR: joint(0.085, pants), hipL: joint(0.098, pants), hipR: joint(0.098, pants),
       shL: joint(0.074, sleeve), shR: joint(0.074, sleeve), elL: joint(0.062, sleeve), elR: joint(0.062, sleeve)
     };
-    const pelvis = mesh(G.pelvis, SHARED.pants);
+    const pelvis = mesh(G.pelvis, pants);
     const torso = mesh(G.torso, jacket);
     mesh(G.band, jacketDark, torso);
     mesh(G.collar, jacketDark, torso).position.y = 0.535;
@@ -298,17 +370,25 @@ PN.rider = (() => {
     // capelli: un gruppo che si ricostruisce con setLook(codice del giocatore)
     const hairG = new THREE.Group();
     headG.add(hairG);
-    let lookNow = '';
+    let lookNow = '', hairStyle = 0, helmetOn = false;
     function setLook(id, scelta) {
       const L2 = lookOf(id, scelta), key = L2.style + ':' + L2.color;
       if (key === lookNow) return L2;
-      lookNow = key;
+      lookNow = key; hairStyle = L2.style;
       while (hairG.children.length) hairG.remove(hairG.children[0]);
       if (!hairGeo[L2.style]) hairGeo[L2.style] = HAIR_STYLES[L2.style].parts();
       for (const g of hairGeo[L2.style]) mesh(g, hairMaterial(HAIR_COLORS[L2.color]), hairG);
+      hairUnderHelmet();
       return L2;
     }
+    // con il casco la calotta dei capelli (e il ciuffo) sta sotto il casco: si vedono solo i capelli lunghi e la coda (S-36)
+    function hairUnderHelmet() {
+      hairG.children.forEach((m, i) => { m.visible = !helmetOn || (i > 0 && HAIR_STYLES[hairStyle].name !== 'ciuffo'); });
+    }
     setLook('');
+    // casco (R-228): un gruppo per tipo, costruito la prima volta che serve
+    const helmetG = new THREE.Group(), helmetBuilt = {};
+    headG.add(helmetG);
     // viso (il davanti della testa è +x): occhi con l'iride, sopracciglia, bocca; le orecchie si vedono sempre
     for (const s of [-1, 1]) {
       const eye = mesh(G.eye, STREET.eye, headG); eye.position.set(0.107, 0.022, s * 0.036);
@@ -409,9 +489,31 @@ PN.rider = (() => {
       sleeve.color.copy(lin(J ? J.sleeves : hex));
       jacketDark.color.copy(lin(J ? J.body[0] : hex)).multiplyScalar(0.7);
     }
+    // pantaloni, casco e tavola (R-228): { p, e, s } come in myGear(); i valori sconosciuti tornano a quelli normali
+    let gearNow = '';
+    function setGear(g) {
+      const G2 = cleanGear(g), key = G2.p + '|' + G2.e + '|' + G2.s;
+      if (key === gearNow) return G2;
+      gearNow = key;
+      pants.color.copy(lin(pick(PANTS, G2.p, PANTS_DEFAULT)));
+      const [et, ec] = G2.e.split(':');
+      helmetOn = HELMETS.includes(et);
+      for (const k in helmetBuilt) helmetBuilt[k].visible = k === et;
+      if (helmetOn && !helmetBuilt[et]) { const hg = new THREE.Group(); for (const p of helmetParts(et)) mesh(p.g, p.dark ? helmetDark : helmetMat, hg); helmetG.add(hg); helmetBuilt[et] = hg; }
+      helmetMat.color.copy(lin(pick(HELMET_COLORS, ec, HELMET_COLORS[1])));
+      // sulla neve con il casco: elastico e maschera sopra il casco
+      strap.scale.set(helmetOn ? 0.95 : 0.78, 1, helmetOn ? 0.95 : 0.78);
+      const gs = helmetOn ? 1.04 : 0.9; gFrame.scale.setScalar(gs); goggle.scale.setScalar(gs);
+      hairUnderHelmet();
+      const [st, sc] = G2.s.split(':');
+      showSkate(st);
+      deckMat.color.copy(lin(pick(BOARD_COLORS, sc, '#b9783f')));
+      boardMat.color.copy(lin(pick(BOARD_COLORS, sc, '#121c2b')));
+      return G2;
+    }
     pose(0.3, 0.2, 0);
     setBoard('snow');
-    return { group, body, pose, setColor, setBoard, setLook };
+    return { group, body, pose, setColor, setBoard, setLook, setGear };
   }
-  return { JERSEYS, HAIR_STYLES, HAIR_RE, lookOf, myHair, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
+  return { JERSEYS, HAIR_STYLES, HAIR_COLORS, HAIR_RE, PANTS, HELMETS, HELMET_COLORS, BOARDS, BOARD_COLORS, cleanGear, lookOf, myHair, myGear, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
 })();
