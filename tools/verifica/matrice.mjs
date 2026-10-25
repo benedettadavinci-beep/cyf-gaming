@@ -37,12 +37,30 @@ for (const f of files) {
     if (!uses.has(m[1])) uses.set(m[1], new Set());
     if (m[2]) uses.get(m[1]).add(m[2]);
   }
+  // istanze ricevute come parametri: "PN.citta = ({ world, pista }) =>" dipende da pista se esiste un modulo con quel nome;
+  // "pista: PISTA" oppure "audio: AUDIO" nelle chiamate del gioco vale lo stesso
+  const head = /PN\.[A-Za-z_]\w*\s*=\s*\(\{([^}]*)\}\)\s*=>/.exec(src);
+  const inst = new Map();   // nome del parametro → modulo ("audio: AUDIO" → AUDIO è un'istanza di audio)
+  if (head) for (const part of head[1].split(',').map(x => x.trim()).filter(Boolean)) {
+    const [n, alias] = part.split(':').map(x => x.trim());
+    if (n !== mod && !uses.has(n)) uses.set(n, new Set());
+    inst.set(alias || n, n);
+  }
+  // cosa si usa davvero: "const { a, b } = PN.x;" oppure "= pista;" (istanza ricevuta) oppure "AUDIO.initAudio"
+  for (const m of src.matchAll(/const \{([^}]*)\}\s*=\s*(?:PN\.)?([A-Za-z_]\w*)\s*;/g)) {
+    const target = inst.get(m[2]) || m[2];
+    if (!uses.has(target) || target === mod) continue;
+    for (const n of m[1].split(',').map(x => x.trim().split(':')[0].trim()).filter(Boolean)) uses.get(target).add(n);
+  }
+  for (const [alias, target] of inst) if (uses.has(target)) for (const m of src.matchAll(new RegExp('(?<![\\w.])' + alias + '\\.([A-Za-z_]\\w*)', 'g'))) uses.get(target).add(m[1]);
   info.set(f.name, { mod, declared, defines: [...defines], uses, lines: src.split('\n').length });
 }
 
+const known = new Set([...info.values()].map(i => i.mod).filter(Boolean));
 const problems = [];
 const rows = [];
 for (const [name, i] of info) {
+  for (const u of [...i.uses.keys()]) if (!known.has(u)) i.uses.delete(u);   // "world", "net"… non sono moduli
   const used = [...i.uses.keys()].filter(u => u !== i.mod);
   for (const u of used) {
     if (i.mod && !i.declared.includes(u)) problems.push(`${name} usa PN.${u} ma non lo dichiara in "// dipende da:"`);

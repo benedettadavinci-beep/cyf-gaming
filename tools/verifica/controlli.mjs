@@ -4,7 +4,7 @@
 // 3. le 4 lingue hanno le stesse chiavi e gli stessi segnaposto ({n}, {t}…);
 // 4. la versione di public/config.js compare nello storico di REQUISITI.md.
 // Uso: node tools/verifica/controlli.mjs   (esce con 1 se trova problemi)
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -45,7 +45,9 @@ for (const l of LANGS.slice(1)) {
 }
 
 console.log('C3 · ogni testo usato dal gioco esiste');
-const game = read('public/pista-nera/game.js');
+// game.js più tutti i moduli e le schede delle città: i testi si usano ovunque
+const jsFiles = ['public/pista-nera/game.js', ...walk('public/pista-nera/moduli'), ...(existsSync(join(ROOT, 'public/pista-nera/citta')) ? walk('public/pista-nera/citta') : [])];
+const game = jsFiles.map(f => read(f)).join('\n');
 const html = read('public/pista-nera/index.html');
 const used = new Map();   // chiave → dove
 const use = (k, where) => { if (!used.has(k)) used.set(k, where); };
@@ -64,7 +66,7 @@ for (const m of game.matchAll(/\b(fa|fb):\s*'([A-Za-z0-9_]+)'/g)) for (const p o
 // attributi della pagina
 for (const m of html.matchAll(/data-i18n(?:-html|-ph|-title|-aria)?="([^"]+)"/g)) use(m[1], 'index.html');
 const missing = [...used].filter(([k]) => !(k in L.it));
-ok(used.size > 100, 'testi trovati nel codice', String(used.size));
+ok(used.size > 100, 'testi trovati nel codice (' + jsFiles.length + ' file)', String(used.size));
 ok(!missing.length, 'tutti i testi usati esistono in italiano (e quindi, per C2, nelle 4 lingue)', missing.slice(0, 15).map(([k, w]) => k + ' (' + w + ')').join(', '));
 
 console.log('C4 · versione');
