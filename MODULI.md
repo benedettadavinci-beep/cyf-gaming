@@ -47,7 +47,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/lingua.js` | lingua | 37 | base (store) |
 | `moduli/oggetti.js` | oggetti | 129 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
 | `moduli/pista.js` | pista | 176 | base (TAU, clamp, isPhone, lin, mulberry32) |
-| `moduli/rider.js` | rider | 290 | base (TAU, lin, store) |
+| `moduli/rider.js` | rider | 361 | base (TAU, lin, store) |
 | `moduli/schermate.js` | schermate | 255 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (tr, ord, fmtLen); rider (myJersey); protocollo (COSTI) |
 | `moduli/sfondi.js` | sfondi | 522 | base (TAU, lin, mulberry32); geometria (lumpy) |
 | `moduli/vocali.js` | vocali | 180 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr) |

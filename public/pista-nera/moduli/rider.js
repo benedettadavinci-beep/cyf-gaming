@@ -9,7 +9,18 @@ PN.rider = (() => {
   // ---------- riders (local and remote share the same model) ----------
   const RM = c => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.7, metalness: 0 });
   const SHARED = { board: RM('#121c2b'), stripe: RM('#ff5a1f'), pants: RM('#2a3d58'), glove: RM('#141414'), helmet: RM('#eef2f6'), helmetPad: RM('#2b2f36'), helmetIn: Object.assign(RM('#eef2f6'), { side: THREE.DoubleSide }), boot: RM('#1b1b1b'), skin: RM('#dfae8c'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
-  const SKATE = { deck: RM('#b9783f'), grip: RM('#1c1c1e'), truck: new THREE.MeshStandardMaterial({ color: lin('#9aa3ad'), roughness: 0.35, metalness: 0.7 }), wheel: RM('#f1e4c4'), wheelGeo: new THREE.CylinderGeometry(0.028, 0.028, 0.032, 14) };
+  // skateboard (R-217): ruote da 9 cm di diametro e 4 cm di larghezza, da cruiser, con il mozzo scuro e il cuscinetto
+  const WHEEL_R = 0.045, WHEEL_W = 0.04;
+  const SKATE = {
+    deck: RM('#b9783f'), grip: RM('#1c1c1e'), truck: new THREE.MeshStandardMaterial({ color: lin('#9aa3ad'), roughness: 0.35, metalness: 0.7 }),
+    wheel: new THREE.MeshStandardMaterial({ color: lin('#f1e4c4'), roughness: 0.55, metalness: 0 }), hub: RM('#3a3f46'),
+    wheelGeo: new THREE.CylinderGeometry(WHEEL_R, WHEEL_R, WHEEL_W, 28), hubGeo: new THREE.CylinderGeometry(WHEEL_R * 0.45, WHEEL_R * 0.45, WHEEL_W + 0.002, 18),
+    lipGeo: new THREE.TorusGeometry(WHEEL_R - 0.004, 0.006, 8, 28)   // bordo arrotondato della ruota
+  };
+  // la tavola da skate sta sopra le ruote: rispetto alla tavola da neve il rider sale di LIFT
+  const DECK_Y = WHEEL_R * 2 + 0.006, LIFT = DECK_Y + 0.012 - 0.068;
+  // in città il rider è vestito da skater (R-218): viso scoperto, mani nude, scarpe da skate
+  const STREET = { sole: RM('#f2f1ec'), shoe: RM('#2b2f36'), lace: RM('#e8e6df'), eye: RM('#f6f4ef'), iris: RM('#4a3426'), brow: RM('#4a3628'), lip: RM('#b07468'), hair: RM('#2e221a') };
   const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
   const PIVOT = new THREE.Vector3();
   // ruota il corpo attorno al baricentro (circa 0,6 m sopra la tavola), non attorno ai piedi
@@ -80,8 +91,22 @@ PN.rider = (() => {
     deck: roundedSlab(0.21, 0.56, 0.02, 0.018),
     tail: roundedSlab(0.21, 0.17, 0.1, 0.018),
     grip: roundedSlab(0.2, 0.55, 0.02, 0.004),
-    hanger: new THREE.CylinderGeometry(0.012, 0.012, 0.17, 10).rotateZ(Math.PI / 2),
-    baseplate: new THREE.CylinderGeometry(0.03, 0.035, 0.03, 12)
+    hanger: new THREE.CylinderGeometry(0.013, 0.013, 0.17, 10).rotateZ(Math.PI / 2),
+    baseplate: new THREE.CylinderGeometry(0.03, 0.036, 0.034, 12),
+    kingpin: new THREE.CylinderGeometry(0.02, 0.024, 0.03, 10),
+    // in città (R-218): casco da skate tondo che lascia scoperta la fronte, viso, scarpe da skate
+    skateHelmet: new THREE.SphereGeometry(0.138, 30, 14, 0, TAU, 0, Math.PI * 0.52).scale(1.07, 1.0, 0.97),
+    // occhi a mandorla piccoli con l'iride grande (come quelli veri: il bianco si vede poco), sopracciglia sottili, labbra
+    eye: new THREE.SphereGeometry(0.012, 14, 10).scale(0.5, 0.62, 1),
+    iris: new THREE.SphereGeometry(0.0068, 12, 8).scale(0.45, 1, 1),
+    brow: new THREE.CylinderGeometry(0.0032, 0.0032, 0.032, 8).rotateX(Math.PI / 2),
+    mouth: new THREE.CylinderGeometry(0.0035, 0.0035, 0.036, 8).rotateX(Math.PI / 2),
+    ear: new THREE.SphereGeometry(0.026, 12, 10).scale(0.55, 1.15, 0.45),
+    hair: new THREE.SphereGeometry(0.108, 24, 10, -Math.PI * 0.5, Math.PI, Math.PI * 0.3, Math.PI * 0.28).scale(1.07, 1.0, 0.93),   // solo dietro e ai lati, sotto il casco
+    sole: roundedSlab(0.1, 0.258, 0.045, 0.02),
+    shoe: lathe([[0.001, 0], [0.052, 0], [0.056, 0.03], [0.05, 0.06], [0.034, 0.075], [0.001, 0.08]], 20).scale(2.35, 1, 0.92),
+    lace: new THREE.BoxGeometry(0.06, 0.006, 0.05),
+    hand: new THREE.SphereGeometry(0.052, 16, 12).scale(0.75, 1.25, 0.95)
   };
   // maglie delle città: solo i colori tradizionali, senza nomi o stemmi delle squadre
   const JERSEYS = {
@@ -154,8 +179,12 @@ PN.rider = (() => {
     const jacket = new THREE.MeshStandardMaterial({ map: jacketTexture(jacketHex), roughness: 0.75, metalness: 0 });   // la maglia arriva con setColor
     const sleeve = RM(jacketHex), jacketDark = RM(jacketHex);
     jacketDark.color.multiplyScalar(0.7);
-    const mesh = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; (parent || body).add(m); return m; };
+    // figure: tutto il rider tranne le tavole; in città sale di LIFT, perché la tavola da skate è più alta (R-217)
+    const figure = new THREE.Group();
+    body.add(figure);
+    const mesh = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; (parent || figure).add(m); return m; };
     const G = RIDER_GEO;
+    const snowOnly = [], streetOnly = [];   // pezzi che si vedono solo sulla neve o solo in città
     // snowboard (neve) e skateboard con le rotelle (città senza neve): se ne vede uno alla volta
     const snowG = new THREE.Group(), skateG = new THREE.Group();
     body.add(snowG, skateG);
@@ -167,23 +196,40 @@ PN.rider = (() => {
       bind.rotation.y = Math.PI;
       const boot = mesh(G.boot, SHARED.boot);
       boot.position.set(0.02, 0.135, s * 0.26);
-      mesh(G.toe, SHARED.boot).position.set(0.02, 0.2, s * 0.26);
+      const toe = mesh(G.toe, SHARED.boot); toe.position.set(0.02, 0.2, s * 0.26);
+      snowOnly.push(boot, toe);
+      // scarpa da skate: suola bianca, tomaia scura, lacci chiari; la punta verso il petto (+x), come lo scarpone
+      const sole = mesh(G.sole, STREET.sole); sole.position.set(0.03, 0.081, s * 0.25); sole.rotation.y = Math.PI / 2;
+      const shoe = mesh(G.shoe, STREET.shoe); shoe.position.set(0.035, 0.09, s * 0.25);
+      const lace = mesh(G.lace, STREET.lace); lace.position.set(0.07, 0.152, s * 0.25); lace.rotation.z = -0.35;
+      streetOnly.push(sole, shoe, lace);
     }
-    mesh(G.deck, SKATE.deck, skateG).position.y = 0.056;
-    mesh(G.grip, SKATE.grip, skateG).position.y = 0.068;
+    // tavola da skate: ruote a terra (il fondo delle ruote a y = 0), carrelli sopra, poi la tavola
+    const AX = WHEEL_R;   // altezza dell'asse delle ruote
+    mesh(G.deck, SKATE.deck, skateG).position.y = DECK_Y;
+    mesh(G.grip, SKATE.grip, skateG).position.y = DECK_Y + 0.012;
     for (const s of [-1, 1]) {
       const tail = mesh(G.tail, SKATE.deck, skateG);
-      tail.position.set(0, 0.072, s * 0.34); tail.rotation.x = -s * 0.38;
-      mesh(G.baseplate, SKATE.truck, skateG).position.set(0, 0.04, s * 0.2);
-      mesh(G.hanger, SKATE.truck, skateG).position.set(0, 0.028, s * 0.2);
+      tail.position.set(0, DECK_Y + 0.016, s * 0.34); tail.rotation.x = -s * 0.38;
+      mesh(G.baseplate, SKATE.truck, skateG).position.set(0, DECK_Y - 0.026, s * 0.2);
+      mesh(G.kingpin, SKATE.truck, skateG).position.set(0, AX + 0.02, s * 0.2);
+      mesh(G.hanger, SKATE.truck, skateG).position.set(0, AX, s * 0.2);
       for (const w of [-1, 1]) {
-        const wheel = mesh(SKATE.wheelGeo, SKATE.wheel, skateG);
-        wheel.position.set(w * 0.095, 0.028, s * 0.2);
-        wheel.rotation.z = Math.PI / 2;
+        const x = w * (0.085 + WHEEL_W / 2);
+        const wheel = mesh(SKATE.wheelGeo, SKATE.wheel, skateG); wheel.position.set(x, AX, s * 0.2); wheel.rotation.z = Math.PI / 2;
+        const hub = mesh(SKATE.hubGeo, SKATE.hub, skateG); hub.position.set(x, AX, s * 0.2); hub.rotation.z = Math.PI / 2;
+        for (const e of [-1, 1]) { const lip = mesh(SKATE.lipGeo, SKATE.wheel, skateG); lip.position.set(x + e * (WHEEL_W / 2 - 0.004), AX, s * 0.2); lip.rotation.y = Math.PI / 2; }
       }
     }
     skateG.visible = false;
-    function setBoard(kind) { snowG.visible = kind !== 'skate'; skateG.visible = kind === 'skate'; }
+    function setBoard(kind) {
+      const city = kind === 'skate';
+      snowG.visible = !city; skateG.visible = city;
+      figure.position.y = city ? LIFT : 0;
+      for (const m of snowOnly) m.visible = !city;
+      for (const m of streetOnly) m.visible = city;
+      setHands(city);
+    }
     const limb = (r, mat) => mesh(G.limb(r), mat);
     const joint = (r, mat) => mesh(G.joint(r), mat);
     const L = {
@@ -201,22 +247,46 @@ PN.rider = (() => {
     mesh(G.hood, jacketDark, torso).position.set(-0.1, 0.5, 0);           // cappuccio arrotolato sulla schiena
     mesh(G.zip, SHARED.glove, torso).position.set(0.118, 0.22, 0);        // cerniera davanti
     const headG = new THREE.Group();
-    body.add(headG);
+    figure.add(headG);
     mesh(G.neck, SHARED.skin, headG).position.y = -0.15;
     mesh(G.head, SHARED.skin, headG);
     mesh(G.nose, SHARED.skin, headG).position.set(0.112, -0.005, 0);
-    mesh(G.gaiter, jacketDark, headG);
-    mesh(G.helmet, SHARED.helmet, headG).position.set(-0.012, 0.0, 0);
-    mesh(G.helmetSide, SHARED.helmetIn, headG).position.set(-0.012, 0.0, 0);
-    for (const s of [-1, 1]) mesh(G.earpad, SHARED.helmetPad, headG).position.set(-0.02, -0.035, s * 0.14);
-    mesh(G.strap, SHARED.glove, headG).position.y = 0.022;
-    mesh(G.goggleFrame, SHARED.glove, headG).position.set(0.002, 0.024, 0);
-    mesh(G.goggle, SHARED.goggle, headG).position.set(0.006, 0.024, 0);
+    const snowHead = [
+      mesh(G.gaiter, jacketDark, headG),
+      mesh(G.helmet, SHARED.helmet, headG), mesh(G.helmetSide, SHARED.helmetIn, headG),
+      ...[-1, 1].map(s => { const e = mesh(G.earpad, SHARED.helmetPad, headG); e.position.set(-0.02, -0.035, s * 0.14); return e; }),
+      mesh(G.strap, SHARED.glove, headG), mesh(G.goggleFrame, SHARED.glove, headG), mesh(G.goggle, SHARED.goggle, headG)
+    ];
+    snowHead[1].position.set(-0.012, 0, 0); snowHead[2].position.set(-0.012, 0, 0);
+    snowHead[5].position.y = 0.022; snowHead[6].position.set(0.002, 0.024, 0); snowHead[7].position.set(0.006, 0.024, 0);
+    snowOnly.push(...snowHead);
+    // viso (il davanti della testa è +x): occhi con l'iride, sopracciglia, bocca, orecchie; casco da skate inclinato
+    // all'indietro che lascia la fronte scoperta, capelli corti sotto il bordo
+    const sk = mesh(G.skateHelmet, SHARED.helmet, headG); sk.position.set(-0.016, 0.022, 0); sk.rotation.z = 0.34;
+    const hair = mesh(G.hair, STREET.hair, headG); hair.position.set(-0.008, 0, 0); hair.rotation.z = 0.25;
+    streetOnly.push(sk, hair);
+    for (const s of [-1, 1]) {
+      const eye = mesh(G.eye, STREET.eye, headG); eye.position.set(0.107, 0.022, s * 0.036);
+      const iris = mesh(G.iris, STREET.iris, headG); iris.position.set(0.1118, 0.0215, s * 0.036);
+      const brow = mesh(G.brow, STREET.brow, headG); brow.position.set(0.1105, 0.043, s * 0.037); brow.rotation.x = s * 0.18;
+      const ear = mesh(G.ear, SHARED.skin, headG); ear.position.set(-0.004, 0.005, s * 0.094);
+      streetOnly.push(eye, iris, brow, ear);
+    }
+    const mouth = mesh(G.mouth, STREET.lip, headG); mouth.position.set(0.101, -0.058, 0);
+    streetOnly.push(mouth);
+    // mani: guanti da neve con il polsino sulla neve, mani nude in città
     const gloveL = mesh(G.glove, SHARED.glove), gloveR = mesh(G.glove, SHARED.glove);
     for (const [gl, s] of [[gloveL, 1], [gloveR, -1]]) {
       const th = mesh(G.thumb, SHARED.glove, gl); th.position.set(0.045, 0.01, -s * 0.02); th.rotation.z = -0.5;
-      mesh(G.cuff, SHARED.glove, gl).position.y = -0.055;
+      const cuff = mesh(G.cuff, SHARED.glove, gl); cuff.position.y = -0.055;
+      gl.userData = { th, cuff };
     }
+    const handL = mesh(G.hand, SHARED.skin, gloveL), handR = mesh(G.hand, SHARED.skin, gloveR);
+    for (const [h, s] of [[handL, 1], [handR, -1]]) { const th = mesh(G.thumb, SHARED.skin, h); th.scale.setScalar(0.85); th.position.set(0.04, 0.012, -s * 0.018); th.rotation.z = -0.5; }
+    streetOnly.push(handL, handR);
+    // in città il guanto resta come "mano" invisibile: si nasconde solo il suo aspetto (materiale), così pose() non cambia
+    const GLOVE_HIDDEN = new THREE.MeshBasicMaterial({ visible: false });
+    const setHands = city => { for (const gl of [gloveL, gloveR]) { gl.material = city ? GLOVE_HIDDEN : SHARED.glove; gl.userData.th.visible = gl.userData.cuff.visible = !city; } };
     const J = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => J[k] = new THREE.Vector3());
     function setLimb(m, a, b) {
       tmpV.subVectors(b, a);
@@ -283,6 +353,7 @@ PN.rider = (() => {
       jacketDark.color.copy(lin(J ? J.body[0] : hex)).multiplyScalar(0.7);
     }
     pose(0.3, 0.2, 0);
+    setBoard('snow');
     return { group, body, pose, setColor, setBoard };
   }
   return { JERSEYS, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };

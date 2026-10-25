@@ -18,6 +18,8 @@ SHOTS = [  # nome, posizione camera relativa al rider, punto guardato (y)
     ('schiena', (-2.9, 1.2, 0.3), 0.85),
     ('testa', (0.55, 1.6, -0.75), 1.45),
     ('testa-dietro', (-0.3, 1.75, 0.85), 1.45),     # primo piano della testa
+    ('viso', (0.75, 1.5, -0.12), 1.48),              # il viso di fronte (in città è scoperto, R-218)
+    ('rotelle', (0.55, 0.22, 0.75), 0.06),          # tavola e ruote da vicino (R-217)
 ]
 with sync_playwright() as p:
     br = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
