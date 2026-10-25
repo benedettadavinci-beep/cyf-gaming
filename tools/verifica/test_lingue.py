@@ -1,7 +1,7 @@
 import json, os, sys
 from playwright.sync_api import sync_playwright
 
-BASE = sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:8787'
+BASE = sys.argv[1] if len(sys.argv) > 1 else os.environ.get('BASE', 'http://127.0.0.1:8787')
 OUT = sys.argv[2] if len(sys.argv) > 2 else '/home/claude/foto'
 os.makedirs(OUT, exist_ok=True)
 LANGS = {'it': 'it-IT', 'en': 'en-GB', 'fr': 'fr-FR', 'es': 'es-ES'}
