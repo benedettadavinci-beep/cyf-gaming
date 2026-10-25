@@ -2,8 +2,8 @@
 import base64, json, os, struct
 from playwright.sync_api import sync_playwright
 BASE = os.environ.get('BASE', 'http://127.0.0.1:8787')
-THREE = open(os.environ.get('THREE_JS', '/home/claude/three/package/build/three.min.js'), 'rb').read()
-REPO = os.environ.get('CYF_REPO', '/tmp/cyf')
+THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/build/three.min.js')), 'rb').read()
+REPO = os.environ.get('CYF_REPO', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GAME = open(os.path.join(REPO, 'public', 'pista-nera', 'game.js'), encoding='utf-8').read()
 GAME = GAME.replace("  function playVoice(m) {\n", "  function playVoice(m) { window.__lastVoice = m;\n", 1)
 GAME = GAME.replace("  applyLang(lang);\n", "  applyLang(lang);\n  window.__dbg = { get voice() { return voice; }, get mode() { return mode; }, get playing() { return voicePlaying; }, get ac() { return audio && audio.ac; }, voiceButton, stopVoice };\n  window.__toasts = []; new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => window.__toasts.push(n.textContent)))).observe(document.getElementById('toasts'), { childList: true });\n", 1)

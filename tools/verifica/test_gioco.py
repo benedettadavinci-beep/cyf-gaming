@@ -86,7 +86,9 @@ with sync_playwright() as p:
             check(info['byType'].get('sidetree', 0) > 3, f'{city}: file di alberi ai lati della strada (R-307)', json.dumps(info['byType']))
         g = info['geoOk']
         check(all(g.values()), f'{city}: ogni oggetto di gioco usa il modello della città (alto, basso, bonus, rampa, porte, paletti)', json.dumps(g))
-        check(info['layout'] != layout_snow and info['rel'] == rel_snow, f'{city}: forma della strada propria (R-312), ma stessa sequenza di ostacoli, bonus, rampe e porte della neve rispetto alla strada (R-309)', f'{len(info["rel"])} vs {len(rel_snow)}')
+        same_rel = len(info['rel']) == len(rel_snow) and all(a[0] == b[0] and abs(a[1] - b[1]) < 0.03 and abs(a[2] - b[2]) < 0.03 for a, b in zip(info['rel'], rel_snow))
+        if not same_rel: print('   primo diverso:', next(((a, b) for a, b in zip(info['rel'], rel_snow) if a[0] != b[0] or abs(a[1] - b[1]) >= 0.03 or abs(a[2] - b[2]) >= 0.03), None))
+        check(info['layout'] != layout_snow and same_rel, f'{city}: forma della strada propria (R-312), ma stessa sequenza di ostacoli, bonus, rampe e porte della neve rispetto alla strada (R-309)', f'{len(info["rel"])} vs {len(rel_snow)}')
         again = pg.evaluate("([key, seed]) => { const D = window.__dbg; D.mode = 'solo'; D.reset(seed, null, false); D.mode = 'menu'; return D.objs.filter(o => o.z > -220 && (['rock', 'gem', 'ramp', 'gate', 'marker'].includes(o.type) || (o.type === 'tree' && Math.abs(o.x - D.center(o.z)) < 16))).map(o => [o.type, +o.x.toFixed(2), +o.z.toFixed(2)]); }", [key, SEED])
         check(again == info['layout'], f'{city}: stessa città e stesso seed → pista identica (tutti i giocatori della gara)')
         check(info['groundTex'], f'{city}: fondo stradale proprio')

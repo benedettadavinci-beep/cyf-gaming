@@ -7,7 +7,7 @@ THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/buil
 REPO = os.environ.get('CYF_REPO', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GAME = open(os.path.join(REPO, 'public', 'pista-nera', 'game.js'), encoding='utf-8').read()
 hook = "  applyLang(lang);\n"
-GAME = GAME.replace(hook, hook + "  window.__dbg = { get P() { return P; }, stick, get mode() { return mode; } };\n")
+GAME = GAME.replace(hook, hook + "  window.__dbg = { get P() { return P; }, stick, get mode() { return mode; }, get t() { return t; }, god() { invuln = 1e9; lives = 99; } };\n")
 problems = []
 
 def local(ctx):
@@ -28,7 +28,10 @@ def drag_hold(pg, x0, y0, dx, dy, secs):
     pg.evaluate(TOUCH_JS, ['pointerdown', x0, y0])
     for i in range(1, 6):
         pg.evaluate(TOUCH_JS, ['pointermove', x0 + dx * i / 5, y0 + dy * i / 5])
-    pg.wait_for_timeout(int(secs * 1000))
+    # si aspetta tempo di GIOCO, non tempo reale: con la grafica software un secondo reale può valere pochi fotogrammi
+    if secs > 0:
+        t0 = pg.evaluate('__dbg.t')
+        pg.wait_for_function(f'__dbg.t - {t0} >= {secs}', timeout=120000)
     st = pg.evaluate('({x: __dbg.stick.x, y: __dbg.stick.y, knob: document.getElementById("stickKnob").style.transform, on: document.getElementById("stick").classList.contains("on")})')
     return st
 
@@ -57,7 +60,8 @@ with sync_playwright() as p:
         if menu_vis != ['none', 'none']: problems.append(f'{orient}: comandi visibili nel menu')
         sx, sy, sw, sh = info['stick'][1]
         cx, cy = sx + sw * 0.6, sy + sh * 0.6
-        # 1. accelera (su) e frena (giù): velocità a confronto
+        # 1. accelera (su) e frena (giù): velocità a confronto (senza cadute, che falserebbero la velocità)
+        pg.evaluate('__dbg.god()')
         pg.wait_for_timeout(2500)
         st = drag_hold(pg, cx, cy, 0, -70, 3.0); v_up = pg.evaluate('__dbg.P.speed')
         pg.screenshot(path=f'{OUT}/{orient}-rotellina-su.png')

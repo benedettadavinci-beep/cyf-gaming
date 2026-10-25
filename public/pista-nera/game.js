@@ -2548,7 +2548,7 @@
       else if (kind < 0.71) {
         const k = 3 + Math.floor(r() * 3);
         if (!ghost) for (let j = 0; j < k; j++) {
-          const gx = x + Math.sin(j * 0.9) * 0.8, gz = z - j * 2.2;
+          const gz = z - j * 2.2, gx = x + (center(gz) - c) + Math.sin(j * 0.9) * 0.8;   // la fila di bonus segue la curva della strada: uguale in ogni città (R-309)
           if (inBigZone(gx, gz, 0.5)) continue;
           const alt = (Math.round(z) + j) % 2;
           const CC = CITY_CFG[theme];
@@ -2958,7 +2958,7 @@
         // trampolino gigante: stacco da 2,2 m e spinta 13,5 m/s → circa 6,8 m d'altezza e 1,5 s in aria (normale: 3 m e 1 s)
         P.onRamp = null; P.air = true; P.vy = r.big ? 13.5 : 8.6; P.spin = P.spin % TAU; P.ramp = true; startAir();
         P.speed = Math.min(P.speed * 1.06, 46);
-        say(tr((r.big ? 'bigRamp' : 'ramp') + (isPhone ? 'Phone' : 'Keys')), r.big ? '#ff5a1f' : '#2f7fd0');
+        say(tr(r.big ? (isPhone ? 'bigRampPhone' : 'bigRampKeys') : (isPhone ? 'rampPhone' : 'rampKeys')), r.big ? '#ff5a1f' : '#2f7fd0');
       }
     }
 

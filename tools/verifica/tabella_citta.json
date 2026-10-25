@@ -141,6 +141,24 @@
    }
   },
   {
+   "gruppo": "Gioco",
+   "elemento": "Pista (tracciato, dalla 0.10.0)",
+   "valori": {
+    "Napoli": "Curve e controcurve continue, come la costiera; niente rettilinei lunghi",
+    "Roma": "Rettilinei (43%) alternati a curve ampie",
+    "Milano": "Lunghi rettilinei (49%) e curve più decise",
+    "Parigi": "Grandi viali dritti (48%) e curvoni molto larghi",
+    "Londra": "Curve strette e frequenti",
+    "Francoforte": "Misto: rettilinei (40%) e curve a S",
+    "Madrid": "Lunghi rettilinei e curvoni larghi",
+    "Lisbona": "La più tortuosa: curve corte una dopo l'altra, come il tram 28",
+    "Zagabria": "Misto, curve medie frequenti",
+    "Berlino": "Grandi viali dritti (46%) e curve decise",
+    "Zurigo": "Curve larghe e morbide, come la riva del lago",
+    "New York": "A griglia: rettilinei lunghissimi (54%) e poche curve decise"
+   }
+  },
+  {
    "gruppo": "Scena",
    "elemento": "Fondo stradale",
    "valori": {
