@@ -47,7 +47,7 @@ with sync_playwright() as p:
             if pressed != l: problems.append(f'{dev} {l}: selettore evidenzia {pressed}')
             desc = page.locator('meta[name=description]').get_attribute('content')
             for o in page.evaluate(OVERFLOW_JS): problems.append(f'{dev} {l} home: {o}')
-            page.screenshot(path=f'{OUT}/home-{dev}-{l}.png', full_page=True)
+            page.screenshot(path=f'{OUT}/home-{dev}-{l}.png', full_page=True, timeout=90000)
             # 2. entra nel gioco dalla scheda: stessa lingua
             page.locator('[data-game]').click()
             page.wait_for_load_state('networkidle')
@@ -57,7 +57,7 @@ with sync_playwright() as p:
             if glang != l or EXPECT_GAME[l] not in body: problems.append(f'{dev} {l}: gioco in "{glang}", testo atteso mancante')
             if 'lang=' in page.url: problems.append(f'{dev} {l}: ?lang resta nell\'indirizzo {page.url}')
             for o in page.evaluate(OVERFLOW_JS): problems.append(f'{dev} {l} gioco: {o}')
-            page.screenshot(path=f'{OUT}/gioco-{dev}-{l}.png')
+            page.screenshot(path=f'{OUT}/gioco-{dev}-{l}.png', timeout=90000)   # la grafica 3D software è lenta: la foto può richiedere più di 30 s
             real = [e for e in errs if 'WebGL' not in e and 'GPU' not in e and 'favicon' not in e and 'ERR_FAILED' not in e]
             if real: problems.append(f'{dev} {l}: errori in console {real[:3]}')
             print(dev, l, 'home:', got, '|', play, '| gioco:', glang, '| descr:', desc[:40])
