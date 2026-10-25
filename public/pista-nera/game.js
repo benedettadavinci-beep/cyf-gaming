@@ -3510,7 +3510,7 @@
     const ac = voiceContext();
     if (ac && ac.state === 'running' && ac.decodeAudioData) {
       try {
-        ac.decodeAudioData(bytes.buffer.slice(0), buffer => {
+        const dec = ac.decodeAudioData(bytes.buffer.slice(0), buffer => {
           const srcN = ac.createBufferSource(); srcN.buffer = buffer;
           srcN.connect(ac.destination);
           const me2 = { stop() { try { srcN.stop(); } catch (e) {} } };
@@ -3518,6 +3518,8 @@
           voicePlaying = me2; show();
           srcN.start();
         }, () => viaAudioTag());
+        // decodeAudioData restituisce anche una promessa: se il formato non si decodifica va a vuoto senza "errore non gestito" sul telefono
+        if (dec && dec.catch) dec.catch(() => {});
       } catch (e) { viaAudioTag(); }
     } else viaAudioTag();
   }
