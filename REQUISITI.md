@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.9.2 · aggiornato al 25 ottobre 2026, ore 08:00 · verifica completa dei requisiti (sezione 10) · copie sul Desktop aggiornate"
+subtitle: "Versione 0.9.3 · aggiornato al 25 ottobre 2026, ore 09:00 · nuova sezione 11: struttura del software, cancello dei test e diagnosi"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -97,7 +97,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 |---|---|---|---|---|
 | R-501 | File con tutti i requisiti del gioco, aggiornato a ogni richiesta, nella cartella "CYF gaming" sul Desktop | 24/10/2026 | Fatto | Questo documento; copia anche su GitHub (REQUISITI.md) |
 | R-502 | Nel file dei requisiti, oltre a fatto e da fare, lo stato "Controllato" | 24/10/2026 | Fatto | Vedi la legenda all'inizio |
-| R-503 | Controllo generale automatico ogni sera verso le 22: qualità, bachi, stabilità e idee di miglioramento | 24/10/2026 | Fatto | Attività pianificata ogni sera alle 21:33 (poco prima delle 22, per evitare l'ora di punta dei server); corregge solo bachi piccoli e sicuri e lascia un rapporto |
+| R-503 | Controllo generale automatico ogni sera verso le 22: qualità, bachi, stabilità e idee di miglioramento | 24/10/2026 | Fatto | Attività pianificata ogni sera alle 21:33 (poco prima delle 22, per evitare l'ora di punta dei server); corregge solo bachi piccoli e sicuri e lascia un rapporto. Dal 25/10 fa anche il giro completo del cancello dei test (A-05) |
 | R-504 | Migliorare la descrizione del documento Word e delle tabelle | 24/10/2026 | Fatto | Introduzione, legenda e colonne riscritte; colonna "Come funziona oggi" |
 | R-505 | Business plan con aspetti economici e strategia aziendale, in un file separato | 24/10/2026 | Fatto | CYF-Gaming-business-plan.docx nella cartella sul Desktop |
 
@@ -209,6 +209,38 @@ Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel
 
 Difetto trovato e corretto nella 0.9.1: una banana o bomba lasciata mentre un telefono lento era ancora al conto alla rovescia veniva ignorata da quel telefono.
 
+# 11. Struttura del software (per crescere senza rompere)
+
+Raccomandazioni del 25/10/2026 per far sì che, man mano che il gioco cresce, le modifiche restino veloci e il sito stabile. Il principio, confermato dagli studi DORA sui team software (libro *Accelerate*, Forsgren e altri, 2018, e i rapporti annuali "State of DevOps"): prove automatiche, modifiche piccole e rilasci frequenti rendono un team **sia più veloce sia più stabile**. Le due cose vanno insieme, non si escludono. È lo stesso principio dei gate di validazione nei rilasci ADAS.
+
+**Com'era il 25/10 mattina.** `game.js` (3.779 righe) conteneva tutto dentro un'unica funzione, con circa 175 variabili condivise: grafica, fisica, 13 città, rete, vocali, punti e schermate. Una modifica all'omino poteva rompere la rete senza che nessuno se ne accorgesse. Ogni push su `main` andava online da solo, e le prove si lanciavano a mano. In più, tutte le prove finivano con "esito OK" anche quando trovavano problemi.
+
+**Ordine consigliato.** Prima il cancello dei test (A-01…A-05) e la diagnosi (A-06, A-07), fatti il 25/10. Poi la protezione di `main` e l'ambiente di prova (A-08, A-09). Poi, un pezzo alla volta e con le prove che confermano che nulla cambia, la separazione del codice (A-10…A-13). Il resto quando serve.
+
+| ID | Richiesta | Data | Stato | Come funziona oggi |
+|---|---|---|---|---|
+| A-01 | Cancello dei test a ogni modifica: si va online solo se le prove sono verdi | 25/10/2026 | Fatto | Su GitHub (scheda Actions, "Cancello dei test") parte da solo a ogni modifica il giro rapido: controlli statici, server delle gare, 13 scenari e diagnosi. Prove ~75 s, in tutto ~5 min con la preparazione della macchina. Verde = si può pubblicare; rosso = qualcosa si è rotto. Da GitHub si lancia anche il giro completo ("Run workflow" → tutto) |
+| A-02 | Le prove devono segnalare davvero quando qualcosa non va | 25/10/2026 | Fatto | Prima tutte le prove finivano "OK" anche con problemi, quindi nessun cancello poteva chiudersi. Ora ognuna esce con errore se trova un problema; verificato rompendo apposta un testo |
+| A-03 | Una sola riga per lanciare le prove | 25/10/2026 | Fatto | `npm test` (giro rapido) e `npm run test:tutto` (giro completo, ~30 min); il server locale si accende e si spegne da solo |
+| A-04 | Controlli immediati, senza browser | 25/10/2026 | Fatto | `npm run controlli` in mezzo secondo: sintassi di tutti i file, ogni testo usato dal gioco presente nelle 4 lingue con gli stessi segnaposto, versione presente nello storico |
+| A-05 | Controllo notturno con il giro completo delle prove | 25/10/2026 | Fatto | L'attività delle 21:33 lancia tutte le prove (compresa la gara valida da 231 s), guarda l'esito del cancello su GitHub e gli errori arrivati dai telefoni, e mette nel rapporto la tabella superata/fallita con i tempi. Pubblica solo se tutte le prove passano |
+| A-06 | Diagnosi nel gioco per trovare i bachi in fretta, anche sul telefono di un amico | 25/10/2026 | Fatto | Pannello che si apre con `?debug=1` nell'indirizzo, con 5 tocchi veloci sul numero di versione in fondo al menu o con F2. Mostra fps, scenario, seed della pista, velocità, distanza, stato della rete, ping, giocatori ed eventi recenti (collegamenti, cadute di rete, cambi di schermata). "Invia" manda la diagnosi al server e mostra un codice da dire a Luigi; "Copia" la copia negli appunti |
+| A-07 | Errori dei telefoni dei giocatori raccolti in automatico | 25/10/2026 | Fatto | Ogni errore JavaScript viene mandato in forma anonima (versione, messaggio, punto del codice, tipo di telefono e browser, stato del gioco; niente nomi) e raggruppato per giorno con il conteggio. Si leggono su `/api/errors`. Massimo 8 invii per pagina; le prove in locale non inviano |
+| A-08 | `main` protetto: niente va online senza il cancello verde | 25/10/2026 | Da fare | Serve un clic di Luigi su GitHub (Settings → Branches → regola per `main` con "Require status checks": Cancello dei test). Da quel momento Claude lavora su un ramo e unisce solo a cancello verde: ogni modifica impiega ~5 minuti in più, ma un errore non arriva più ai giocatori |
+| A-09 | Ambiente di prova separato prima del sito pubblico | 25/10/2026 | Da fare | Le anteprime automatiche di Cloudflare non funzionano con i Durable Objects (stanze e classifica). Serve un secondo sito, es. `cyf-gaming-prova`, pubblicato da GitHub con una chiave Cloudflare (Luigi la crea in ~10 min); lì si provano le novità dal telefono prima di pubblicarle |
+| A-10 | Città come dati: un file per città | 25/10/2026 | Da fare | Oggi le città sono codice dentro `game.js` (circa 300 righe di schede più i modelli). Ogni città diventa un file (`citta/milano.js`) con ostacoli, bonus, colori e oggetti; aggiungerne una vuol dire aggiungere un file senza toccare il motore. Una prova controlla che ogni scheda abbia tutti i campi. Le lingue sono già fatte così (`i18n.js`) |
+| A-11 | Dividere `game.js` in moduli, un pezzo alla volta | 25/10/2026 | Da fare | Moduli: pista (generazione con il seed), fisica, rider, città, comandi, rete, vocali, schermate, audio. Fisica e regole di gara senza grafica, così si provano in Node in millisecondi e lo stesso codice gira sul server per verificare la traiettoria (il controllo contro chi bara dei "Prossimi passi"). Il primo pezzo separato è la diagnosi (`diagnosi.js`, 25/10) |
+| A-12 | Un contratto unico per i messaggi di rete | 25/10/2026 | Da fare | File `shared/protocollo.js` con tutti i messaggi (`hello`, `pos`, `voice`…) e un numero di versione, usato da gioco e server. Chi ha ancora la pagina vecchia aperta riceve "aggiorna la pagina" invece di errori strani |
+| A-13 | Parte comune della piattaforma C-Y-F, separata dal gioco | 25/10/2026 | Da fare | Stanze, lobby, vocali, punti, lingue e donazioni non sono di Pista Nera ma di C-Y-F: vanno in una parte comune, e ogni gioco porta solo le sue regole. Così il secondo gioco costa una frazione del primo |
+| A-14 | Prestazioni misurate nelle prove | 25/10/2026 | Da fare | fps, peso della pagina e tempo di caricamento misurati a ogni giro, con soglie: il cancello si chiude se una modifica rende il gioco più lento |
+| A-15 | Controllo dei tipi dei dati | 25/10/2026 | Da fare | Commenti JSDoc e `// @ts-check`, senza passaggi di compilazione: l'editor e le prove trovano errori come un numero passato al posto di un testo |
+| A-16 | Aggiornare Three.js e servirlo dal sito stesso | 25/10/2026 | Da fare | Oggi si usa la r128 (2021) da un CDN esterno: se il CDN ha un problema, il gioco non parte. Va fatto dopo A-11, con le foto delle città per confrontare prima e dopo |
+| A-17 | Interruttori per le novità | 25/10/2026 | Da fare | In `config.js`, per accendere una novità solo per Luigi (o con `?prova=nome`) prima che per tutti |
+
+**Cosa non fare.** Niente riscrittura completa: è la causa classica di progetti fermi per mesi; si sposta un pezzo alla volta, con le prove che confermano che nulla cambia. Niente framework come React per il gioco: non servono e appesantiscono. Niente server diviso in tanti servizi: con i numeri attuali Worker e Durable Objects bastano largamente.
+
+**Come si fa il debug da oggi.** (1) Un amico dice che qualcosa non va: gli si chiede di toccare 5 volte il numero di versione nel menu e premere "Invia", poi di dire il codice; Claude legge la sua diagnosi su `/api/errors`. (2) Errori che nessuno segnala: arrivano da soli su `/api/errors` e il controllo notturno li riassume. (3) Prima di ogni pubblicazione: `npm test` in locale o il cancello su GitHub.
+
 # Storico delle versioni
 
 | Versione | Data | Cosa è cambiato |
@@ -225,3 +257,4 @@ Difetto trovato e corretto nella 0.9.1: una banana o bomba lasciata mentre un te
 | 0.9.0 | 24/10/2026 | Rotellina sul telefono (curva, accelera, frena), Salta a sinistra, microfono in alto sempre visibile, omino più umano, messaggi a schermo che vanno a capo, riga dei risultati più compatta |
 | 0.9.1 | 25/10/2026 | Verifica completa dei requisiti (sezione 10). Città completate come da tabella: oggetti ai lati (tram, cabine, bus, taxi, ombrelloni, Muro), linee gialle a Londra, marciapiedi a Berlino, fiume Meno, porte e rampa a scacchi a Zagabria, rampe di Madrid e Berlino; banane accettate anche durante il conto alla rovescia |
 | 0.9.2 | 25/10/2026 | Microfono su tutti i telefoni (R-213): registrazione con Web Audio e vocali in WAV, riproduzione con doppia via, messaggi chiari se il microfono è negato o il browser dell'app non lo dà |
+| 0.9.3 | 25/10/2026 | Struttura del software (sezione 11): cancello dei test su GitHub a ogni modifica (A-01), prove che segnalano davvero gli errori (A-02), `npm test` e `npm run test:tutto` (A-03), controlli statici (A-04), giro completo nel controllo notturno (A-05), pannello di diagnosi nel gioco con numero di versione nel menu (A-06), errori dei telefoni raccolti su /api/errors (A-07) |

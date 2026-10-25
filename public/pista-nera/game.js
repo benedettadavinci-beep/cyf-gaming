@@ -2,6 +2,8 @@
 // Snowboard 3D con modalità allenamento (da solo) e sfida online (stanza con codice, stessa pista per tutti).
 (() => {
   const $ = id => document.getElementById(id);
+  // registro eventi e pannello di debug (diagnosi.js): se manca, il gioco funziona lo stesso
+  const diag = window.CYFDiag || { log() {}, tapToOpen() {}, report() {} };
   const stage = $('stage');
   const cvs = $('game');
 
@@ -2329,7 +2331,10 @@
     objs = [];
     if (finishObj) { world.remove(finishObj); finishObj = null; }
   }
+  let lastSeed = 0;
   function reset(seed, x0, withFinish) {
+    lastSeed = seed;
+    diag.log('pista', 'seed ' + seed + ' · ' + theme + (withFinish ? ' · con traguardo' : ''));
     clearWorld();
     rowRng = mulberry32(seed);
     forestRng = mulberry32(seed ^ 0x5bd1e995);
@@ -2558,7 +2563,7 @@
 
   // ---------- overlays & HUD ----------
   const OVERLAYS = ['menu', 'lobby', 'raceResults', 'over', 'pause'];
-  function show(id) { for (const o of OVERLAYS) $(o).hidden = o !== id; }
+  function show(id) { for (const o of OVERLAYS) $(o).hidden = o !== id; diag.log('schermata', id || 'gioco'); }
   const banner = $('banner');
   function setBanner(text) { banner.hidden = !text; banner.textContent = text || ''; }
 
@@ -2833,7 +2838,7 @@
   const net = {
     ws: null, code: null, hostId: null, players: [], offset: 0, phase: 'lobby', racers: [], results: [], finished: new Map(),
     seed: 0, startAt: 0, round: 0, retries: 0, want: false, pingTimer: null, posTimer: null, myColor: 0,
-    pub: false, minutes: 5, autoAt: 0, awards: null,
+    pub: false, minutes: 5, autoAt: 0, awards: null, ping: 0, pingAt: 0, msgs: 0,
     close() {
       this.want = false;
       if (typeof stopVoice === 'function' && voice.recording) stopVoice(true);
@@ -2890,18 +2895,28 @@
   function open() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     let ws;
+    diag.log('rete', 'collegamento a ' + net.code + (net.retries ? ' (tentativo ' + (net.retries + 1) + ')' : ''));
     try { ws = new WebSocket(proto + '://' + location.host + '/api/room/' + net.code); }
-    catch (e) { setBanner(tr('errServer')); return; }
+    catch (e) { diag.log('rete', 'WebSocket non creato: ' + e.message); setBanner(tr('errServer')); return; }
     net.ws = ws;
     ws.onopen = () => {
       net.retries = 0; setBanner('');
       ws.send(JSON.stringify({ t: 'hello', id: myId, name: inName.value.trim() || 'Rider', j: myJersey() }));
       clearInterval(net.pingTimer);
-      net.pingTimer = setInterval(() => { if (ws.readyState === 1) ws.send('ping'); }, 20000);
+      net.pingAt = Date.now(); ws.send('ping');
+      net.pingTimer = setInterval(() => { if (ws.readyState === 1) { net.pingAt = Date.now(); ws.send('ping'); } }, 20000);
+      diag.log('rete', 'aperta');
     };
-    ws.onmessage = ev => { if (ev.data === 'pong') return; let m; try { m = JSON.parse(ev.data); } catch (e) { return; } onMsg(m); };
+    ws.onmessage = ev => {
+      if (ev.data === 'pong') { net.ping = Date.now() - net.pingAt; return; }
+      let m; try { m = JSON.parse(ev.data); } catch (e) { diag.log('rete', 'messaggio non leggibile'); return; }
+      net.msgs++;
+      if (m.t !== 'pos' && m.t !== 'state') diag.log('rete', '← ' + m.t + (m.phase ? ' ' + m.phase : ''));
+      onMsg(m);
+    };
     ws.onclose = ev => {
       if (net.ws !== ws) return;
+      diag.log('rete', 'chiusa, codice ' + ev.code + (ev.reason ? ' ' + ev.reason : ''));
       clearInterval(net.pingTimer);
       if (!net.want) return;
       if (ev.code === 1008) {
@@ -3724,7 +3739,7 @@
     else if (mode === 'menu' || mode === 'lobby' || mode === 'results') update(dt, true);
     else if (mode === 'over') { updateSpray(dt); updateFlakes(dt, P.x, P.z, 0); }
     const playing = mode === 'solo' || racing();
-    if (playing !== wasPlaying) { wasPlaying = playing; stage.classList.toggle('playing', playing); stick.x = stick.y = 0; stickRest(); }
+    if (playing !== wasPlaying) { wasPlaying = playing; stage.classList.toggle('playing', playing); stick.x = stick.y = 0; stickRest(); diag.log('gioco', 'modo ' + mode); }
     place(mode === 'pause' ? 0 : dt);
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
@@ -3775,5 +3790,16 @@
     if (inName.value.trim()) connect(inCode.value);
     else { menuError(''); inName.focus(); $('btnJoin').textContent = tr('joinChallenge'); }
   }
+  // stato del gioco per il pannello di debug e per gli errori inviati al server (niente nomi né dati personali)
+  let glName = '';
+  try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); glName = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ''; } catch (e) {}
+  diag.state = () => ({
+    modo: mode, scena: theme, seed: lastSeed, vel: P.speed, dist: distM(), gara: raceLen,
+    rete: net.ws ? ['apertura', 'aperta', 'chiusura', 'chiusa'][net.ws.readyState] : 'no', stanza: net.code || '-', fase: net.phase,
+    ping: net.ping, msg: net.msgs, giocatori: net.players.length, avversari: remotes.size, lingua: lang, tel: isPhone ? 1 : 0, gl: glName
+  });
+  const verLabel = $('verLabel');
+  if (verLabel) { verLabel.textContent = 'v' + ((window.CYF && window.CYF.version) || '?'); diag.tapToOpen(verLabel); }
+  diag.log('gioco', 'pronto · ' + theme + ' · ' + lang);
   requestAnimationFrame(frame);
 })();

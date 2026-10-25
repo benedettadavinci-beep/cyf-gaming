@@ -80,6 +80,19 @@ export default {
     // /api/stats → contatori aggregati degli ultimi 14 giorni
     if (url.pathname === '/api/stats') return json(await board(env).stats(14));
 
+    // /api/errors → POST: un telefono segnala un errore del gioco (anonimo); GET: errori degli ultimi giorni, raggruppati
+    if (url.pathname === '/api/errors') {
+      if (request.method === 'POST') {
+        const body = await request.text();
+        if (body.length > 8000) return json({ error: 'Troppo grande' }, { status: 413 });
+        let e; try { e = JSON.parse(body); } catch (x) { return json({ error: 'JSON non valido' }, { status: 400 }); }
+        await board(env).logError(e || {});
+        return json({ ok: true });
+      }
+      const days = Math.max(1, Math.min(30, +url.searchParams.get('giorni') || 7));
+      return json(await board(env).errors(days));
+    }
+
     if (url.pathname.startsWith('/api/')) return json({ error: 'Non trovato' }, { status: 404 });
     return env.ASSETS.fetch(request);
   }
@@ -444,6 +457,30 @@ export class Leaderboard extends DurableObject {
     sql.exec('CREATE TABLE IF NOT EXISTS stats (day TEXT NOT NULL, metric TEXT NOT NULL, value INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, metric))');
     sql.exec('CREATE TABLE IF NOT EXISTS seen (day TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (day, id))');
     sql.exec('CREATE TABLE IF NOT EXISTS voice_reports (at INTEGER NOT NULL, room TEXT NOT NULL, reporter TEXT NOT NULL, reported TEXT NOT NULL)');
+    // errori arrivati dai browser dei giocatori: uno per giorno, versione, messaggio e punto del codice, con il conteggio
+    sql.exec('CREATE TABLE IF NOT EXISTS errors (day TEXT NOT NULL, ver TEXT NOT NULL, msg TEXT NOT NULL, src TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 1, first INTEGER NOT NULL, last INTEGER NOT NULL, ua TEXT, stack TEXT, ctx TEXT, PRIMARY KEY (day, ver, msg, src))');
+  }
+  async logError(e) {
+    const s = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u0008\u000b-\u001f]/g, '').slice(0, n);
+    const sql = this.ctx.storage.sql, now = Date.now(), d = this.day();
+    const ver = s(e.ver, 16) || '?', msg = s(e.msg, 300) || '?', src = s(e.src, 160);
+    const old = new Date(now - 30 * 86400000).toISOString().slice(0, 10);
+    sql.exec('DELETE FROM errors WHERE day < ?', old);
+    const known = sql.exec('SELECT 1 AS x FROM errors WHERE day = ? AND ver = ? AND msg = ? AND src = ?', d, ver, msg, src).toArray().length;
+    // tetto di sicurezza: oltre 1.000 righe diverse si contano solo quelle già note
+    if (!known && sql.exec('SELECT COUNT(*) AS c FROM errors').toArray()[0].c >= 1000) return;
+    sql.exec(
+      'INSERT INTO errors (day, ver, msg, src, n, first, last, ua, stack, ctx) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?) ' +
+      'ON CONFLICT(day, ver, msg, src) DO UPDATE SET n = n + 1, last = excluded.last, ua = COALESCE(NULLIF(excluded.ua, \'\'), ua), stack = COALESCE(NULLIF(excluded.stack, \'\'), stack), ctx = COALESCE(NULLIF(excluded.ctx, \'\'), ctx)',
+      d, ver, msg, src, now, now, s(e.ua, 160), s(e.stack, 1500), s(e.ctx, 600)
+    );
+    await this.bump('errors');
+  }
+  async errors(days = 7) {
+    const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    return this.ctx.storage.sql
+      .exec('SELECT day, ver, msg, src, n, first, last, ua, stack, ctx FROM errors WHERE day >= ? ORDER BY last DESC LIMIT 200', from)
+      .toArray();
   }
   day() { return new Date().toISOString().slice(0, 10); }
   async bump(metric, n = 1) {

@@ -192,6 +192,22 @@ console.log('T7 · stesso giocatore da un\'altra scheda');
   A2.close();
 }
 
+console.log('T9 · errori dai browser: /api/errors li riceve, li raggruppa e rifiuta quelli troppo grandi');
+{
+  const msg = 'Prova errore ' + rnd();
+  const post = b => fetch(BASE + '/api/errors', { method: 'POST', body: typeof b === 'string' ? b : JSON.stringify(b), headers: { 'content-type': 'application/json' } });
+  const r1 = await post({ ver: 'test', msg, src: 'game.js:1:1', stack: 'riga', ua: 'prova', ctx: '{}' });
+  await post({ ver: 'test', msg, src: 'game.js:1:1' });
+  ok(r1.status === 200, 'POST /api/errors accettato', String(r1.status));
+  const big = await post('x'.repeat(9000)); ok(big.status === 413, 'errore troppo grande rifiutato (413)', String(big.status));
+  const bad = await post('{non json'); ok(bad.status === 400, 'JSON non valido rifiutato (400)', String(bad.status));
+  const list = (await api('/api/errors')).body;
+  const row = Array.isArray(list) && list.find(r => r.msg === msg);
+  ok(row && row.n === 2 && row.ver === 'test' && row.src === 'game.js:1:1', 'lo stesso errore due volte = una riga con conteggio 2', JSON.stringify(row));
+}
+
+if (process.env.VELOCE === '1') console.log('T8 saltata (VELOCE=1: giro rapido del cancello; il giro completo la fa ogni notte)');
+else {
 console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, chi esce è "non arrivato", contatori');
 {
   const statsBefore = (await api('/api/stats')).body;
@@ -232,7 +248,8 @@ console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, 
   ok((row0.voice_reports || 0) >= 2, '/api/stats conta le segnalazioni dei vocali', String(row0.voice_reports));
   A.close();
 }
+}
 
 console.log('\n' + (problems.length ? 'PROBLEMI:' : 'NESSUN PROBLEMA'));
 for (const p of problems) console.log(' -', p);
-process.exit(0);
+process.exit(problems.length ? 1 : 0);   // esito per il cancello dei test: 1 = qualcosa non va

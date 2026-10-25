@@ -1,0 +1,45 @@
+# Cancello dei test: a ogni modifica su GitHub lancia il giro rapido delle prove (~2 min di prove, ~5 min in tutto).
+# Verde = si può andare online. Rosso = qualcosa si è rotto: il dettaglio è nel registro del passo "Giro rapido".
+# Il giro completo (~30 min) lo fa il controllo notturno delle 21:33; da qui si lancia a mano con "Run workflow" → tutto.
+name: Cancello dei test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: 'rapido oppure tutto'
+        default: rapido
+
+concurrency:
+  group: cancello-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preparazione (wrangler, Playwright, three r128)
+        run: |
+          npm ci --no-audit --no-fund
+          pip install playwright==1.63.0
+          python -m playwright install --with-deps chromium
+          mkdir -p ~/three && cd ~/three && npm pack three@0.128.0 >/dev/null && tar xzf three-0.128.0.tgz
+      - name: Giro rapido
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+          THREE_JS: /home/runner/three/package/build/three.min.js
+        run: bash tools/verifica/cancello.sh ${{ github.event.inputs.modo || 'rapido' }}
+      - name: Registro del server locale (se qualcosa è andato storto)
+        if: failure()
+        run: tail -100 /tmp/cyf-wrangler.log || true

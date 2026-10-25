@@ -179,3 +179,5 @@ with sync_playwright() as p:
     br.close()
 print('\n' + ('PROBLEMI:' if problems else 'NESSUN PROBLEMA'))
 for x in problems: print(' -', x)
+import sys as _sys
+_sys.exit(1 if problems else 0)   # esito per il cancello dei test: 1 = qualcosa non va

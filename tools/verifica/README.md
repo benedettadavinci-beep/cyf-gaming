@@ -14,7 +14,11 @@ npx wrangler dev --port 8787 &
 
 | File | Cosa prova | Tempo |
 |---|---|---|
-| `node test_server.mjs` | Server delle gare: codici, stanza piena, organizzatore, durate, seed, arrivo troppo veloce, banane e bombe, vocali e segnalazioni, sala online, scheda doppia, gara valida con attesa reale (231 s), classifica, punti, contatori | ~5 min |
+| `npm test` (`cancello.sh`) | **Cancello rapido**: controlli statici + server senza T8 + `test_rapido.py`. Accende e spegne da solo il server locale. Esce con 1 se una prova fallisce | ~75 s |
+| `npm run test:tutto` | **Giro completo**: tutte le prove qui sotto (lo fa il controllo notturno) | ~30 min |
+| `node controlli.mjs` | Sintassi di tutti i .js, testi del gioco presenti nelle 4 lingue con gli stessi segnaposto, versione nello storico | <1 s |
+| `python3 test_rapido.py` | 13 scenari nella stessa pagina (allenamento parte, il rider scende), pannello di diagnosi, errori nel registro | ~50 s |
+| `node test_server.mjs` (`VELOCE=1` salta T8) | Server delle gare: errori dai browser (T9), codici, stanza piena, organizzatore, durate, seed, arrivo troppo veloce, banane e bombe, vocali e segnalazioni, sala online, scheda doppia, gara valida con attesa reale (231 s), classifica, punti, contatori | ~5 min |
 | `python3 test_gioco.py` | 13 scenari contro `tabella_citta.json` (la tabella Excel delle città), pista identica, guida, acrobazie, atterraggio assistito, velocità, maglie e ali, gara a due con banana e silenzio | ~6 min |
 | `python3 test_lingue.py` | Home e gioco nelle 4 lingue, su telefono e PC | ~6 min |
 | `python3 test_risultati.py` | Schermata dei risultati e testo condiviso nelle 4 lingue (`SOLO=telefono-it,pc-en` per limitare) | ~6 min |
@@ -25,3 +29,5 @@ npx wrangler dev --port 8787 &
 | `python3 rider_view.py [cartella] [scena]` | Primi piani del rider da 6 angolazioni | ~1 min |
 
 `tabella_citta.py` ricostruisce `tabella_citta.json` dalla tabella `CYF-elementi-per-citta.xlsx` del 24/10/2026 (cartella "CYF gaming" sul Desktop di Luigi): se la tabella cambia, vanno aggiornati tutti e due.
+
+Tutte le prove escono con codice 1 se trovano un problema: è quello che usa il cancello su GitHub (`.github/workflows/cancello.yml`).

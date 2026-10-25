@@ -36,6 +36,10 @@ npm install
 npm run dev      # apre http://localhost:8787
 ```
 
+Prove automatiche: `npm test` (giro rapido, ~75 s) e `npm run test:tutto` (~30 min); dettagli in `tools/verifica/README.md`. Su GitHub il giro rapido parte da solo a ogni modifica (scheda Actions).
+
+Diagnosi: nel gioco `?debug=1`, 5 tocchi sul numero di versione nel menu o F2 aprono il pannello di debug; gli errori dei browser arrivano su `/api/errors`.
+
 Per provare una sfida apri due finestre del browser, crea la stanza in una ed entra con il codice nell'altra.
 
 ## Prossimi passi
