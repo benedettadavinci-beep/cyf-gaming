@@ -16,7 +16,8 @@ npx wrangler dev --port 8787 &
 |---|---|---|
 | `npm test` (`cancello.sh`) | **Cancello rapido**: controlli statici + server senza T8 + `test_rapido.py`. Accende e spegne da solo il server locale. Esce con 1 se una prova fallisce | ~75 s |
 | `npm run test:tutto` | **Giro completo**: tutte le prove qui sotto (lo fa il controllo notturno) | ~30 min |
-| `node controlli.mjs` | Sintassi di tutti i .js, testi del gioco presenti nelle 4 lingue con gli stessi segnaposto, versione nello storico | <1 s |
+| `node matrice.mjs` (`--check` nel cancello) | Matrice dei moduli (MODULI.md): ogni modulo usa solo quello che dichiara in `// dipende da:`, nessun ciclo | <1 s |
+| `node controlli.mjs` | Sintassi di tutti i .js, testi del gioco (game.js, moduli, città) presenti nelle 4 lingue con gli stessi segnaposto, versione nello storico, attesa di 40 s della sfida, schede delle città complete e città uguali in index.html e protocollo | <1 s |
 | `python3 test_rapido.py` | 13 scenari nella stessa pagina (allenamento parte, il rider scende), pannello di diagnosi, errori nel registro | ~50 s |
 | `node test_server.mjs` (`VELOCE=1` salta T8) | Server delle gare: errori dai browser (T9), codici, città della gara scelta dall'organizzatore, attesa fissa della sfida dopo "Parti" (con `ATTESA_SFIDA_MS` accorciata a 4 s da `cancello.sh`; online sono 40 s, controllato da `controlli.mjs`) e ingresso a gara avviata, maglia nella stanza, stanza piena, organizzatore, durate, seed, arrivo troppo veloce, banane e bombe, vocali e segnalazioni, sala online, scheda doppia, gara valida con attesa reale (231 s), classifica, punti, contatori | ~6 min |
 | `python3 test_gioco.py` | 13 scenari contro `tabella_citta.json` (la tabella Excel delle città), pista diversa per città con tempi simili, trampolini giganti, stemma CYF, guida, acrobazie, atterraggio assistito, velocità, maglie, gara a due con banana e silenzio | ~6 min |
@@ -33,3 +34,7 @@ npx wrangler dev --port 8787 &
 `tabella_citta.py` ricostruisce `tabella_citta.json` dalla tabella `CYF-elementi-per-citta.xlsx` del 24/10/2026 (cartella "CYF gaming" sul Desktop di Luigi): se la tabella cambia, vanno aggiornati tutti e due.
 
 Tutte le prove escono con codice 1 se trovano un problema: è quello che usa il cancello su GitHub (`.github/workflows/cancello.yml`).
+
+**Prove lunghe mentre si modifica il codice.** `wrangler dev` serve i file dal disco: una modifica a metà prova la falsa. Per far girare il giro completo su un commit mentre si continua a lavorare: `git worktree add --detach /tmp/cyf-mod <ramo>`, `ln -s $PWD/node_modules /tmp/cyf-mod/node_modules`, poi nel worktree `npx wrangler dev --port 8788 --var ATTESA_SFIDA_MS:4000` e le prove con `BASE=http://127.0.0.1:8788 CYF_REPO=/tmp/cyf-mod ATTESA_SFIDA_MS=4000`.
+
+**Le prove e i moduli.** Le prove Playwright iniettano `window.__dbg` in `game.js` dopo la riga `applyLang(lang);`, quindi vedono solo i nomi che stanno in `game.js`: per le cose spostate nei moduli si passa dall'istanza (`GEN.objs`, `builtSky.napoli`, `AUDIO.muted`, `VOCALI.mutedIds`…).
