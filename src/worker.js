@@ -14,7 +14,8 @@ const DURATIONS = [5, 10, 15];               // minuti
 const lengthFor = min => min * 60 * AVG_SPEED_MS;
 const MAX_SPEED_MS = 52;                     // velocità massima possibile nel gioco (m/s), con margine
 const COUNTDOWN_MS = 5000;
-const GATHER_MAX_MS = 40000;                 // dopo "Parti" si aspetta che tutti abbiano caricato la gara, al massimo 40 s (R-119)
+const GATHER_MAX_MS = 40000;                 // sala online: dopo l'avvio si aspetta che tutti abbiano caricato la gara, al massimo 40 s (R-119)
+const ATTESA_SFIDA_MS = 40000;               // sfida con gli amici: dopo "Parti" si aspettano SEMPRE 40 s, così chi ha l'invito fa in tempo a entrare (R-119)
 const CODE_RE = /^[A-Z0-9]{4,8}$/;
 const PUBLIC_RE = /^ONLINE\d{1,2}$/;
 const PUBLIC_ROOMS = 20;
@@ -210,7 +211,7 @@ export class RaceRoom extends DurableObject {
     st.seed = (Math.random() * 2 ** 31) | 0;
     // attesa: il conto alla rovescia di 5 s parte solo quando tutti hanno caricato la gara (o dopo 40 s)
     st.startAt = 0;
-    st.gatherUntil = now + GATHER_MAX_MS;
+    st.gatherUntil = now + (st.pub ? GATHER_MAX_MS : this.attesaSfida());
     st.loaded = [];
     st.autoAt = 0;
     st.timeoutAt = 0;
@@ -228,10 +229,17 @@ export class RaceRoom extends DurableObject {
     this.broadcast(this.lobbyMsg());
   }
 
-  // tutti i corridori ancora collegati hanno caricato la gara? allora parte il conto alla rovescia
+  // Attesa fissa della sfida. Solo le prove locali la accorciano con la variabile ATTESA_SFIDA_MS di wrangler dev
+  // (tools/verifica/cancello.sh); online la variabile non esiste e valgono i 40 s.
+  attesaSfida() {
+    const v = Number(this.env && this.env.ATTESA_SFIDA_MS);
+    return v >= 1000 && v <= ATTESA_SFIDA_MS ? v : ATTESA_SFIDA_MS;
+  }
+  // sala online: tutti i corridori ancora collegati hanno caricato la gara? allora parte il conto alla rovescia.
+  // Nella sfida no: si aspettano sempre i 40 s interi (la sveglia del server chiama go() alla scadenza).
   async maybeGo(except) {
     const st = this.state;
-    if (st.phase !== 'countdown' || st.startAt) return;
+    if (st.phase !== 'countdown' || st.startAt || !st.pub) return;
     const online = new Set(this.players(except).map(p => p.id));
     const missing = st.racers.filter(r => online.has(r.id) && !st.loaded.includes(r.id));
     if (missing.length === 0) await this.go(except);

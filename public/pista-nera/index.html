@@ -102,6 +102,7 @@
   @keyframes pop { 0% { transform: scale(1.6); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 100% { opacity: .85; } }
 
   .banner { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); background: rgba(12,24,40,.78); color: #fff; padding: 8px 14px; border-radius: 10px; font-size: 18px; font-weight: 600; text-align: center; max-width: calc(100% - 24px); }
+  .banner.wait { bottom: auto; top: 30%; width: min(440px, calc(100% - 32px)); line-height: 1.35; }   /* attesa prima del via: in alto al centro, lontano da Salta e dalla rotellina */
 
   .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(12,24,40,.45); backdrop-filter: blur(2px); }
   .panel { width: min(480px, 100%); max-height: 100%; overflow: auto; background: var(--snow); border-radius: 12px; padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }

@@ -4,6 +4,9 @@ const WS = BASE.replace(/^http/, 'ws');
 const problems = [];
 const ok = (cond, label, extra = '') => { console.log((cond ? '  ✓ ' : '  ✗ ') + label + (extra ? '  [' + extra + ']' : '')); if (!cond) problems.push(label + (extra ? ' [' + extra + ']' : '')); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Attesa fissa della sfida dopo "Parti" (R-119): online 40 s; cancello.sh accende wrangler dev con ATTESA_SFIDA_MS=4000
+// per non rallentare le prove (il valore di 40 s online lo controlla controlli.mjs, C5).
+const W = Number(process.env.ATTESA_SFIDA_MS) || 40000;
 
 class Client {
   constructor(code, id, name, j = '') { this.code = code; this.id = id; this.name = name; this.j = j; this.msgs = []; this.closed = null; this.waiters = []; }
@@ -27,7 +30,7 @@ class Client {
   }
   push(m) { this.msgs.push(m); for (const w of [...this.waiters]) if (w.pred(m)) { this.waiters.splice(this.waiters.indexOf(w), 1); w.res(m); } }
   send(m) { this.ws.send(typeof m === 'string' ? m : JSON.stringify(m)); }
-  wait(pred, ms = 4000) {
+  wait(pred, ms = 4000 + W) {
     const past = this.msgs.find(pred);
     if (past) return Promise.resolve(past);
     return new Promise(res => { const w = { pred, res }; this.waiters.push(w); setTimeout(() => { if (this.waiters.includes(w)) { this.waiters.splice(this.waiters.indexOf(w), 1); res(null); } }, ms); });
@@ -91,15 +94,20 @@ console.log('T2c · attesa dei concorrenti prima del via (R-119) e maglia nella 
   ok(!!lj, 'chi non organizza può cambiare la maglia nella stanza e gli altri la vedono');
   A.send({ t: 'start' });
   const g = await B.waitType('gathering', 3000);
-  ok(g && g.startAt === 0 && g.gatherUntil - g.now > 39000 && g.gatherUntil - g.now <= 40000, 'dopo "Parti" si aspettano i concorrenti: niente via, al massimo 40 s', g && JSON.stringify({ startAt: g.startAt, wait: g.gatherUntil - g.now }));
+  ok(g && g.startAt === 0 && Math.abs(g.gatherUntil - g.now - W) < 300, 'dopo "Parti" niente via: si aspetta il tempo fisso della sfida (' + W / 1000 + ' s; online 40 s)', g && JSON.stringify({ startAt: g.startAt, wait: g.gatherUntil - g.now }));
   B.send({ t: 'jersey', j: 'roma' }); await sleep(300);
   ok(!A.msgs.some(m => m.t === 'lobby' && m.players.some(p => p.id === B.id && p.j === 'roma')), 'durante la gara la maglia non si cambia');
-  A.send({ t: 'loaded' });
-  const ga = await B.wait(m => m.t === 'gather' && m.loaded.length === 1, 3000);
-  ok(!!ga && !(await B.waitType('go', 1200)), 'uno pronto su due: si continua ad aspettare');
-  B.send({ t: 'loaded' });
-  const go = await A.waitType('go', 3000);
-  ok(go && Math.abs(go.startAt - go.now - 5000) < 50, 'tutti pronti: parte subito il conto alla rovescia di 5 s', go && String(go.startAt - go.now));
+  A.send({ t: 'loaded' }); B.send({ t: 'loaded' });
+  const ga = await B.wait(m => m.t === 'gather' && m.loaded.length === 2, 3000);
+  // chi apre l'invito durante l'attesa entra subito in gara
+  const E = new Client(code, 'ge' + code, 'Invitato'); E.autoLoad = false; await E.connect();
+  const we = await E.waitType('welcome'); const re = await A.wait(m => m.t === 'racers' && m.racers.some(r => r.id === E.id), 3000);
+  ok(we && we.startAt === 0 && we.racers.some(r => r.id === E.id) && !!re, 'chi apre l\'invito durante l\'attesa entra in gara prima del via', we && JSON.stringify({ startAt: we.startAt, inRace: we.racers.some(r => r.id === E.id), told: !!re }));
+  E.send({ t: 'loaded' });
+  const early = await A.waitType('go', Math.max(0, g.gatherUntil - Date.now() - 400));
+  ok(!!ga && !early, 'tutti pronti, ma il conto alla rovescia non parte prima della fine dell\'attesa (R-119, corretto nella 0.11.1)', early ? 'partito ' + (early.now - g.now) + ' ms dopo "Parti"' : '');
+  const go = await A.waitType('go', W + 5000);
+  ok(go && go.now - g.gatherUntil > -200 && go.now - g.gatherUntil < 5000 && Math.abs(go.startAt - go.now - 5000) < 50, 'a fine attesa parte il conto alla rovescia di 5 s, uguale per tutti', go && JSON.stringify({ dopo: go.now - g.now, cd: go.startAt - go.now }));
   // chi entra a gara partita corre lo stesso, dalla partenza e con il tempo che corre già
   await sleep(Math.max(0, go.startAt - Date.now() + 300));
   A.send({ t: 'pos', x: 0, z: -10, y: 0, a: 0, s: 0, f: 0, g: 0, v: 20, c: 0 });
@@ -107,7 +115,7 @@ console.log('T2c · attesa dei concorrenti prima del via (R-119) e maglia nella 
   const wc = await C.waitType('welcome');
   const rac = await A.wait(m => m.t === 'racers' && m.racers.some(r => r.id === C.id), 3000);
   ok(wc && wc.startAt === go.startAt && wc.racers.some(r => r.id === C.id) && !!rac, 'chi entra dopo il via entra in gara (svantaggiato) e gli altri lo vedono', wc && JSON.stringify({ s: wc.startAt === go.startAt, inRace: wc.racers.some(r => r.id === C.id), told: !!rac }));
-  A.close(); B.close(); C.close(); await sleep(300);
+  A.close(); B.close(); C.close(); E.close(); await sleep(300);
 }
 {
   const code = rnd();
@@ -117,9 +125,9 @@ console.log('T2c · attesa dei concorrenti prima del via (R-119) e maglia nella 
   A.send({ t: 'start' }); const g = await A.waitType('gathering', 3000);
   A.send({ t: 'loaded' }); await sleep(300);
   D.close();                                      // chi esce durante l'attesa non blocca: resta B, che non carica mai
-  console.log('   aspetto i 40 s massimi…');
-  const go = await A.waitType('go', 50000);   // la sveglia del server può tardare un po' se la macchina è carica
-  ok(go && go.now - g.gatherUntil > -200 && go.now - g.gatherUntil < 5000 && Math.abs(go.startAt - go.now - 5000) < 50, 'dopo 40 s si parte con chi c\'è (5 s di conto alla rovescia)', go && String(go.now - g.now));
+  console.log('   aspetto la fine dell\'attesa (' + W / 1000 + ' s)…');
+  const go = await A.waitType('go', W + 10000);   // la sveglia del server può tardare un po' se la macchina è carica
+  ok(go && go.now - g.gatherUntil > -200 && go.now - g.gatherUntil < 5000 && Math.abs(go.startAt - go.now - 5000) < 50, 'chi non carica mai e chi esce non bloccano: a fine attesa si parte con chi c\'è (5 s di conto alla rovescia)', go && String(go.now - g.now));
   A.close(); B.close(); await sleep(300);
 }
 
@@ -185,7 +193,7 @@ console.log('T3 · organizzatore, durata, partenza, stesso seed, arrivo troppo v
   }
   // rivincita: solo l'organizzatore
   B.send({ t: 'start' }); ok(!(await A.wait(m => m.t === 'countdown' && m.round === 2, 1000)), 'rivincita: un ospite non può lanciarla');
-  A.send({ t: 'start' }); const c2 = await B.wait(m => m.t === 'countdown' && m.round === 2, 3000); ok(!!c2, 'rivincita lanciata dall\'organizzatore (gara n. 2)');
+  A.send({ t: 'start' }); const c2 = await B.wait(m => m.t === 'countdown' && m.round === 2, W + 4000); ok(!!c2, 'rivincita lanciata dall\'organizzatore (gara n. 2)');
   // l'organizzatore se ne va: passa all'altro
   A.close(); const lb2 = await B.wait(m => m.t === 'lobby' && m.hostId === B.id, 3000); ok(!!lb2, 'se l\'organizzatore esce, il ruolo passa al giocatore rimasto');
   B.close();

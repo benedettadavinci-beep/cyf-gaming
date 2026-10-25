@@ -73,6 +73,11 @@ const req = read('REQUISITI.md');
 ok(!!ver, 'versione in public/config.js', ver);
 ok(new RegExp('^\\| ' + (ver || 'x').replace(/\./g, '\\.') + ' \\|', 'm').test(req), 'la versione ' + ver + ' è nello storico di REQUISITI.md');
 
+console.log('C5 · attesa della sfida (R-119)');
+const wk = read('src/worker.js'), wr = read('wrangler.jsonc');
+ok(/const ATTESA_SFIDA_MS = 40000;/.test(wk), 'nella sfida si aspettano 40 s dopo "Parti"');
+ok(!/ATTESA_SFIDA_MS/.test(wr), 'online nessuna variabile accorcia l\'attesa (ATTESA_SFIDA_MS solo nelle prove locali)');
+
 console.log('\n' + (problems.length ? 'PROBLEMI:' : 'NESSUN PROBLEMA'));
 for (const p of problems) console.log(' -', p);
 process.exit(problems.length ? 1 : 0);

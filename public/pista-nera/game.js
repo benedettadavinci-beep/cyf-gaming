@@ -2493,6 +2493,19 @@
   const kmh = v => v * 3.6;
 
   let bigZones = [];   // spazio libero attorno ai trampolini giganti
+  // Altezza della superficie della rampa (sopra la sua base) nel punto z della pista. Ricalca il modello: profilo
+  // quadratico da (-0,6; 0) a (4; 1,1) più lo spessore del bordo arrotondato (0,25 sulla neve, 0,2 in città),
+  // scalato ×2 per il trampolino gigante. La rampa inizia RAMP_FOOT·k metri prima del suo centro (il rider ci sale 0,9 m prima, quando ci arriva
+  // la punta della tavola) e stacca a 2·k dopo.
+  const RAMP_FOOT = 2.85;
+  function rampTop(r, z) {
+    const k = r.big ? 2 : 1, bev = isCity() ? 0.2 : 0.25;
+    const xo = 2 - (z - r.z) / k;                      // coordinata lungo il profilo del modello
+    if (xo < -0.6) return Math.max(0, xo + 0.6 + bev) * k;   // bordo arrotondato all'ingresso
+    const c = 4 - Math.min(xo, 4);
+    const u = (4.8 - Math.sqrt(Math.max(0, 23.04 - 0.8 * c))) / 0.4;   // parametro della curva quadratica
+    return (1.1 * (1 - u) + bev) * k;
+  }
   function clearWorld() {
     for (const o of objs) removeObj(o);
     objs = [];
@@ -2767,7 +2780,7 @@
   const OVERLAYS = ['menu', 'lobby', 'raceResults', 'over', 'pause'];
   function show(id) { for (const o of OVERLAYS) $(o).hidden = o !== id; diag.log('schermata', id || 'gioco'); }
   const banner = $('banner');
-  function setBanner(text) { banner.hidden = !text; banner.textContent = text || ''; }
+  function setBanner(text) { banner.hidden = !text; banner.textContent = text || ''; if (!text) banner.classList.remove('wait'); }
 
   function hudLabels() {
     const race = racing();
@@ -2950,11 +2963,11 @@
     maxSpeed = Math.max(maxSpeed, P.speed);
 
     if (P.onRamp && !P.air) {
+      // sulla rampa il rider segue la superficie vera del modello (R-214): niente piedi dentro, anche sul trampolino gigante
       const r = P.onRamp, k = r.big ? 2 : 1;
-      const along = clamp((r.z + 2 * k - P.z) / (4 * k), 0, 1);
-      P.y = along * 1.12 * k;
+      P.y = rampTop(r, P.z) + hgt(r.x, r.z) - hgt(P.x, P.z);
       if (Math.abs(P.x - r.x) > 1.7 * k) { P.onRamp = null; P.air = true; P.vy = 0; }
-      else if (along >= 1) {
+      else if (P.z <= r.z - 2 * k) {
         // trampolino gigante: stacco da 2,2 m e spinta 13,5 m/s → circa 6,8 m d'altezza e 1,5 s in aria (normale: 3 m e 1 s)
         P.onRamp = null; P.air = true; P.vy = r.big ? 13.5 : 8.6; P.spin = P.spin % TAU; P.ramp = true; startAir();
         P.speed = Math.min(P.speed * 1.06, 46);
@@ -2989,7 +3002,7 @@
     let taken = false;
     for (const o of objs) {
       const dz = o.z - P.z;
-      if (dz < -6 || dz > 6) continue;
+      if (dz < -7 || dz > 6) continue;   // -7: il trampolino gigante si tocca già 6,6 m prima del suo centro
       const dx = o.x - P.x, d2 = dx * dx + dz * dz;
       const CC = CITY_CFG[theme];
       if (o.type === 'tree') { if (P.y < 5.5 * o.s && d2 < (0.8 * o.s) ** 2) crash(tr(CC ? CC.tallCrash : 'crashTree')); }
@@ -2997,7 +3010,7 @@
       else if (o.type === 'marker') { if (P.y < 1.5 && d2 < 0.35 * 0.35) crash(tr(CC ? CC.markerCrash : 'crashPole')); }
       else if (o.type === 'ramp') {
         const k = o.big ? 2 : 1;
-        if (!o.used && !P.air && P.crash <= 0 && Math.abs(dx) < 1.5 * k && P.z < o.z + 2 * k && P.z > o.z - 1.2 * k) { o.used = true; P.onRamp = o; }
+        if (!o.used && !P.air && P.crash <= 0 && Math.abs(dx) < 1.5 * k && P.z < o.z + RAMP_FOOT * k + 0.9 && P.z > o.z - 1.2 * k) { o.used = true; P.onRamp = o; P.y = Math.max(P.y, rampTop(o, P.z) + hgt(o.x, o.z) - hgt(P.x, P.z)); }
       } else if (o.type === 'gem') {
         if (P.y < 2.2 && d2 < 0.95 * 0.95) { o.taken = true; taken = true; bonus += 10; spray(o.x, 0.9, o.z, 8, 1.5, 2); world.remove(o.mesh); chime(); if (o.food && Math.random() < 0.35) say(tr('food_' + o.food) + '!  +10', '#c4361f'); }
       } else if (o.type === 'gate') {
@@ -3376,13 +3389,14 @@
   function raceClock() {
     const cnt = $('count');
     if (mode === 'countdown' && !net.startAt) {
-      // attesa dei concorrenti (R-119): il conto alla rovescia parte quando tutti hanno caricato la gara, al massimo dopo 40 s
+      // attesa prima del via (R-119). Sfida: sempre 40 s, così chi ha l'invito fa in tempo a entrare.
+      // Sala online: il conto alla rovescia parte quando tutti hanno caricato la gara, al massimo dopo 40 s.
       const s = Math.max(0, Math.ceil((net.gatherUntil - serverNow()) / 1000));
-      const txt = tr('gatherWait', { n: net.loaded.length, t: net.racers.length, s });
-      if (net.gatherTxt !== txt) { net.gatherTxt = txt; setBanner(txt); }
+      const txt = net.pub ? tr('gatherWait', { n: net.loaded.length, t: net.racers.length, s }) : tr('gatherFixed', { t: net.racers.length, s });
+      if (net.gatherTxt !== txt) { net.gatherTxt = txt; setBanner(txt); banner.classList.add('wait'); }
       cnt.hidden = true;
     } else if (mode === 'countdown') {
-      if (net.gatherTxt) { net.gatherTxt = ''; setBanner(''); }
+      if (net.gatherTxt) { net.gatherTxt = ''; setBanner(''); banner.classList.remove('wait'); }
       const left = net.startAt - serverNow();
       if (left <= 0) {
         mode = 'race';
@@ -3885,7 +3899,8 @@
     const fx = Math.sin(P.ang), fz = -Math.cos(P.ang);
     const hF = hgt(P.x + fx * 0.8, P.z + fz * 0.8), hB = hgt(P.x - fx * 0.8, P.z - fz * 0.8);
     const hR = hgt(P.x + Math.cos(P.ang) * 0.3, P.z + Math.sin(P.ang) * 0.3), hL = hgt(P.x - Math.cos(P.ang) * 0.3, P.z - Math.sin(P.ang) * 0.3);
-    rider.rotation.x = P.air ? rider.rotation.x * 0.9 : Math.atan2(hF - hB, 1.6);
+    const rr = !P.air && P.onRamp;   // sulla rampa la tavola si inclina come la sua superficie
+    rider.rotation.x = P.air ? rider.rotation.x * 0.9 : rr ? Math.atan2(rampTop(rr, P.z + fz * 0.8) - rampTop(rr, P.z - fz * 0.8), 1.6) : Math.atan2(hF - hB, 1.6);
     rider.rotation.z = P.air ? 0 : -Math.atan2(hR - hL, 0.6) * 0.6;
     bodyTurn(body, P.crash > 0 ? (0.85 - P.crash) * 8 : P.flip, P.spin, -lean * 0.42);
     rider.visible = !(invuln > 0 && P.crash <= 0 && Math.floor(invuln * 10) % 2 === 0);
