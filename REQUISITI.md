@@ -247,6 +247,15 @@ Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel
 | R-505 | ✓ | `BUSINESS-PLAN.md` nel repo e Word sul Desktop |
 | S-01 … S-21 | ✓ | Ogni scelta corrisponde al codice (S-12 aggiornata: le porte di Zagabria ora sono a scacchi) |
 
+**Controllo di fine serata della 0.16.0 (25/10, ore 22-23)**: giro completo di tutte le prove (`npm run test:tutto`, 12 suite). Al primo giro 5 controlli ✗, tutti delle prove e non del gioco: un server di prova rimasto acceso dal giro rapido (corretto `cancello.sh`), una stanza letta troppo presto, i messaggi a schermo letti prima che comparissero e il fermo misurato con il browser di prova a 3 immagini al secondo. Dopo la correzione le due suite interessate (server e gioco) sono tutte verdi; le altre 10 erano già verdi al primo giro (379 controlli ✓):
+
+| ID | Esito | Come è stato verificato |
+|---|---|---|
+| R-231 | ✓ | Gara a due nel browser: con 1.499 punti il pulsante del bananone dice "Servono 1500 punti" e non spende niente; con 1.600 parte il gesto del braccio, si spendono 1.500 punti e il bananone va all'ospite davanti, che cade ("Bananone in testa da Tester!") e resta fermo 4 s. Server (T4): il lancio arriva con il suo tipo, un tipo sconosciuto vale come banana, il bananone a terra arriva agli altri; costo = 10 × bomba e fermo 4 s presi da `shared/protocollo.js` |
+| R-224, R-230 | ✓ | Doppio clic e pulsante 🍌 lanciano la banana all'ospite davanti, fermo 2 s |
+| R-223, R-113 | ✓ | Bomba 4 s, banana 2 s; testi d'aiuto del tasto B e del pulsante corretti: dicevano ancora "lasci una banana dietro di te", ma dalla 0.15.1 la banana si lancia |
+| Tutti gli altri | ✓ | Server con gara valida (T1-T10), 13 scenari e diagnosi, guida e acrobazie, trampolini, lingue, risultati, comandi touch, vocali, capelli e codice personale |
+
 **Controllo della 0.15.1 (25/10, ore 19)**: cancello rapido superato e controllo mirato a due giocatori nel browser (organizzatore dietro, ospite 40 m davanti). La prova completa in `test_gioco.py` (G6, ora anche con il pulsante) va nel giro notturno (R-506):
 
 | ID | Esito | Come è stato verificato |

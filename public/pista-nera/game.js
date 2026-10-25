@@ -251,7 +251,7 @@
   function crash(reason, stop = 0) {
     if (invuln > 0 || P.crash > 0 || (mode === 'solo' && lives <= 0)) return;
     if (mode === 'solo') { lives--; renderLives(); }
-    P.crash = 0.85; invuln = Math.max(2.3, stop + 1.5); P.stop = stop; P.stopUntil = performance.now() + stop * 1000; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
+    P.crash = 0.85; invuln = Math.max(2.3, stop + 1.5); P.stop = stop; P.stopFor = stop; P.stopUntil = performance.now() + stop * 1000; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
     combo = 0; shake = reduceMotion ? 0 : 0.45;
     spray(P.x, 0.2, P.z, 60, 4, 5);
     thump(1.4);

@@ -274,11 +274,11 @@ with sync_playwright() as p:
     check(r['bonus'] == 100 and 'Ospite' in r['toast'] and r['gesto'] > 0, 'pulsante del bananone: gesto del braccio, 1500 punti spesi, lanciato al giocatore davanti (R-231)', json.dumps(r))
     try:
         gp.wait_for_function("window.__dbg.P.stop > 0", timeout=10000)
-        # durata decisa al colpo (stopUntil), non la lettura del fotogramma: il browser delle prove gira a pochi fotogrammi al secondo
-        gr = gp.evaluate("() => { const P = window.__dbg.P; return { stop: +((P.stopUntil - performance.now()) / 1000).toFixed(2), left: +P.stop.toFixed(2), toast: window.__toasts.join('|') }; }")
+        # durata decisa al colpo (P.stopFor), non il tempo che resta: il browser delle prove gira a pochi fotogrammi al secondo
+        gr = gp.evaluate("() => ({ stop: window.__dbg.P.stopFor, left: +window.__dbg.P.stop.toFixed(2), toast: window.__toasts.join('|') })")
     except Exception as e:
         gr = { 'stop': 0, 'toast': str(e)[:80] }
-    check(gr['stop'] > 2 and gr['stop'] <= 4 and 'Bananone' in gr['toast'], 'chi riceve il bananone cade e resta fermo più di una banana, fino a 4 s (R-231)', json.dumps(gr))
+    check(gr['stop'] == 4 and gr['left'] > 0 and 'Bananone' in gr['toast'], 'chi riceve il bananone cade e resta fermo 4 s (R-231)', json.dumps(gr))
     r = pg.evaluate("""() => { const D = window.__dbg; window.__toasts.length = 0; D.P.z = -(D.raceLen - 400); D.P.x = D.center(D.P.z); return D.frames(4).then(() => ({ toast: window.__toasts.join('|') })); }""")
     check('500' in r['toast'], 'avviso "Traguardo tra 500 m"', json.dumps(r))
     r = pg.evaluate("""() => { const D = window.__dbg; window.__toasts.length = 0; D.P.z = -D.raceLen - 1; return D.frames(4).then(() => new Promise(res => setTimeout(() => res({ mode: D.mode, toasts: window.__toasts.join('|'), banner: document.getElementById('banner').textContent }), 1500))); }""")
