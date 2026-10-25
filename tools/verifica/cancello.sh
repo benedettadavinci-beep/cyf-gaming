@@ -44,6 +44,7 @@ prova() {   # prova "nome" comando…
 
 prova "Controlli statici (sintassi, lingue, versione)" node tools/verifica/controlli.mjs
 prova "Matrice dei moduli (dipendenze dichiarate, nessun ciclo)" node tools/verifica/matrice.mjs --check
+prova "Nomi non definiti (scope di ogni file)" node tools/verifica/nomi.mjs
 if [ "$MODO" = "tutto" ]; then
   prova "Server delle gare (completo, con gara valida)" node tools/verifica/test_server.mjs
 else

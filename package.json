@@ -9,9 +9,12 @@
     "test": "bash tools/verifica/cancello.sh rapido",
     "test:tutto": "bash tools/verifica/cancello.sh tutto",
     "controlli": "node tools/verifica/controlli.mjs",
-    "matrice": "node tools/verifica/matrice.mjs"
+    "matrice": "node tools/verifica/matrice.mjs",
+    "nomi": "node tools/verifica/nomi.mjs"
   },
   "devDependencies": {
+    "acorn": "^8.14.0",
+    "acorn-walk": "^8.3.4",
     "wrangler": "4.148.0"
   }
 }

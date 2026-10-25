@@ -1024,8 +1024,8 @@
       $('v2').textContent = tr('placeOf', { p: ord(pl.place), n: pl.of });
       $('v4').textContent = fmtLen(Math.max(0, raceLen - distM()));
       $('v5').textContent = fmt(bonus);
-      $('btnBanana').disabled = mode !== 'race' || bonus < COST.banana;
-      $('btnBomb').disabled = mode !== 'race' || bonus < COST.bomb;
+      $('btnBanana').disabled = mode !== 'race' || bonus < PN.protocollo.COSTI.banana;
+      $('btnBomb').disabled = mode !== 'race' || bonus < PN.protocollo.COSTI.bomb;
       liveT += 0.08;
       if (liveT > 0.25) { liveT = 0; renderLive(pl.list); }
     } else {

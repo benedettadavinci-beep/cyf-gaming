@@ -16,6 +16,7 @@ npx wrangler dev --port 8787 &
 |---|---|---|
 | `npm test` (`cancello.sh`) | **Cancello rapido**: controlli statici + server senza T8 + `test_rapido.py`. Accende e spegne da solo il server locale. Esce con 1 se una prova fallisce | ~75 s |
 | `npm run test:tutto` | **Giro completo**: tutte le prove qui sotto (lo fa il controllo notturno) | ~30 min |
+| `node nomi.mjs` | Nomi non definiti: legge ogni file del gioco con acorn e segue gli scope; trova in mezzo secondo un "COST is not defined" che altrimenti salta fuori solo in gara | <1 s |
 | `node matrice.mjs` (`--check` nel cancello) | Matrice dei moduli (MODULI.md): ogni modulo usa solo quello che dichiara in `// dipende da:`, nessun ciclo | <1 s |
 | `node controlli.mjs` | Sintassi di tutti i .js, testi del gioco (game.js, moduli, città) presenti nelle 4 lingue con gli stessi segnaposto, versione nello storico, attesa di 40 s della sfida, schede delle città complete e città uguali in index.html e protocollo | <1 s |
 | `python3 test_rapido.py` | 13 scenari nella stessa pagina (allenamento parte, il rider scende), pannello di diagnosi, errori nel registro | ~50 s |
