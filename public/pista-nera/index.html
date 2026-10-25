@@ -143,6 +143,11 @@
   /* risultati sul telefono: i pulsanti vanno a capo invece di tagliare le parole; "non arrivato" non schiaccia il nome */
   #raceResults .row > button { flex: 1 1 auto; min-width: max-content; white-space: nowrap; }
   #raceResults .players .name { min-width: 3.4em; }
+  /* stanza: il nome non si riduce a una lettera accanto a "Organizza" e "In attesa"; sul telefono il microfono in alto non copre il pannello */
+  #lobby .players .name { min-width: 4.2em; }
+  @media (max-width: 480px) { #lobby .pill { font-size: 11px; padding: 2px 6px; letter-spacing: .04em; } #lobby .players li { gap: 6px; padding: 8px 8px; font-size: 17px; } }
+  @media (max-width: 600px) { #lobby, #raceResults { padding-top: 150px; } }
+  #lobby .pill { white-space: nowrap; flex-shrink: 0; }
   @media (max-width: 480px) { #raceResults .players li { gap: 7px; padding: 8px 8px; font-size: 17px; } #raceResults .pos { min-width: 2.3em; font-size: 13px; } }
   .players .time.dnf { font-weight: 600; font-size: 14px; line-height: 1.1; color: var(--ink-soft); text-align: right; max-width: 6.5em; }
   .awards span:not(.k):not(.dot) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -332,6 +337,13 @@
             <button type="button" data-min="10" aria-pressed="false">10 min</button>
             <button type="button" data-min="15" aria-pressed="false">15 min</button>
           </div>
+        </div>
+        <label class="field" for="selRoomJersey"><span data-i18n="jersey"></span>
+          <select id="selRoomJersey"></select>
+        </label>
+        <div class="field" id="cityBox" style="display:flex;flex-direction:column;gap:4px">
+          <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase" id="cityLabel"></span>
+          <select id="selRoomCity" data-i18n-aria="raceCity"></select>
         </div>
         <ul class="players" id="lobbyPlayers"></ul>
         <span class="muted" id="lobbyStatus"></span>

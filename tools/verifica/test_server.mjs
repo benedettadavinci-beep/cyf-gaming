@@ -10,12 +10,22 @@ class Client {
   connect() {
     return new Promise((res, rej) => {
       this.ws = new WebSocket(WS + '/api/room/' + this.code);
-      this.ws.onopen = () => { this.send({ t: 'hello', id: this.id, name: this.name, j: this.j }); res(); };
-      this.ws.onmessage = ev => { if (ev.data === 'pong') return; const m = JSON.parse(ev.data); this.msgs.push(m); for (const w of [...this.waiters]) if (w.pred(m)) { this.waiters.splice(this.waiters.indexOf(w), 1); w.res(m); } };
+      this.ws.onopen = () => { this.send({ t: 'hello', id: this.id, name: this.name, j: this.j, sc: this.sc }); res(); };
+      this.ws.onmessage = ev => {
+        if (ev.data === 'pong') return;
+        let m = JSON.parse(ev.data);
+        // dalla 0.10: "countdown" apre l'attesa dei concorrenti (startAt 0) e "go" fa partire i 5 s.
+        // Il client simulato dice subito "caricato" (salvo autoLoad = false) e per le prove vecchie
+        // ricompone il "countdown" di una volta quando arriva il "go".
+        if (m.t === 'countdown') { this.gather = m; this.push({ ...m, t: 'gathering' }); if (this.autoLoad !== false) this.send({ t: 'loaded' }); return; }
+        if (m.t === 'go') { this.push(m); m = { ...(this.gather || {}), t: 'countdown', now: m.now, startAt: m.startAt }; }
+        this.push(m);
+      };
       this.ws.onclose = ev => { this.closed = { code: ev.code, reason: ev.reason }; for (const w of [...this.waiters]) if (w.pred({ t: '__closed', code: ev.code })) { this.waiters.splice(this.waiters.indexOf(w), 1); w.res({ t: '__closed', code: ev.code }); } };
       this.ws.onerror = e => rej(e);
     });
   }
+  push(m) { this.msgs.push(m); for (const w of [...this.waiters]) if (w.pred(m)) { this.waiters.splice(this.waiters.indexOf(w), 1); w.res(m); } }
   send(m) { this.ws.send(typeof m === 'string' ? m : JSON.stringify(m)); }
   wait(pred, ms = 4000) {
     const past = this.msgs.find(pred);
@@ -38,6 +48,79 @@ console.log('T1 · indirizzi e codici');
   const e = await api('/api/xyz'); ok(e.status === 404, '/api/xyz → 404', String(e.status));
   const f = await api('/api/stats'); ok(f.status === 200 && Array.isArray(f.body), '/api/stats risponde con una lista');
   const g = await api('/api/points'); ok(g.status === 200 && Array.isArray(g.body), '/api/points risponde con una lista');
+}
+
+console.log('T2b · città della gara (R-118): la sceglie chi organizza, uguale per tutti');
+{
+  const code = rnd();
+  const h = new Client(code, 'hs' + code, 'Capo'); h.sc = 'lisbona'; await h.connect(); await h.waitType('welcome');
+  const g = new Client(code, 'gs' + code, 'Ospite'); g.sc = 'napoli'; await g.connect(); await g.waitType('welcome');
+  let l = await g.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
+  ok(l && l.scena === 'lisbona', 'la stanza prende la città di chi la crea', l && l.scena);
+  g.send({ t: 'scena', scena: 'berlino' }); await sleep(400);
+  ok(g.last('lobby').scena === 'lisbona', 'l\'ospite non può cambiare la città della gara', g.last('lobby').scena);
+  h.send({ t: 'scena', scena: 'roma' });
+  l = await g.wait(m => m.t === 'lobby' && m.scena === 'roma', 3000);
+  ok(!!l, 'chi organizza cambia la città e tutti la vedono');
+  h.send({ t: 'scena', scena: 'atlantide' });
+  l = await g.wait(m => m.t === 'lobby' && m.scena === 'neve', 3000);
+  ok(!!l, 'città sconosciuta → Neve');
+  h.send({ t: 'scena', scena: 'roma' }); await g.wait(m => m.t === 'lobby' && m.scena === 'roma', 3000);
+  h.send({ t: 'start' });
+  const [ch, cg] = await Promise.all([h.waitType('countdown'), g.waitType('countdown')]);
+  ok(ch && cg && ch.scena === 'roma' && cg.scena === 'roma' && ch.seed === cg.seed, 'conto alla rovescia: stessa città e stesso seed per tutti', JSON.stringify({ h: ch && ch.scena, g: cg && cg.scena }));
+  const late = new Client(code, 'ls' + code, 'Ritardo'); late.sc = 'madrid'; await late.connect();
+  const w = await late.waitType('welcome');
+  ok(w && w.scena === 'roma', 'chi entra durante la gara riceve la città della gara', w && w.scena);
+  h.close(); g.close(); late.close();
+  // sala pubblica: la città è quella di chi aspetta da più tempo
+  const p1 = new Client('ONLINE20', 'o1' + code, 'Primo'); p1.sc = 'madrid'; await p1.connect(); await p1.waitType('welcome');
+  const p2 = new Client('ONLINE20', 'o2' + code, 'Secondo'); p2.sc = 'zurigo'; await p2.connect(); await p2.waitType('welcome');
+  l = await p2.wait(m => m.t === 'lobby' && m.players.length >= 2, 3000);
+  ok(l && l.scena === 'madrid', 'sala online: città di chi aspetta da più tempo', l && l.scena);
+  p1.close(); p2.close(); await sleep(300);
+}
+
+console.log('T2c · attesa dei concorrenti prima del via (R-119) e maglia nella stanza (R-118)');
+{
+  const code = rnd();
+  const A = new Client(code, 'ga' + code, 'Capo'); A.autoLoad = false; await A.connect(); await A.waitType('welcome');
+  const B = new Client(code, 'gb' + code, 'Lento'); B.autoLoad = false; await B.connect(); await B.waitType('welcome');
+  B.send({ t: 'jersey', j: 'napoli' });
+  const lj = await A.wait(m => m.t === 'lobby' && m.players.some(p => p.id === B.id && p.j === 'napoli'), 3000);
+  ok(!!lj, 'chi non organizza può cambiare la maglia nella stanza e gli altri la vedono');
+  A.send({ t: 'start' });
+  const g = await B.waitType('gathering', 3000);
+  ok(g && g.startAt === 0 && g.gatherUntil - g.now > 39000 && g.gatherUntil - g.now <= 40000, 'dopo "Parti" si aspettano i concorrenti: niente via, al massimo 40 s', g && JSON.stringify({ startAt: g.startAt, wait: g.gatherUntil - g.now }));
+  B.send({ t: 'jersey', j: 'roma' }); await sleep(300);
+  ok(!A.msgs.some(m => m.t === 'lobby' && m.players.some(p => p.id === B.id && p.j === 'roma')), 'durante la gara la maglia non si cambia');
+  A.send({ t: 'loaded' });
+  const ga = await B.wait(m => m.t === 'gather' && m.loaded.length === 1, 3000);
+  ok(!!ga && !(await B.waitType('go', 1200)), 'uno pronto su due: si continua ad aspettare');
+  B.send({ t: 'loaded' });
+  const go = await A.waitType('go', 3000);
+  ok(go && Math.abs(go.startAt - go.now - 5000) < 50, 'tutti pronti: parte subito il conto alla rovescia di 5 s', go && String(go.startAt - go.now));
+  // chi entra a gara partita corre lo stesso, dalla partenza e con il tempo che corre già
+  await sleep(Math.max(0, go.startAt - Date.now() + 300));
+  A.send({ t: 'pos', x: 0, z: -10, y: 0, a: 0, s: 0, f: 0, g: 0, v: 20, c: 0 });
+  const C = new Client(code, 'gc' + code, 'Ritardo'); await C.connect();
+  const wc = await C.waitType('welcome');
+  const rac = await A.wait(m => m.t === 'racers' && m.racers.some(r => r.id === C.id), 3000);
+  ok(wc && wc.startAt === go.startAt && wc.racers.some(r => r.id === C.id) && !!rac, 'chi entra dopo il via entra in gara (svantaggiato) e gli altri lo vedono', wc && JSON.stringify({ s: wc.startAt === go.startAt, inRace: wc.racers.some(r => r.id === C.id), told: !!rac }));
+  A.close(); B.close(); C.close(); await sleep(300);
+}
+{
+  const code = rnd();
+  const A = new Client(code, 'ta' + code, 'Capo'); A.autoLoad = false; await A.connect(); await A.waitType('welcome');
+  const B = new Client(code, 'tb' + code, 'Assente'); B.autoLoad = false; await B.connect(); await B.waitType('welcome');
+  const D = new Client(code, 'td' + code, 'Esce'); D.autoLoad = false; await D.connect(); await D.waitType('welcome');
+  A.send({ t: 'start' }); const g = await A.waitType('gathering', 3000);
+  A.send({ t: 'loaded' }); await sleep(300);
+  D.close();                                      // chi esce durante l'attesa non blocca: resta B, che non carica mai
+  console.log('   aspetto i 40 s massimi…');
+  const go = await A.waitType('go', 50000);   // la sveglia del server può tardare un po' se la macchina è carica
+  ok(go && go.now - g.gatherUntil > -200 && go.now - g.gatherUntil < 5000 && Math.abs(go.startAt - go.now - 5000) < 50, 'dopo 40 s si parte con chi c\'è (5 s di conto alla rovescia)', go && String(go.now - g.now));
+  A.close(); B.close(); await sleep(300);
 }
 
 console.log('T2 · stanza piena (8 giocatori, il 9° rifiutato) e pulizia dei nomi');

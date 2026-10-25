@@ -14,7 +14,7 @@ GAME = GAME.replace(hook, hook + """
     get P() { return P; }, get objs() { return objs; }, get mode() { return mode; }, set mode(v) { mode = v; }, get theme() { return theme; },
     get bonus() { return bonus; }, set bonus(v) { bonus = v; }, get lives() { return lives; }, set invuln(v) { invuln = v; }, get raceLen() { return raceLen; },
     get finishObj() { return finishObj; }, get hazards() { return hazards; }, get PART() { return PART; }, get tuckS() { return tuckS; }, get brakeS() { return brakeS; },
-    reset, applyTheme, assets, CITY_CFG, THEMES, builtSky, bay, rome, ranges, camera, me, scene, renderer, collide, keys, stick, net, center, hgt, tr,
+    reset, applyTheme, ensureSpawned, TRACKS, assets, CITY_CFG, THEMES, builtSky, bay, rome, ranges, camera, me, scene, renderer, collide, keys, stick, net, center, hgt, tr,
     store, mutedIds, playVoice, useItem, jump, PALETTE, flakes, groundMat, sky, hemi, sun, trailMesh, sprayPts, isCity, remotes, standings, GEO, GROUND_TEX,
     jacketTexture, JERSEYS, myJersey, THREE, world, god() { invuln = 1e9; lives = 99; }, setLives(n) { lives = n; renderLives(); }, lastToast() { const t = window.__toasts; return t.length ? t[t.length - 1] : ''; },
     frames(n) { return new Promise(res => { let k = 0; const f = () => { if (++k >= n) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); }); }
@@ -59,6 +59,7 @@ with sync_playwright() as p:
             theme: D.theme, city: D.isCity(), skate: D.me.body.children[1].visible, snowb: D.me.body.children[0].visible,
             ranges: D.ranges.visible, sky: Object.keys(D.builtSky).filter(k => D.builtSky[k].visible),
             byType, foods, layout: objs.filter(o => ['rock', 'gem', 'ramp', 'gate', 'marker'].includes(o.type) || (o.type === 'tree' && Math.abs(o.x - D.center(o.z)) < 16)).map(o => [o.type, +o.x.toFixed(2), +o.z.toFixed(2)]),
+            rel: objs.filter(o => ['rock', 'gem', 'ramp', 'gate'].includes(o.type) || (o.type === 'tree' && Math.abs(o.x - D.center(o.z)) < 16)).map(o => [o.type, +(o.x - D.center(o.z)).toFixed(2), +o.z.toFixed(2)]),
             geoOk: C ? { tall: sameGeo('tree', A.tall), low: sameGeo('rock', A.low), ramp: sameGeo('ramp', A.ramp), marker: sameGeo('marker', A.marker),
                          gate: gates.every(o => o.mesh.geometry === A.gates[0] || o.mesh.geometry === A.gates[1]),
                          food: gems.every(o => (o.food === C.fa && o.mesh.geometry === A.fa) || (o.food === C.fb && o.mesh.geometry === A.fb)) } : null,
@@ -69,7 +70,7 @@ with sync_playwright() as p:
           };
         }""", [key, SEED])
         if city == 'Neve':
-            layout_snow = info['layout']
+            layout_snow = info['layout']; rel_snow = info['rel']
             check(not info['city'] and info['snowb'] and not info['skate'] and info['ranges'] and not info['sky'] and info['flakes'], 'Neve: snowboard, montagne, nevicata, nessuno sfondo di città')
             check(info['byType'].get('tree', 0) > 20 and info['byType'].get('bldg', 0) in (0, None), 'Neve: bosco ai lati, niente palazzi', json.dumps(info['byType']))
             continue
@@ -85,7 +86,9 @@ with sync_playwright() as p:
             check(info['byType'].get('sidetree', 0) > 3, f'{city}: file di alberi ai lati della strada (R-307)', json.dumps(info['byType']))
         g = info['geoOk']
         check(all(g.values()), f'{city}: ogni oggetto di gioco usa il modello della città (alto, basso, bonus, rampa, porte, paletti)', json.dumps(g))
-        check(info['layout'] == layout_snow, f'{city}: stessa pista della neve con lo stesso seed (S-05)', f'{len(info["layout"])} vs {len(layout_snow)}')
+        check(info['layout'] != layout_snow and info['rel'] == rel_snow, f'{city}: forma della strada propria (R-312), ma stessa sequenza di ostacoli, bonus, rampe e porte della neve rispetto alla strada (R-309)', f'{len(info["rel"])} vs {len(rel_snow)}')
+        again = pg.evaluate("([key, seed]) => { const D = window.__dbg; D.mode = 'solo'; D.reset(seed, null, false); D.mode = 'menu'; return D.objs.filter(o => o.z > -220 && (['rock', 'gem', 'ramp', 'gate', 'marker'].includes(o.type) || (o.type === 'tree' && Math.abs(o.x - D.center(o.z)) < 16))).map(o => [o.type, +o.x.toFixed(2), +o.z.toFixed(2)]); }", [key, SEED])
+        check(again == info['layout'], f'{city}: stessa città e stesso seed → pista identica (tutti i giocatori della gara)')
         check(info['groundTex'], f'{city}: fondo stradale proprio')
         # tabella: nomi dei bonus
         exp_a, exp_b = row['Bonus A (+10)'], row['Bonus B (+10, alternato ad A)']
@@ -106,8 +109,55 @@ with sync_playwright() as p:
     check(not errs, 'nessun errore JavaScript cambiando scenario', '; '.join(errs[:3]))
 
     print('G2 · guida: curve della pista (R-305), salto sopra le rocce ma non sugli alberi (R-201), muro in città (S-02)')
-    r = pg.evaluate("""() => { const D = window.__dbg; const vals = [0, -400, -800, -1200, -1600].map(z => +D.center(z).toFixed(1)); let maxSlope = 0; for (let z = 0; z > -4000; z -= 5) maxSlope = Math.max(maxSlope, Math.abs(D.center(z) - D.center(z - 5)) / 5); return { vals, maxSlope: +maxSlope.toFixed(3) }; }""")
-    check(max(r['vals']) - min(r['vals']) > 20 and r['maxSlope'] < 0.35, 'la pista curva in modo ampio e dolce (ampiezza > 20 m, pendenza laterale < 0,35)', json.dumps(r))
+    # ogni città ha il suo tracciato (R-312): curve dolci, rettilinei dove previsti, tempi simili.
+    # Fattore di tempo = media di (1 + pendenza²)^1,3 sui 12 km della gara da 5 minuti (velocità ∝ cos^1,6 dell'angolo, avanzamento ∝ cos).
+    tracks = pg.evaluate("""() => { const D = window.__dbg; const out = {};
+      for (const key of Object.keys(D.TRACKS)) { D.applyTheme(key);
+        let lo = 1e9, hi = -1e9, maxSlope = 0, tf = 0, n = 0, straight = 0;
+        for (let z = 0; z > -12000; z -= 2) { const c = D.center(z), s = (D.center(z - 1) - D.center(z + 1)) / 2; lo = Math.min(lo, c); hi = Math.max(hi, c); maxSlope = Math.max(maxSlope, Math.abs(s)); tf += Math.pow(1 + s * s, 1.3); if (Math.abs(s) < 0.05) straight++; n++; }
+        out[key] = { span: +(hi - lo).toFixed(1), maxSlope: +maxSlope.toFixed(3), tf: +(tf / n).toFixed(4), straight: +(straight / n).toFixed(2), c400: +D.center(-400).toFixed(1) };
+      } D.applyTheme('neve'); return out; }""")
+    for k, v in tracks.items(): print(f'   {k:12s} {json.dumps(v)}')
+    ref = tracks['neve']['tf']
+    check(all(v['span'] > 20 and v['maxSlope'] < 0.5 for v in tracks.values()), 'ogni pista curva in modo naturale (ampiezza > 20 m, pendenza laterale < 0,5)')
+    check(all(abs(v['tf'] / ref - 1) < 0.005 for v in tracks.values()), 'tempi simili in tutte le città: fattore di tempo entro ±0,5% della neve (R-312)', ', '.join(f"{k} {v['tf']}" for k, v in tracks.items()))
+    check(len({v['c400'] for v in tracks.values()}) == len(tracks), 'tracciati tutti diversi tra loro (posizione della pista a 400 m)')
+    check(max(v['straight'] for v in tracks.values()) - min(v['straight'] for v in tracks.values()) >= 0.06, 'alcune città hanno più rettilinei, altre più curve', ', '.join(f"{k} {v['straight']}" for k, v in tracks.items()))
+
+    print('G2b · trampolini giganti (R-214): circa il 15% delle rampe, grandi il doppio, salto molto più alto')
+    r = pg.evaluate("""() => { const D = window.__dbg; const res = {};
+      for (const key of ['neve', 'napoli', 'newyork']) { D.applyTheme(key); D.mode = 'solo'; D.reset(4242, null, false); D.god();
+        const seen = new Map(), bad = new Set(); let scale = 0;
+        for (let z = 0; z > -30000; z -= 150) { D.P.z = z; D.P.x = D.center(z); D.ensureSpawned();
+          for (const o of D.objs) if (o.type === 'ramp') {
+            seen.set(o.z, o.big);
+            if (o.big) scale = o.mesh.scale.x;
+            if (o.big) for (const q of D.objs) if (q !== o && ['tree', 'rock', 'gem', 'ramp', 'gate'].includes(q.type) && q.z < o.z + 4.5 && q.z > o.z - 5 && Math.abs(q.x - o.x) < 3.4) bad.add(q.type + q.x + ',' + q.z);
+          } }
+        const blocked = bad.size;
+        const all = [...seen.values()];
+        res[key] = { ramps: all.length, big: all.filter(Boolean).length, blocked, scale };
+      }
+      D.mode = 'menu'; return res; }""")
+    for k, v in r.items():
+        share = v['big'] / max(1, v['ramps'])
+        check(0.10 < share < 0.20 and v['scale'] == 2, f'{k}: {v["big"]} trampolini giganti su {v["ramps"]} rampe ({share:.0%}), modello grande il doppio', json.dumps(v))
+        check(v['blocked'] == 0, f'{k}: niente ostacoli, bonus o porte sopra i trampolini giganti', json.dumps(v))
+    jumps = {}
+    for big in (False, True):
+        jumps[big] = pg.evaluate("""async big => { const D = window.__dbg; D.applyTheme('neve'); D.mode = 'solo'; D.reset(4242, null, false); D.god();
+          document.getElementById('menu').hidden = true;
+          let o = null; for (let z = 0; z > -30000 && !o; z -= 150) { D.P.z = z; D.P.x = D.center(z); D.ensureSpawned(); o = D.objs.find(q => q.type === 'ramp' && !!q.big === big && q.z < z - 30); }
+          D.P.z = o.z + (big ? 3.8 : 1.9); D.P.x = o.x; D.P.ang = 0; D.P.speed = 28; D.P.air = false; D.P.y = 0; D.P.onRamp = null; D.P.crash = 0;
+          let maxY = 0, air = 0, launched = false, vy = 0; const start = performance.now();
+          while (performance.now() - start < 120000) { await D.frames(1);
+            if (D.P.air && !launched) { launched = true; vy = D.P.vy; }
+            if (launched) { maxY = Math.max(maxY, D.P.y); if (D.P.air) air = Math.max(air, D.P.airT); else break; } }
+          D.mode = 'menu'; document.getElementById('menu').hidden = false;
+          return { vy: +vy.toFixed(1), maxY: +maxY.toFixed(2), airT: +air.toFixed(2), crash: D.P.crash > 0, toast: window.__toasts.slice(-3).join('|') }; }""", big)
+    print('   rampa normale', json.dumps(jumps[False])); print('   trampolino gigante', json.dumps(jumps[True]))
+    check(jumps[True]['maxY'] >= 2 * jumps[False]['maxY'] and jumps[True]['airT'] > 1.3 * jumps[False]['airT'], 'dal trampolino gigante si salta almeno il doppio più in alto e si resta più a lungo in aria', f"{jumps[True]['maxY']} m / {jumps[False]['maxY']} m, {jumps[True]['airT']} s / {jumps[False]['airT']} s")
+    check(not jumps[True]['crash'] and 'gigante' in jumps[True]['toast'], 'atterraggio pulito e messaggio "Trampolino gigante!"', jumps[True]['toast'])
     r = pg.evaluate("""() => {
       const D = window.__dbg; D.applyTheme('neve'); D.mode = 'solo'; D.reset(777, null, false);
       const at = (type, y) => { D.setLives(3); const o = D.objs.find(o => o.type === type && o.z < -40); D.P.x = o.x; D.P.z = o.z; D.P.y = y; D.P.crash = 0; D.invuln = 0; D.collide(); const c = D.P.crash > 0; D.P.crash = 0; D.invuln = 0; return c; };
@@ -141,15 +191,23 @@ with sync_playwright() as p:
       return D.frames(45).then(() => { const a = { tuck: +D.tuckS.toFixed(2), v: +D.P.speed.toFixed(1), air: D.P.air }; D.keys.down = false; D.keys.up = true; return D.frames(45).then(() => { D.keys.up = false; return { ...a, brake: +D.brakeS.toFixed(2), v2: +D.P.speed.toFixed(1) }; }); }); }""")
     check(r['tuck'] > 0.95 and r['brake'] > 0.95 and r['v'] > r['v2'] + 5, 'freccia giù: posa raccolta e più veloce; freccia su: peso avanti e frenata', json.dumps(r))
 
-    print('G5 · maglie e ali (R-204, R-209)')
+    print('G5 · maglie e stemma CYF (R-209, R-216)')
     r = pg.evaluate("""() => { const D = window.__dbg; const opts = [...document.querySelectorAll('#selJersey option')].map(o => [o.value, o.textContent]);
       const sel = document.getElementById('selJersey'); sel.value = 'roma'; sel.dispatchEvent(new Event('change'));
       const tex = D.jacketTexture('#ff5a1f', 'roma'); const c = tex.image; const g = c.getContext('2d');
-      const px = (u, v) => { const d = g.getImageData(Math.round(u * 1023), Math.round((1 - v) * 511), 1, 1).data; return [d[0], d[1], d[2]]; };
-      return { opts: opts.length, saved: D.store.get('cyf.jersey'), wingSide: px(0.02, 0.52), wingBack: px(0.75, 0.55), body: px(0.4, 0.2), keys: Object.keys(D.JERSEYS).length }; }""")
+      // in ogni zona dello stemma ci devono essere bianco (scudo), blu notte (bordo e scritta) e arancione (fascia)
+      const zone = (u, v, w, h) => { const d = g.getImageData(Math.round(u * 1024 - w / 2), Math.round((1 - v) * 512 - h / 2), w, h).data; let wh = 0, navy = 0, orange = 0;
+        for (let i = 0; i < d.length; i += 4) { const [r, gg, b] = [d[i], d[i + 1], d[i + 2]]; if (r > 225 && gg > 225 && b > 225) wh++; else if (r < 40 && gg < 60 && b < 80) navy++; else if (r > 230 && gg > 70 && gg < 110 && b < 50) orange++; }
+        return { wh, navy, orange }; };
+      // ali bianche: prima occupavano tutta la larghezza del fianco; ora fuori dallo stemma c'è solo la maglia
+      return { opts: opts.length, saved: D.store.get('cyf.jersey'), side: zone(0.02, 0.55, 36, 80), side2: zone(0.5, 0.55, 100, 80), back: zone(0.75, 0.57, 130, 110), chest: zone(0.283, 0.62, 60, 48),
+               oldWing: zone(0.17, 0.5, 30, 30), keys: Object.keys(D.JERSEYS).length }; }""")
     check(r['opts'] == 9 and r['keys'] == 8 and r['saved'] == 'roma', '8 maglie delle città nel menu + colore assegnato; la scelta resta salvata', json.dumps(r))
-    w = lambda c: all(v > 200 for v in c)
-    check(w(r['wingSide']) and w(r['wingBack']) and not w(r['body']), 'ali bianche stampate sul fianco e sulla schiena della giacca', json.dumps(r))
+    full = lambda z: z['wh'] > 30 and z['navy'] > 30 and z['orange'] > 30
+    check(full(r['side2']) and full(r['back']) and full(r['chest']) and r['side']['wh'] > 30, 'stemma CYF (scudo bianco, bordo e scritta blu, fascia arancione) sui due fianchi, sulla schiena e sul petto', json.dumps(r))
+    check(r['oldWing']['wh'] == 0, 'niente più ali bianche sul fianco', json.dumps(r['oldWing']))
+    pg.evaluate("() => { const D = window.__dbg; const c = D.jacketTexture('#ff5a1f', 'roma').image; window.__badge = c.toDataURL(); }")
+    open(f'{OUT}/giacca-texture.png', 'wb').write(base64.b64decode(pg.evaluate('window.__badge').split(',')[1]))
     pg.evaluate("() => { const sel = document.getElementById('selJersey'); sel.value = ''; sel.dispatchEvent(new Event('change')); }")
 
     print('G6 · gara: traguardo, avviso a 500 m, arrivo controllato dal server, banana lanciata con doppio clic, silenzio (R-108, R-113, R-116)')
@@ -176,10 +234,12 @@ with sync_playwright() as p:
     check('500' in r['toast'], 'avviso "Traguardo tra 500 m"', json.dumps(r))
     r = pg.evaluate("""() => { const D = window.__dbg; window.__toasts.length = 0; D.P.z = -D.raceLen - 1; return D.frames(4).then(() => new Promise(res => setTimeout(() => res({ mode: D.mode, toasts: window.__toasts.join('|'), banner: document.getElementById('banner').textContent }), 1500))); }""")
     check(r['mode'] == 'finished' and 'non valido' in r['toasts'].lower() and 'Traguardo' in r['toasts'], 'al traguardo il client si ferma e il server scarta il tempo impossibile (pochi secondi per 12 km)', json.dumps(r))
-    r = pg.evaluate("""() => { const D = window.__dbg; D.playVoice({ id: 'pGuest2', name: 'Ospite', data: 'QUJD', mime: 'audio/webm' }); const shown = !document.getElementById('voiceNow').hidden; document.getElementById('btnMute').click();
-      D.playVoice({ id: 'pGuest2', name: 'Ospite', data: 'QUJD', mime: 'audio/webm' }); return { shown, hidden: document.getElementById('voiceNow').hidden, saved: D.store.get('cyf.muted'), muted: D.mutedIds.has('pGuest2') }; }""")
-    # dalla 0.9.2 il fumetto compare solo dopo la decodifica (asincrona) del WAV: con dati finti non compare mai, quindi 'shown' non si controlla più qui (lo fa test_vocale.py)
-    check(r['hidden'] and r['muted'] and 'pGuest2' in (r['saved'] or ''), 'silenziare un giocatore: il suo vocale non si sente più e la scelta resta salvata', json.dumps(r))
+    WAV = 'UklGRkQcAABXQVZFZm10IBAAAAABAAEA4C4AAMBdAAACABAAZGF0YSAcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='   # 0,3 s di silenzio in WAV 12 kHz: dalla 0.9.2 il fumetto compare dopo la decodifica
+    r = pg.evaluate("""wav => { const D = window.__dbg; D.playVoice({ id: 'pGuest2', name: 'Ospite', data: wav, mime: 'audio/wav' });
+      return new Promise(res => setTimeout(res, 150)).then(() => { const shown = !document.getElementById('voiceNow').hidden; document.getElementById('btnMute').click();
+      D.playVoice({ id: 'pGuest2', name: 'Ospite', data: wav, mime: 'audio/wav' });
+      return new Promise(res => setTimeout(res, 300)).then(() => ({ shown, hidden: document.getElementById('voiceNow').hidden, saved: D.store.get('cyf.muted'), muted: D.mutedIds.has('pGuest2') })); }); }""", WAV)
+    check(r['shown'] and r['hidden'] and r['muted'] and 'pGuest2' in (r['saved'] or ''), 'silenziare un giocatore: il suo vocale non si sente più e la scelta resta salvata', json.dumps(r))
     g.close()
     check(not errs, 'nessun errore JavaScript nelle prove di gioco', '; '.join(errs[:3]))
     br.close()

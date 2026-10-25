@@ -14,6 +14,7 @@ const DURATIONS = [5, 10, 15];               // minuti
 const lengthFor = min => min * 60 * AVG_SPEED_MS;
 const MAX_SPEED_MS = 52;                     // velocità massima possibile nel gioco (m/s), con margine
 const COUNTDOWN_MS = 5000;
+const GATHER_MAX_MS = 40000;                 // dopo "Parti" si aspetta che tutti abbiano caricato la gara, al massimo 40 s (R-119)
 const CODE_RE = /^[A-Z0-9]{4,8}$/;
 const PUBLIC_RE = /^ONLINE\d{1,2}$/;
 const PUBLIC_ROOMS = 20;
@@ -22,6 +23,9 @@ const VOICE_COOLDOWN_MS = 3 * 60 * 1000;     // un messaggio vocale ogni 3 minut
 const VOICE_MAX_CHARS = 300000;              // 8 s di WAV a 12 kHz e 16 bit sono 192 KB, cioè 256.000 caratteri in base64
 const VOICE_MIME = ['audio/wav', 'audio/x-wav', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg', 'audio/mp4', 'audio/aac'];
 const DROP_KINDS = ['banana', 'bomb'];
+// scenari: ogni città ha la sua pista, quindi in una gara tutti corrono nella stessa città (R-118, R-312)
+const SCENE = ['neve', 'napoli', 'roma', 'milano', 'parigi', 'londra', 'francoforte', 'madrid', 'lisbona', 'zagabria', 'berlino', 'zurigo', 'newyork'];
+const cleanScena = s => (SCENE.includes(s) ? s : 'neve');
 const PLACE_POINTS = [100, 70, 50];          // punti per 1°, 2°, 3°; chi arriva dopo ne prende 30
 
 const json = (data, init = {}) =>
@@ -161,9 +165,17 @@ export class RaceRoom extends DurableObject {
     const st = this.state;
     return {
       t: 'lobby', phase: st.phase, hostId: st.pub ? null : st.hostId, round: st.round, pub: st.pub,
-      minutes: st.minutes, length: lengthFor(st.minutes), autoAt: st.autoAt, now: Date.now(),
+      minutes: st.minutes, length: lengthFor(st.minutes), autoAt: st.autoAt, now: Date.now(), scena: this.roomScena(except),
       players: this.players(except).map(p => ({ id: p.id, name: p.name, ready: p.ready, color: p.color, j: p.j || '' }))
     };
+  }
+  // città della prossima gara: nelle sfide la sceglie chi organizza (resta anche se poi esce);
+  // nelle sale pubbliche è quella di chi aspetta da più tempo
+  roomScena(except) {
+    const st = this.state;
+    const host = this.players(except).find(p => p.id === st.hostId);
+    if (st.pub || !st.scena) return cleanScena(host && host.sc);
+    return cleanScena(st.scena);
   }
   fixHost(except) {
     const ids = this.players(except).map(p => p.id);
@@ -183,7 +195,7 @@ export class RaceRoom extends DurableObject {
   }
   async schedule() {
     const st = this.state;
-    const times = [st.autoAt, (st.phase === 'countdown' || st.phase === 'racing') ? st.timeoutAt : 0].filter(Boolean);
+    const times = [st.autoAt, (st.phase === 'countdown' || st.phase === 'racing') ? st.timeoutAt : 0, st.phase === 'countdown' && !st.startAt ? st.gatherUntil : 0].filter(Boolean);
     if (times.length) await this.ctx.storage.setAlarm(Math.min(...times));
     else await this.ctx.storage.deleteAlarm();
   }
@@ -196,10 +208,14 @@ export class RaceRoom extends DurableObject {
     st.phase = 'countdown';
     st.round += 1;
     st.seed = (Math.random() * 2 ** 31) | 0;
-    st.startAt = now + COUNTDOWN_MS;
+    // attesa: il conto alla rovescia di 5 s parte solo quando tutti hanno caricato la gara (o dopo 40 s)
+    st.startAt = 0;
+    st.gatherUntil = now + GATHER_MAX_MS;
+    st.loaded = [];
     st.autoAt = 0;
-    st.timeoutAt = st.startAt + st.minutes * 2 * 60 * 1000;   // chi non arriva entro il doppio del tempo previsto è "non arrivato"
+    st.timeoutAt = 0;
     st.racers = list.map(p => ({ id: p.id, name: p.name, color: p.color, j: p.j || '' }));
+    st.raceScena = this.roomScena();
     st.results = [];
     st.drops = 0;
     this.stats = new Map();
@@ -208,8 +224,26 @@ export class RaceRoom extends DurableObject {
     await this.schedule();
     board(this.env).bump('races_started').catch(() => {});
     board(this.env).bump('racers', list.length).catch(() => {});
-    this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: st.startAt, racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round });
+    this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: 0, gatherUntil: st.gatherUntil, loaded: [], racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round, scena: st.raceScena });
     this.broadcast(this.lobbyMsg());
+  }
+
+  // tutti i corridori ancora collegati hanno caricato la gara? allora parte il conto alla rovescia
+  async maybeGo(except) {
+    const st = this.state;
+    if (st.phase !== 'countdown' || st.startAt) return;
+    const online = new Set(this.players(except).map(p => p.id));
+    const missing = st.racers.filter(r => online.has(r.id) && !st.loaded.includes(r.id));
+    if (missing.length === 0) await this.go(except);
+  }
+  async go(except) {
+    const st = this.state, now = Date.now();
+    st.startAt = now + COUNTDOWN_MS;
+    st.gatherUntil = 0;
+    st.timeoutAt = st.startAt + st.minutes * 2 * 60 * 1000;   // chi non arriva entro il doppio del tempo previsto è "non arrivato"
+    await this.save();
+    await this.schedule();
+    this.broadcast({ t: 'go', now, startAt: st.startAt, loaded: st.loaded }, except);
   }
 
   readStats(id, m) {
@@ -243,19 +277,28 @@ export class RaceRoom extends DurableObject {
       const used = new Set(others.map(p => p.color));
       let color = 0; while (used.has(color)) color++;
       const j = typeof m.j === 'string' && /^[a-z-]{1,24}$/.test(m.j) ? m.j : '';
-      Object.assign(me, { id, name: cleanName(m.name), ready: false, color, j });
+      Object.assign(me, { id, name: cleanName(m.name), ready: false, color, j, sc: cleanScena(m.sc) });
       ws.serializeAttachment(me);
       this.fixHost();
       if (!st.hostId) st.hostId = id;
+      if (!others.length) st.scena = me.sc;   // stanza vuota: chi entra organizza e porta la sua città
+      // gara già avviata: chi entra ora corre lo stesso (R-119). Durante l'attesa lo si aspetta come gli altri;
+      // dopo il via parte dalla linea di partenza con il tempo che corre già, quindi svantaggiato
+      let joined = false;
+      if ((st.phase === 'countdown' || st.phase === 'racing') && !st.racers.some(r => r.id === id) && st.racers.length < MAX_PLAYERS) {
+        st.racers.push({ id, name: me.name, color, j });
+        joined = true;
+      }
       this.updateAuto();
       await this.save();
       await this.schedule();
       board(this.env).touch(id).catch(() => {});
       this.send(ws, {
         t: 'welcome', you: id, code: st.code, now, max: MAX_PLAYERS, length: lengthFor(st.minutes), minutes: st.minutes, pub: st.pub,
-        phase: st.phase, seed: st.seed, startAt: st.startAt, racers: st.racers, results: st.results, awards: st.awards || null,
+        phase: st.phase, seed: st.seed, startAt: st.startAt, gatherUntil: st.gatherUntil || 0, loaded: st.loaded || [], racers: st.racers, scena: cleanScena(st.raceScena), results: st.results, awards: st.awards || null,
         voiceNext: ((st.voiceAt || {})[id] || 0) + VOICE_COOLDOWN_MS
       });
+      if (joined) this.broadcast({ t: 'racers', racers: st.racers }, ws);
       this.broadcast(this.lobbyMsg());
       return;
     }
@@ -279,6 +322,33 @@ export class RaceRoom extends DurableObject {
       return;
     }
 
+    if (m.t === 'loaded') {
+      if (st.phase !== 'countdown' || st.startAt || !st.racers.some(r => r.id === me.id) || st.loaded.includes(me.id)) return;
+      st.loaded.push(me.id);
+      await this.save();
+      this.broadcast({ t: 'gather', loaded: st.loaded, gatherUntil: st.gatherUntil, now });
+      await this.maybeGo();
+      return;
+    }
+
+    // maglia: l'unica cosa che sceglie chi non organizza (R-118); si cambia nella stanza prima della gara
+    if (m.t === 'jersey') {
+      if (st.phase === 'countdown' || st.phase === 'racing') return;
+      me.j = typeof m.j === 'string' && /^[a-z-]{0,24}$/.test(m.j) ? m.j : '';
+      ws.serializeAttachment(me);
+      this.broadcast(this.lobbyMsg());
+      return;
+    }
+
+    if (m.t === 'scena') {
+      me.sc = cleanScena(m.scena);
+      ws.serializeAttachment(me);
+      if (!st.pub && me.id === st.hostId && (st.phase === 'lobby' || st.phase === 'results')) st.scena = me.sc;
+      await this.save();
+      this.broadcast(this.lobbyMsg());
+      return;
+    }
+
     if (m.t === 'start') {
       if (st.pub || me.id !== st.hostId || (st.phase !== 'lobby' && st.phase !== 'results')) return;
       await this.startRace();
@@ -287,7 +357,7 @@ export class RaceRoom extends DurableObject {
 
     if (m.t === 'pos') {
       if (st.phase !== 'countdown' && st.phase !== 'racing') return;
-      if (st.phase === 'countdown' && now >= st.startAt) st.phase = 'racing';
+      if (st.phase === 'countdown' && st.startAt && now >= st.startAt) st.phase = 'racing';
       this.readStats(me.id, m);
       this.broadcast({
         t: 'pos', id: me.id,
@@ -353,6 +423,7 @@ export class RaceRoom extends DurableObject {
     if (m.t === 'finish') {
       if (st.phase !== 'countdown' && st.phase !== 'racing') return;
       if (!st.racers.some(r => r.id === me.id) || st.results.some(r => r.id === me.id)) return;
+      if (!st.startAt || now < st.startAt) return;   // nessuno può arrivare prima del via
       const ms = now - st.startAt;            // tempo misurato dal server
       const valid = ms >= Math.floor(lengthFor(st.minutes) / MAX_SPEED_MS * 1000);
       const s = this.readStats(me.id, m);
@@ -414,6 +485,7 @@ export class RaceRoom extends DurableObject {
   async alarm() {
     await this.load();
     const st = this.state, now = Date.now();
+    if (st.phase === 'countdown' && !st.startAt && st.gatherUntil && now >= st.gatherUntil - 50) { await this.go(); return; }   // 40 s scaduti: si parte con chi c'è
     if ((st.phase === 'countdown' || st.phase === 'racing') && st.timeoutAt && now >= st.timeoutAt - 50) { await this.endRace(); return; }
     if ((st.phase === 'lobby' || st.phase === 'results') && st.autoAt && now >= st.autoAt - 50) {
       if (this.players().length >= 2) { await this.startRace(); return; }
@@ -440,6 +512,7 @@ export class RaceRoom extends DurableObject {
     this.broadcast({ t: 'left', id: me.id }, ws);
     this.broadcast(this.lobbyMsg(ws), ws);
     await this.maybeEnd(ws);
+    if (this.state.phase === 'countdown') await this.maybeGo(ws);   // chi esce durante l'attesa non blocca gli altri
   }
   async webSocketError(ws) { await this.webSocketClose(ws, 1011); }
 }

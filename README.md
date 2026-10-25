@@ -7,14 +7,16 @@ Giochi nel browser per sfidare gli amici in tempo reale. Primo gioco: **Pista Ne
 | Parte | Dove | Cosa fa |
 | --- | --- | --- |
 | Sito e gioco | `public/` | Pagina iniziale (`/`) e gioco (`/pista-nera/`), file statici |
-| Server delle gare | `src/worker.js` → `RaceRoom` | Una "stanza" per ogni codice sfida: lobby, conto alla rovescia, stessa pista per tutti (seed), posizioni in tempo reale, tempi misurati dal server |
+| Server delle gare | `src/worker.js` → `RaceRoom` | Una "stanza" per ogni codice sfida: lobby, attesa dei concorrenti e conto alla rovescia, stessa città e stessa pista per tutti (seed), posizioni in tempo reale, tempi misurati dal server |
 | Classifica | `src/worker.js` → `Leaderboard` | Database SQLite con i migliori tempi per ogni durata di gara e i punti collezionati dai giocatori |
 
 Tutto gira su Cloudflare Workers con Durable Objects. Configurazione in `wrangler.jsonc`.
 
 ### Regole della sfida
-- Da 1 a 8 giocatori per stanza; chi crea la stanza è l'organizzatore e preme **Parti**.
-- Tutti ricevono lo stesso tracciato. Il tempo parte allo stesso istante per tutti ed è misurato dal server.
+- Da 1 a 8 giocatori per stanza; chi crea la stanza è l'organizzatore: sceglie durata e città e preme **Parti**. Gli altri scelgono solo la maglia.
+- Ogni città ha il suo tracciato (stessa pendenza media, quindi tempi simili); in gara tutti corrono nella città dell'organizzatore, sulla stessa pista.
+- Dopo **Parti** si aspetta che tutti abbiano caricato la gara (al massimo 40 s), poi conto alla rovescia di 5 s. Chi arriva dopo entra lo stesso, dalla partenza e con il tempo che corre già.
+- Il tempo parte allo stesso istante per tutti ed è misurato dal server.
 - Le cadute non eliminano: fanno perdere tempo.
 - Un arrivo più veloce del limite fisico del gioco (velocità massima 52 m/s: per una gara da 5 minuti vuol dire sotto i 3:51 circa) viene scartato.
 - Chi non arriva entro il doppio della durata scelta (es. 10 minuti per una gara da 5) risulta "non arrivato".

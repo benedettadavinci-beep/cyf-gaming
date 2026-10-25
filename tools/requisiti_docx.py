@@ -29,7 +29,7 @@ for st in doc.styles:
     if st.name.lower().startswith('heading 1'):
         st.font.size = Pt(15)
 
-STATE = {'Controllato': '9ED9B3', 'Fatto': 'D7F0DF', 'In corso': 'FFF1C7', 'Da fare': 'FDE2D6', 'Da confermare': 'E6EDF5', '✓': 'D7F0DF', '✓ dopo correzione': 'FFF1C7'}
+STATE = {'Controllato': '9ED9B3', 'Confermata 25/10': '9ED9B3', 'Superata 25/10': 'ECECEC', 'Sostituito': 'ECECEC', 'Fatto': 'D7F0DF', 'In corso': 'FFF1C7', 'Da fare': 'FDE2D6', 'Da confermare': 'E6EDF5', '✓': 'D7F0DF', '✓ dopo correzione': 'FFF1C7'}
 
 def shade(cell, hex_color):
     tcPr = cell._tc.get_or_add_tcPr()

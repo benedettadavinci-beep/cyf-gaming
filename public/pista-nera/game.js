@@ -126,9 +126,34 @@
   scene.add(sun, sun.target);
 
   // ---------- terrain ----------
-  // asse della pista: tre onde sovrapposte danno curve ampie e naturali, mai brusche
-  // R-311 (0.10.0): tre onde più corte e più ampie di prima (22/250, 10/108, 4/46): pendenza laterale massima ≈ 0,33
-  const center = z => 27 * Math.sin(z / 230) + 12 * Math.sin(z / 105) + 4.5 * Math.sin(z / 46);
+  // asse della pista: ogni scenario ha la sua forma (R-312). Onde sovrapposte [ampiezza, lunghezza, fase];
+  // nelle città con i rettilinei una "busta" lenta (lo, W, q, k) spiana le curve per lunghi tratti.
+  // Tutti i tracciati hanno la stessa pendenza media della Neve (dalla 0.10.0 con le curve più spinte di R-311,
+  // fattore di tempo 1,0237; controllo: tools/verifica/piste.py): più curve corte o rettilinei alternati a curve
+  // più decise, ma tempi simili. Ostacoli, bonus, rampe e porte restano nella stessa sequenza in ogni città (R-309).
+  const TRACKS = {
+    neve:        { w: [[27, 230, 0], [12, 105, 0], [4.5, 46, 0]], lo: 1 },                                         // R-311: curve più frequenti e più spinte
+    napoli:      { w: [[16.89, 190, 1.1], [9.5, 85, 0.4], [4.75, 38, 2.0]], lo: 1 },  // tornanti continui come la costiera
+    roma:        { w: [[34.17, 240, 0.7], [17.08, 100, 1.9], [6.21, 44, 0.3]], lo: 0.4, W: 420, q: 0.5, k: 1.0 },
+    milano:      { w: [[34.38, 210, 2.1], [17.19, 90, 0.9], [5.15, 40, 1.4]], lo: 0.35, W: 520, q: 1.3, k: 1.2 },
+    parigi:      { w: [[45.91, 300, 0.2], [22.97, 130, 2.4], [5.74, 50, 1.0]], lo: 0.35, W: 480, q: 2.2, k: 1.1 },  // viali lunghi e curvoni
+    londra:      { w: [[12.31, 150, 0.9], [8.21, 70, 2.6], [4.1, 33, 0.5]], lo: 1 },
+    francoforte: { w: [[30.21, 220, 1.7], [15.11, 95, 0.2], [6.04, 42, 2.9]], lo: 0.45, W: 380, q: 0.9, k: 1.0 },
+    madrid:      { w: [[45.94, 280, 2.7], [19.14, 115, 1.2], [5.74, 48, 0.6]], lo: 0.35, W: 560, q: 2.9, k: 1.1 },
+    lisbona:     { w: [[9.96, 130, 0.3], [6.97, 62, 1.6], [3.99, 30, 2.2]], lo: 1 },  // la più tortuosa, come il tram 28
+    zagabria:    { w: [[18.64, 170, 2.4], [11.99, 78, 0.8], [5.33, 36, 1.7]], lo: 0.55, W: 350, q: 1.8, k: 1 },
+    berlino:     { w: [[43.14, 260, 1.4], [19.61, 110, 2.2], [5.89, 46, 0.1]], lo: 0.35, W: 600, q: 0.2, k: 1.2 },  // grandi viali dritti
+    zurigo:      { w: [[37.01, 320, 0.5], [20.35, 140, 1.3], [7.4, 52, 2.5]], lo: 0.55, W: 450, q: 2.6, k: 1 },
+    newyork:     { w: [[29.36, 200, 0.8], [16.32, 80, 2.9], [4.89, 36, 1.2]], lo: 0.3, W: 640, q: 1.0, k: 1.3 },  // a griglia: i rettilinei più lunghi
+  };
+  let TRK = TRACKS.neve;
+  const center = z => {
+    const T = TRK;
+    let s = 0;
+    for (const w of T.w) s += w[0] * Math.sin(z / w[1] + w[2]);
+    if (T.lo < 1) s *= T.lo + (1 - T.lo) * Math.pow(0.5 + 0.5 * Math.sin(z / T.W + T.q), T.k);
+    return s;
+  };
   function hgt(x, z) {
     const off = Math.abs(x - center(z));
     const rough = 0.32 + clamp((off - 17) / 12, 0, 1) * 1.4;
@@ -965,8 +990,8 @@
   ]);
   // facciate: una texture per colore, finestre con persiane verdi e balconcini
   // ---------- altre città (dalla tabella di Luigi: CYF-elementi-per-citta.xlsx) ----------
-  // Ogni città cambia solo l'aspetto: gli ingombri di ostacoli, bonus, rampe e porte
-  // restano quelli della neve, così la pista e i tempi sono uguali ovunque.
+  // Ogni città cambia l'aspetto ma non gli ingombri di ostacoli, bonus, rampe e porte (uguali alla neve);
+  // la forma della strada invece è propria di ogni città (R-312, vedi TRACKS), con gli oggetti nella stessa sequenza (R-309).
 
   // --- fondi stradali ---
   const paveTexture = cfg => groundCanvas(g => {
@@ -1957,6 +1982,8 @@
   const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
   const PIVOT = new THREE.Vector3();
   // ruota il corpo attorno al baricentro (circa 0,6 m sopra la tavola), non attorno ai piedi
+  // quanto il rider è girato al contrario (0 = normale, 1 = dopo un 180°), in modo continuo durante l'avvitamento
+  const switchOf = spin => (1 - Math.cos(spin)) / 2;
   function bodyTurn(b, rx, ry, rz) {
     b.rotation.set(rx, ry, rz);
     PIVOT.set(0, 0.6, 0).applyEuler(b.rotation);
@@ -2037,28 +2064,30 @@
     bologna: { body: ['#8e2434', '#1b2a6b'], sleeves: '#1b2a6b' }
   };
   const myJersey = () => { const v = store.get('cyf.jersey') || ''; return JERSEYS[v] ? v : ''; };
-  // la giacca è una texture per colore o maglia, con le ali stampate sul fianco visto dalla telecamera e sulla schiena
+  // la giacca è una texture per colore o maglia, con lo stemma CYF sui fianchi, sul petto e sulla schiena (R-216, al posto delle ali)
   const jacketTex = new Map();
-  // il disegno (512 x 256) viene stirato in w x h pixel della texture: la superficie del busto è ovale
-  function drawWings(g, cx, cy, w, h) {
-    g.save(); g.translate(cx, cy); g.scale(w / 512, h / 256); g.translate(-256, -128);
+  // stemma CYF: scudo bianco bordato di blu notte, fascia arancione con la cima innevata e la scritta CYF.
+  // Disegnato in 256 x 256 e stirato in w x h pixel della texture, perché la superficie del busto è ovale.
+  function drawBadge(g, cx, cy, w, h) {
+    g.save(); g.translate(cx, cy); g.scale(w / 256, h / 256); g.translate(-128, -128);
+    const shield = () => {
+      g.beginPath(); g.moveTo(128, 10);
+      g.quadraticCurveTo(188, 34, 236, 30); g.quadraticCurveTo(244, 150, 128, 246);
+      g.quadraticCurveTo(12, 150, 20, 30); g.quadraticCurveTo(68, 34, 128, 10); g.closePath();
+    };
     g.lineJoin = 'round';
-    for (const s of [-1, 1]) {
-      g.save(); g.translate(256, 96); g.scale(s, 1);
-      for (let i = 4; i >= 0; i--) {
-        const len = 205 - i * 30, y = i * 24, tilt = 0.10 + i * 0.07;
-        g.save(); g.translate(18, y); g.rotate(tilt);
-        g.beginPath(); g.moveTo(0, -14);
-        g.quadraticCurveTo(len * 0.55, -34, len, -8);
-        g.quadraticCurveTo(len * 0.6, 26, 0, 16);
-        g.closePath();
-        g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#13233a'; g.stroke();
-        g.restore();
-      }
-      g.restore();
-    }
-    g.beginPath(); g.arc(256, 120, 26, 0, TAU);
-    g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = 7; g.strokeStyle = '#13233a'; g.stroke();
+    shield(); g.fillStyle = '#ffffff'; g.fill();
+    g.save(); shield(); g.clip();
+    g.fillStyle = '#ff5a1f'; g.fillRect(0, 150, 256, 110);              // fascia arancione in basso
+    g.beginPath(); g.moveTo(60, 150); g.lineTo(128, 96); g.lineTo(196, 150); g.closePath();   // la cima della montagna
+    g.fillStyle = '#13233a'; g.fill();
+    g.beginPath(); g.moveTo(108, 112); g.lineTo(128, 96); g.lineTo(148, 112); g.lineTo(136, 108); g.lineTo(128, 116); g.lineTo(120, 108); g.closePath();
+    g.fillStyle = '#ffffff'; g.fill();
+    g.restore();
+    shield(); g.lineWidth = 14; g.strokeStyle = '#13233a'; g.stroke();
+    g.fillStyle = '#13233a'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '900 78px "Arial Black", Arial, Helvetica, sans-serif';
+    g.fillText('CYF', 128, 62);
     g.restore();
   }
   function jacketTexture(hex, jersey = '') {
@@ -2074,9 +2103,12 @@
     g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 300, 1024, 6);
     g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(0, 306, 1024, 4);
     g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(250, 0, 5, 512); g.fillRect(762, 0, 5, 512);
-    // u = 0 è il fianco +z (telecamera), u = 0,75 la schiena (-x); v cresce verso il collo
-    for (const u of [0, 1]) drawWings(g, u * 1024, 512 - 0.52 * 512, 355, 76);
-    drawWings(g, 0.75 * 1024, 512 - 0.55 * 512, 280, 100);
+    // u = 0 è il fianco +z (quello che vede la telecamera), 0,25 il petto (+x), 0,5 l'altro fianco (si vede in "switch"),
+    // 0,75 la schiena (-x); v cresce verso il collo
+    for (const u of [0, 1]) drawBadge(g, u * 1024, 512 - 0.55 * 512, 120, 96);
+    drawBadge(g, 0.5 * 1024, 512 - 0.55 * 512, 120, 96);
+    drawBadge(g, 0.25 * 1024 + 34, 512 - 0.62 * 512, 70, 56);           // piccolo sul petto, accanto alla cerniera
+    drawBadge(g, 0.75 * 1024, 512 - 0.57 * 512, 150, 124);
     const tex = new THREE.CanvasTexture(c);
     tex.encoding = THREE.sRGBEncoding;
     tex.anisotropy = 4;
@@ -2162,27 +2194,29 @@
       m.scale.set(1, len, 1);
       m.quaternion.setFromUnitVectors(UP, tmpV.normalize());
     }
-    // k: quanto è accovacciato; arms: braccia aperte; twist: torsione; grab: presa della tavola; fwd: peso in avanti (frenata)
-    function pose(k, arms, twist, grab = 0, fwd = 0) {
+    // k: quanto è accovacciato; arms: braccia aperte; twist: torsione; grab: presa della tavola; fwd: peso in avanti (frenata);
+    // sw: 0 = posizione normale, 1 = "switch" (dopo un 180° la tavola va al contrario): tutto il corpo si specchia,
+    // così testa, spalle e braccio davanti restano verso dove si va (R-215). Nel mezzo dell'avvitamento si passa con continuità.
+    const JR = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => JR[k] = new THREE.Vector3());
+    function pose(k, arms, twist, grab = 0, fwd = 0, sw = 0) {
       const fz = -fwd * 0.09;   // il davanti della tavola è verso -z
       J.ankL.set(0.02, 0.17, 0.26); J.ankR.set(0.02, 0.17, -0.26);
       const kneeX = 0.1 + k * 0.17, kneeY = 0.55 - k * 0.13;
       J.kneeL.set(kneeX, kneeY, 0.24 + fz * 0.5); J.kneeR.set(kneeX, kneeY, -0.24 + fz * 0.5);
       const hipX = -0.04 - k * 0.12, hipY = 0.93 - k * 0.25 + fwd * 0.03;
       J.hipL.set(hipX, hipY, 0.11 + fz); J.hipR.set(hipX, hipY, -0.11 + fz);
-      setLimb(L.shinL, J.ankL, J.kneeL); setLimb(L.shinR, J.ankR, J.kneeR);
-      setLimb(L.thighL, J.kneeL, J.hipL); setLimb(L.thighR, J.kneeR, J.hipR);
       const lean = 0.25 + k * 0.35;
       const tilt = -fwd * 0.22;                 // busto inclinato verso il davanti della tavola
       const open = 0.2;                         // spalle un po' aperte verso il davanti della tavola, come i rider veri
-      pelvis.position.set(hipX + 0.005, hipY - 0.03, fz);
-      pelvis.rotation.set(tilt * 0.5, open * 0.5, -lean * 0.5);
-      torso.position.set(hipX, hipY - 0.02, fz);
-      torso.rotation.set(twist * 0.4 + tilt, open, -lean);
+      const m = 1 - 2 * sw;                     // specchio davanti-dietro: le rotazioni attorno a x e y cambiano segno
+      pelvis.position.set(hipX + 0.005, hipY - 0.03, fz * m);
+      pelvis.rotation.set(tilt * 0.5 * m, open * 0.5 * m, -lean * 0.5);
+      torso.position.set(hipX, hipY - 0.02, fz * m);
+      torso.rotation.set((twist * 0.4 + tilt) * m, open * m, -lean);
       const shX = hipX + Math.sin(lean) * 0.5, shY = hipY + Math.cos(lean) * 0.5 * Math.cos(tilt), shZ = fz - Math.sin(tilt) * 0.5;
       // testa girata verso dove si va (il davanti della tavola, -z) e più dritta del busto
-      headG.position.set(shX + 0.06, shY + 0.2, shZ);
-      headG.rotation.set(tilt * 0.4, 0.95 - twist * 0.5, -lean * 0.3);
+      headG.position.set(shX + 0.06, shY + 0.2, shZ * m);
+      headG.rotation.set(tilt * 0.4 * m, (0.95 - twist * 0.5) * m, -lean * 0.3);
       const so = Math.sin(open) * 0.19, co = Math.cos(open) * 0.19;
       J.shL.set(shX + so, shY - 0.03, co + shZ); J.shR.set(shX - so, shY - 0.03, -co + shZ);
       // braccio davanti (R, verso il muso della tavola) teso in avanti, braccio dietro (L) morbido vicino al fianco;
@@ -2196,6 +2230,13 @@
         J.haR.lerp(GRAB_HAND, grab);
         J.elR.lerp(tmpE.set(shX + 0.16, shY - 0.3, -0.24), grab);
       }
+      if (sw > 0) {
+        // switch: ogni giunto va verso lo specchio del suo gemello (sinistra ↔ destra, z → -z)
+        for (const n in J) JR[n].copy(J[n]);
+        for (const n in J) { const t = JR[n.endsWith('L') ? n.slice(0, -1) + 'R' : n.slice(0, -1) + 'L']; J[n].lerp(tmpE.set(t.x, t.y, -t.z), sw); }
+      }
+      setLimb(L.shinL, J.ankL, J.kneeL); setLimb(L.shinR, J.ankR, J.kneeR);
+      setLimb(L.thighL, J.kneeL, J.hipL); setLimb(L.thighR, J.kneeR, J.hipR);
       setLimb(L.uarmL, J.shL, J.elL); setLimb(L.uarmR, J.shR, J.elR);
       setLimb(L.farmL, J.elL, J.haL); setLimb(L.farmR, J.elR, J.haR);
       for (const n of ['kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR']) JM[n].position.copy(J[n]);
@@ -2395,9 +2436,11 @@
   let PART = null;
   const urlScena = new URLSearchParams(location.search).get('scena');
   let theme = THEMES[urlScena] ? urlScena : (THEMES[store.get('cyf.scena')] ? store.get('cyf.scena') : 'neve');
-  function applyTheme(name) {
+  // temp: città della gara scelta da chi organizza (R-118): si usa per la gara senza toccare la scelta salvata nel menu
+  function applyTheme(name, temp) {
     theme = THEMES[name] ? name : 'neve';
-    store.set('cyf.scena', theme);
+    if (!temp) store.set('cyf.scena', theme);
+    TRK = TRACKS[theme] || TRACKS.neve;
     const T = THEMES[theme];
     const u = sky.material.uniforms;
     u.top.value.set(T.sky[0]); u.mid.value.set(T.sky[1]); u.horizon.value.set(T.sky[2]);
@@ -2425,13 +2468,17 @@
     for (const [, r] of remotes) r.model.setBoard(board);
     if (audio) audio.carveF.frequency.value = T.city ? 900 : 2600;
     stage.style.background = T.fog;
-    selScena.value = theme;
+    if (!temp) selScena.value = theme;
   }
   const selScena = $('selScena');
   selScena.addEventListener('change', () => {
-    if (!THEMES[selScena.value] || selScena.value === theme) return;
+    if (!THEMES[selScena.value] || racing()) return;
+    store.set('cyf.scena', selScena.value);
+    // in sfida la città la sceglie chi organizza: la propria scelta si manda al server
+    if (net.ws) net.send({ t: 'scena', scena: selScena.value });
+    if (selScena.value === theme) return;
     applyTheme(selScena.value);
-    if (!racing()) { reset((Math.random() * 2 ** 31) | 0, null, false); }
+    reset((Math.random() * 2 ** 31) | 0, null, false);
   });
 
   // ---------- game state ----------
@@ -2445,6 +2492,7 @@
   const score = () => Math.floor(distM()) + bonus;
   const kmh = v => v * 3.6;
 
+  let bigZones = [];   // spazio libero attorno ai trampolini giganti
   function clearWorld() {
     for (const o of objs) removeObj(o);
     objs = [];
@@ -2460,6 +2508,7 @@
     buildRng = mulberry32(seed ^ 0x2c1b3c6d);
     propRng = mulberry32(seed ^ 0x6a09e667);
     buildZ = 30; propZ = 10; sideZ = 20; treeZ = 14; sideRng = mulberry32(seed ^ 0x1b873593);
+    bigZones = [];
     P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: 9, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
@@ -2488,9 +2537,9 @@
     const n = r() < Math.min(0.8, 0.4 + d / 3500) ? 2 : 1;
     const xs = [];
     for (let i = 0; i < n; i++) {
-      const x = c + rr(-15.5, 15.5);
+      let x = c + rr(-15.5, 15.5);
       const kind = r();
-      if (xs.some(v => Math.abs(v - x) < 4.5)) continue;
+      if (xs.some(v => Math.abs(v - x) < 4.5) || inBigZone(x, z, 1.3)) continue;
       xs.push(x);
       // R-310 (0.10.0): ostacoli −35%. Prima: alberi fino a 0,38 e rocce fino a 0,58; ora 0,247 e 0,377, e fino a 0,58 non si mette nulla
       if (kind < 0.247) { const t = addTree(r, x, z, rr(0.75, 1.05), true, ghost); if (t) objs.push(t); }
@@ -2500,19 +2549,41 @@
         const k = 3 + Math.floor(r() * 3);
         if (!ghost) for (let j = 0; j < k; j++) {
           const gx = x + Math.sin(j * 0.9) * 0.8, gz = z - j * 2.2;
+          if (inBigZone(gx, gz, 0.5)) continue;
           const alt = (Math.round(z) + j) % 2;
           const CC = CITY_CFG[theme];
           const food = CC ? (alt ? assets().fa : assets().fb) : null;
           objs.push({ type: 'gem', x: gx, z: gz, mesh: food ? addMesh(food, vcMat, gx, gz, { y: 0.9 }) : addMesh(gemGeo, gemMat, gx, gz, { y: 0.9 }), phase: j, food: CC ? (alt ? CC.fa : CC.fb) : null });
         }
       }
-      else if (kind < 0.83) { if (!ghost) objs.push({ type: 'ramp', x, z, used: false, mesh: addMesh(isCity() ? assets().ramp : GEO.ramp, vcMat, x, z, { recv: true }) }); }
+      else if (kind < 0.83) {
+        // circa una rampa su sette (15%) è un trampolino gigante: grande il doppio, fa saltare molto più in alto (R-214)
+        const big = r() < 0.15;
+        if (big) x = clamp(x, c - 13.5, c + 13.5);   // largo 6 m: resta tutto dentro la strada
+        if (big) {
+          const zone = { x, z0: z + 5, z1: z - 5.5, hw: 3.6 };
+          bigZones.push(zone);
+          // via quello che il trampolino coprirebbe (anche dalla fila prima): stessa scelta su ogni dispositivo
+          objs = objs.filter(o => {
+            if (o.type === 'tree' || o.type === 'rock' || o.type === 'gem' || o.type === 'ramp' || o.type === 'gate') {
+              const hw = zone.hw + (o.type === 'gate' ? o.half + 0.3 : o.type === 'gem' ? 0.5 : 1.3);
+              if (o.z <= zone.z0 && o.z >= zone.z1 && Math.abs(o.x - x) < hw) { removeObj(o); return false; }
+            }
+            return true;
+          });
+        }
+        if (!ghost) objs.push({ type: 'ramp', x, z, used: false, big, mesh: addMesh(isCity() ? assets().ramp : GEO.ramp, vcMat, x, z, big ? { recv: true, s: 2 } : { recv: true }) });
+      }
       else {
         const gx = c + rr(-9, 9), gi = r() < 0.5 ? 0 : 1;
         const CG = CITY_CFG[theme];
-        if (!ghost) objs.push({ type: 'gate', x: gx, z, half: 2.4, done: false, mesh: addMesh(CG ? assets().gates[gi] : (gi ? GEO.gateBlue : GEO.gateRed), vcMat, gx, z), col: CG ? CG.gate[gi] : (gi ? '#2766c6' : '#d8302a') });
+        if (!ghost && !inBigZone(gx, z, 2.7)) objs.push({ type: 'gate', x: gx, z, half: 2.4, done: false, mesh: addMesh(CG ? assets().gates[gi] : (gi ? GEO.gateBlue : GEO.gateRed), vcMat, gx, z), col: CG ? CG.gate[gi] : (gi ? '#2766c6' : '#d8302a') });
       }
     }
+  }
+  function inBigZone(x, z, pad) {
+    for (const b of bigZones) if (z <= b.z0 && z >= b.z1 && Math.abs(x - b.x) < b.hw + pad) return true;
+    return false;
   }
   // palazzi ai lati della strada (solo estetica: non cambiano la pista)
   function spawnBuildings(ghost) {
@@ -2599,6 +2670,7 @@
       while (treeZ > horizon) treeZ -= spawnSideTrees(treeZ, treeZ > bLine);
     }
     const behind = P.z + 16;
+    if (bigZones.length && bigZones[0].z1 > behind) bigZones = bigZones.filter(b => b.z1 <= behind);
     if (objs.length && objs.some(o => o.z > behind)) objs = objs.filter(o => { if (o.z > behind) { removeObj(o); return false; } return true; });
   }
 
@@ -2878,14 +2950,15 @@
     maxSpeed = Math.max(maxSpeed, P.speed);
 
     if (P.onRamp && !P.air) {
-      const r = P.onRamp;
-      const along = clamp((r.z + 2 - P.z) / 4, 0, 1);
-      P.y = along * 1.12;
-      if (Math.abs(P.x - r.x) > 1.7) { P.onRamp = null; P.air = true; P.vy = 0; }
+      const r = P.onRamp, k = r.big ? 2 : 1;
+      const along = clamp((r.z + 2 * k - P.z) / (4 * k), 0, 1);
+      P.y = along * 1.12 * k;
+      if (Math.abs(P.x - r.x) > 1.7 * k) { P.onRamp = null; P.air = true; P.vy = 0; }
       else if (along >= 1) {
-        P.onRamp = null; P.air = true; P.vy = 8.6; P.spin = P.spin % TAU; P.ramp = true; startAir();
+        // trampolino gigante: stacco da 2,2 m e spinta 13,5 m/s → circa 6,8 m d'altezza e 1,5 s in aria (normale: 3 m e 1 s)
+        P.onRamp = null; P.air = true; P.vy = r.big ? 13.5 : 8.6; P.spin = P.spin % TAU; P.ramp = true; startAir();
         P.speed = Math.min(P.speed * 1.06, 46);
-        say(isPhone ? tr('rampPhone') : tr('rampKeys'), '#2f7fd0');
+        say(tr((r.big ? 'bigRamp' : 'ramp') + (isPhone ? 'Phone' : 'Keys')), r.big ? '#ff5a1f' : '#2f7fd0');
       }
     }
 
@@ -2923,7 +2996,8 @@
       else if (o.type === 'rock') { if (P.y < 0.75 * o.s && d2 < (1.1 * o.s) ** 2) crash(tr(CC ? CC.lowCrash : 'crashRock')); }
       else if (o.type === 'marker') { if (P.y < 1.5 && d2 < 0.35 * 0.35) crash(tr(CC ? CC.markerCrash : 'crashPole')); }
       else if (o.type === 'ramp') {
-        if (!o.used && !P.air && P.crash <= 0 && Math.abs(dx) < 1.5 && P.z < o.z + 2 && P.z > o.z - 1.2) { o.used = true; P.onRamp = o; }
+        const k = o.big ? 2 : 1;
+        if (!o.used && !P.air && P.crash <= 0 && Math.abs(dx) < 1.5 * k && P.z < o.z + 2 * k && P.z > o.z - 1.2 * k) { o.used = true; P.onRamp = o; }
       } else if (o.type === 'gem') {
         if (P.y < 2.2 && d2 < 0.95 * 0.95) { o.taken = true; taken = true; bonus += 10; spray(o.x, 0.9, o.z, 8, 1.5, 2); world.remove(o.mesh); chime(); if (o.food && Math.random() < 0.35) say(tr('food_' + o.food) + '!  +10', '#c4361f'); }
       } else if (o.type === 'gate') {
@@ -3031,7 +3105,7 @@
     net.ws = ws;
     ws.onopen = () => {
       net.retries = 0; setBanner('');
-      ws.send(JSON.stringify({ t: 'hello', id: myId, name: inName.value.trim() || 'Rider', j: myJersey() }));
+      ws.send(JSON.stringify({ t: 'hello', id: myId, name: inName.value.trim() || 'Rider', j: myJersey(), sc: selScena.value }));
       clearInterval(net.pingTimer);
       net.pingAt = Date.now(); ws.send('ping');
       net.pingTimer = setInterval(() => { if (ws.readyState === 1) { net.pingAt = Date.now(); ws.send('ping'); } }, 20000);
@@ -3069,7 +3143,8 @@
       net.offset = m.now - Date.now();
       voice.next = m.voiceNext || 0;
       net.phase = m.phase; net.seed = m.seed; net.startAt = m.startAt; net.racers = m.racers || []; net.results = m.results || [];
-      net.pub = !!m.pub; net.minutes = m.minutes || 5; net.awards = m.awards || null;
+      net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || [];
+      net.pub = !!m.pub; net.minutes = m.minutes || 5; net.awards = m.awards || null; net.scena = m.scena || 'neve';
       raceLen = m.length || raceLen;
       if ((m.phase === 'countdown' || m.phase === 'racing') && amIn(net.racers) && !racing()) beginRace(true);
       renderLobby();
@@ -3078,16 +3153,31 @@
       net.players = m.players; net.hostId = m.hostId; net.phase = m.phase;
       net.pub = !!m.pub; net.minutes = m.minutes || 5; net.autoAt = m.autoAt || 0;
       if (!racing()) raceLen = m.length || raceLen;
+      // in attesa si vede già la città (e la pista) della prossima gara
+      net.roomScena = m.scena || 'neve';
+      if ((mode === 'lobby' || mode === 'results') && net.roomScena !== theme) { applyTheme(net.roomScena, true); reset((Math.random() * 2 ** 31) | 0, null, false); }
       const mine = m.players.find(p => p.id === myId);
       if (mine) { net.myColor = mine.color; if (!racing()) me.setColor(PALETTE[mine.color % PALETTE.length], myJersey()); }
       renderLobby();
       if (mode === 'results') renderResults();
     } else if (m.t === 'countdown') {
       net.offset = m.now - Date.now();
-      net.phase = 'countdown'; net.seed = m.seed; net.startAt = m.startAt; net.racers = m.racers; net.round = m.round; net.results = []; net.finished = new Map();
+      net.phase = 'countdown'; net.seed = m.seed; net.startAt = m.startAt; net.racers = m.racers; net.round = m.round; net.results = []; net.finished = new Map(); net.scena = m.scena || 'neve';
+      net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || [];
       raceLen = m.length || raceLen;
       if (amIn(net.racers)) beginRace(false);
       else renderLobby();
+    } else if (m.t === 'racers') {
+      // un nuovo concorrente entrato a gara avviata: compare in pista e in classifica
+      net.racers = m.racers || net.racers;
+      if (racing()) { const slot = Math.max(0, net.racers.findIndex(r => r.id === myId)); for (const r of net.racers) if (r.id !== myId) remoteFor(r.id, r, slot); }
+    } else if (m.t === 'gather') {
+      net.loaded = m.loaded || []; net.gatherUntil = m.gatherUntil || net.gatherUntil;
+    } else if (m.t === 'go') {
+      // tutti dentro (o 40 s passati): parte il conto alla rovescia di 5 s
+      net.offset = m.now - Date.now();
+      net.startAt = m.startAt; net.loaded = m.loaded || net.loaded; net.gatherUntil = 0;
+      setBanner('');
     } else if (m.t === 'pos') {
       remoteUpdate(m);
     } else if (m.t === 'finished') {
@@ -3158,6 +3248,17 @@
       b.disabled = !isHost;
     });
     $('durLabel').textContent = tr('durationLabel') + (isHost ? '' : ' · ' + tr('durationHost'));
+    // città della gara: la sceglie chi organizza; gli altri la vedono e basta
+    const rc = $('selRoomCity');
+    if (rc.options.length !== selScena.options.length) rc.innerHTML = selScena.innerHTML;
+    for (let i = 0; i < rc.options.length; i++) rc.options[i].textContent = selScena.options[i].textContent;
+    rc.value = net.roomScena || selScena.value;
+    rc.disabled = !isHost;
+    const rj = $('selRoomJersey');
+    if (rj.options.length !== selJersey.options.length) rj.innerHTML = selJersey.innerHTML;
+    for (let i = 0; i < rj.options.length; i++) rj.options[i].textContent = selJersey.options[i].textContent;
+    rj.value = myJersey();
+    $('cityLabel').textContent = tr('raceCity') + (isHost ? '' : ' · ' + tr(pub ? 'raceCityPub' : 'raceCityHost'));
     const mine = net.players.find(p => p.id === myId);
     $('btnReady').textContent = mine && mine.ready ? tr('notReady') : tr('imReady');
     $('btnGo').hidden = !isHost;
@@ -3188,6 +3289,16 @@
     else if (mode === 'results') renderResultsStatus();
   }, 500);
   document.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => net.send({ t: 'settings', minutes: +b.dataset.min })));
+  // maglia: la sceglie ognuno anche dentro la stanza (chi arriva dal link non passa dal menu)
+  $('selRoomJersey').addEventListener('change', () => {
+    selJersey.value = $('selRoomJersey').value;
+    selJersey.dispatchEvent(new Event('change'));
+    net.send({ t: 'jersey', j: myJersey() });
+  });
+  $('selRoomCity').addEventListener('change', () => {
+    selScena.value = $('selRoomCity').value;
+    selScena.dispatchEvent(new Event('change'));
+  });
   $('btnReady').addEventListener('click', () => {
     const mine = net.players.find(p => p.id === myId);
     net.send({ t: 'ready', ready: !(mine && mine.ready) });
@@ -3223,6 +3334,7 @@
     history.replaceState(null, '', location.pathname);
     mode = 'menu';
     me.setColor(PALETTE[0], myJersey());
+    if (theme !== selScena.value) applyTheme(selScena.value);   // dopo una sfida in un'altra città si torna alla propria
     reset((Math.random() * 2 ** 31) | 0, null, false);
     hudLabels();
     setBanner('');
@@ -3233,6 +3345,7 @@
 
   function beginRace(late) {
     initAudio();
+    applyTheme(net.scena || 'neve', true);   // la città della gara, uguale per tutti: prima di center(0), che dipende dalla pista
     const slot = Math.max(0, net.racers.findIndex(r => r.id === myId));
     const n = net.racers.length;
     const x0 = center(0) + (slot - (n - 1) / 2) * 2.6;
@@ -3244,7 +3357,10 @@
     setBanner('');
     for (const r of net.racers) if (r.id !== myId) remoteFor(r.id, r, slot);
     lastCount = -1;
-    if (late && serverNow() > net.startAt) {
+    // pronto: lo si dice al server dopo due fotogrammi disegnati (il telefono ha davvero caricato la pista)
+    requestAnimationFrame(() => requestAnimationFrame(() => net.send({ t: 'loaded' })));
+    if (net.startAt) say(tr('lateStart'), '#d8302a');   // gli altri hanno già il conto alla rovescia o sono partiti: si parte svantaggiati
+    if (late && net.startAt && serverNow() > net.startAt) {
       // rientro durante la gara: si riparte dal via, il tempo corre già
       mode = 'race';
     }
@@ -3259,7 +3375,14 @@
   let lastCount = -1;
   function raceClock() {
     const cnt = $('count');
-    if (mode === 'countdown') {
+    if (mode === 'countdown' && !net.startAt) {
+      // attesa dei concorrenti (R-119): il conto alla rovescia parte quando tutti hanno caricato la gara, al massimo dopo 40 s
+      const s = Math.max(0, Math.ceil((net.gatherUntil - serverNow()) / 1000));
+      const txt = tr('gatherWait', { n: net.loaded.length, t: net.racers.length, s });
+      if (net.gatherTxt !== txt) { net.gatherTxt = txt; setBanner(txt); }
+      cnt.hidden = true;
+    } else if (mode === 'countdown') {
+      if (net.gatherTxt) { net.gatherTxt = ''; setBanner(''); }
       const left = net.startAt - serverNow();
       if (left <= 0) {
         mode = 'race';
@@ -3696,7 +3819,7 @@
       r.gs = (r.gs || 0) + ((r.g || 0) - (r.gs || 0)) * Math.min(1, 9 * dt);
       bodyTurn(r.model.body, r.c ? (now / 120) % TAU : (r.f || 0), r.s, 0);
       r.ks = (r.ks || 0) + ((r.y > 0.3 ? 0 : (r.k || 0)) - (r.ks || 0)) * Math.min(1, 8 * dt);
-      r.model.pose(Math.min(1, 0.35 + r.gs * 0.45 + Math.max(0, r.ks) * 0.55), r.y > 0.3 ? 1 : 0.3, 0, r.gs, Math.max(0, -r.ks));
+      r.model.pose(Math.min(1, 0.35 + r.gs * 0.45 + Math.max(0, r.ks) * 0.55), r.y > 0.3 ? 1 : 0.3, 0, r.gs, Math.max(0, -r.ks), switchOf(r.s || 0));
     }
   }
   function hideRemotes() { for (const [, r] of remotes) r.model.group.visible = false; }
@@ -3754,7 +3877,7 @@
     const onGround = !P.air && P.crash <= 0 && (mode === 'solo' || mode === 'race');
     tuckS += ((onGround && inFast() && !inSlow() ? 1 : 0) - tuckS) * Math.min(1, 8 * dt);
     brakeS += ((onGround && inSlow() ? 1 : 0) - brakeS) * Math.min(1, 8 * dt);
-    me.pose(Math.min(1, crouch + P.grab * 0.45 + tuckS * 0.55), armsUp * (1 - tuckS * 0.6), P.air ? Math.sin(P.spin) * 0.3 : lean * 0.3, P.grab, brakeS);
+    me.pose(Math.min(1, crouch + P.grab * 0.45 + tuckS * 0.55), armsUp * (1 - tuckS * 0.6), P.air ? Math.sin(P.spin) * 0.3 : lean * 0.3, P.grab, brakeS, switchOf(P.spin));
 
     const gH = hgt(P.x, P.z);
     rider.position.set(P.x, gH + P.y, P.z);

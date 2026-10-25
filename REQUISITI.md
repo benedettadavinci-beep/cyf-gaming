@@ -1,6 +1,6 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.10.0 · aggiornato al 25 ottobre 2026, ore 09:45 · prossimi passi in sezione 11 · nuova sezione 12: la pista è la strada famosa della città (processo P-01), meno ostacoli, più curve"
+subtitle: "Versione 0.11.0 · aggiornato al 25 ottobre 2026, ore 10:45 · ogni città con la sua forma di pista, trampolini giganti, si parte quando ci sono tutti, faccia in switch, stemma CYF"
 ---
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
@@ -32,6 +32,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-007 | Nella schermata iniziale si sceglie la lingua: italiano, inglese, francese, spagnolo | 24/10/2026 | Fatto | Quattro pulsanti in cima al menu; la scelta resta salvata e parte nella lingua del browser |
 | R-008 | Contatori d'uso per capire quanto viene giocato | 24/10/2026 | Fatto | Il server conta per giorno: gare avviate e finite, corridori, giocatori unici, segnalazioni. Si leggono su /api/stats (ultimi 14 giorni). Niente cookie né dati personali |
 | R-009 | Tutto il sito in quattro lingue, compresa la home: italiano, inglese, francese, spagnolo | 24/10/2026 | Fatto | Pulsanti IT · EN · FR · ES in alto nella home. Parte nella lingua del telefono o del browser (se non è tra le quattro, in italiano). La scelta vale anche nel gioco e viceversa, anche in navigazione privata. Un link con ?lang=en apre il sito in inglese. Provato su telefono e PC nelle quattro lingue |
+| R-010 | Ogni modifica deve funzionare allo stesso modo sul sito da PC, su Android e su iPhone, a meno che Luigi non chieda espressamente altro | 25/10/2026 | Fatto | Regola fissa di lavoro: c'è un solo gioco per tutti e tre (niente versioni separate). Ogni modifica si prova su PC e su telefono simulato prima di pubblicarla; quello che dipende dal singolo telefono (microfono, Safari su iPhone) va confermato sul telefono vero |
 
 # 2. Sfida online
 
@@ -39,7 +40,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 |---|---|---|---|---|
 | R-101 | Sfida con codice o link da mandare agli amici | ott 2026 | Fatto | Da 1 a 8 giocatori |
 | R-102 | Chi crea la sfida la fa partire; rivincita con gli stessi giocatori | ott 2026 | Fatto | |
-| R-103 | Stessa pista e stessa partenza per tutti; vince il tempo migliore sui 2.000 m | ott 2026 | Fatto | Il tempo lo misura il server. Dalla 0.6.0 la distanza non è più fissa a 2.000 m: è quella della durata scelta (R-108) |
+| R-103 | Stessa pista e stessa partenza per tutti; vince il tempo migliore sui 2.000 m | ott 2026 | Fatto | Il tempo lo misura il server. Dalla 0.6.0 la distanza non è più fissa a 2.000 m: è quella della durata scelta (R-108). Dalla 0.11.0 la gara si corre nella città scelta da chi organizza, sulla stessa pista per tutti (R-118, R-312) |
 | R-104 | Si vedono gli avversari in pista, ognuno con il proprio colore e il nome sopra la testa | ott 2026 | Fatto | 8 colori di giacca |
 | R-105 | Classifica dei migliori tempi | ott 2026 | Fatto | Il server tiene i primi 20 tempi per ogni durata (5, 10, 15 min); il menu mostra i primi 10 della gara da 5 minuti |
 | R-106 | Messaggi vocali: si preme un pulsante, si registra, tutti gli altri lo sentono; al massimo uno ogni 3 minuti | 24/10/2026 | Fatto | Durata massima circa 8 s; limite controllato dal server. Dalla 0.9.2 la registrazione non dipende più dal registratore del browser (MediaRecorder, assente o diverso su alcuni Android e nei browser interni delle app): si usa Web Audio e il vocale viaggia in WAV, che ogni telefono sa riprodurre; la riproduzione passa da Web Audio (funziona anche senza un tocco recente) con ripiego sull'elemento audio classico; se il telefono nega il microfono, il messaggio spiega come consentirlo o di aprire il link in Chrome/Safari |
@@ -50,6 +51,8 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-111 | Modalità online: senza invitare amici, si entra in una sala pubblica e si aspetta che si colleghino altre persone | 24/10/2026 | Fatto | Pulsante "Gioca online"; con almeno 2 giocatori la gara parte da sola dopo 30 s (prima se tutti premono "Sono pronto") |
 | R-112 | A ogni gara finita si collezionano punti e il gioco se li ricorda | 24/10/2026 | Fatto | 100/70/50 ai primi tre, 30 agli altri arrivati, più i punti rimasti della gara; salvati sul server e mostrati nel menu |
 | R-113 | Spendere i propri punti per far cadere gli altri: bombe, trappole o banane lasciate sulla strada; le banane si possono anche lanciare con un doppio clic sullo schermo | 24/10/2026 | Fatto | Banana 50 punti (tasto B), bomba 150 (tasto N); doppio clic o doppio tocco lancia la banana davanti a te; chi le tocca cade |
+| R-118 | Nella sfida con gli amici decide chi organizza (chi crea la stanza e manda il link): sceglie la durata della gara e la città. Gli altri scelgono solo il colore della propria maglia | 25/10/2026 | Fatto | Nella stanza ci sono "Durata della gara" e "Città della gara": le cambia solo l'organizzatore, gli altri le vedono con la nota "la sceglie chi organizza". Tutti hanno il menu della maglia anche nella stanza (chi arriva dal link non passa dal menu) e gli altri vedono subito la maglia scelta; a gara avviata non si cambia più. In attesa si vede già la città della gara. Se l'organizzatore esce, la città resta quella che aveva scelto. Nelle sale online, dove non c'è un organizzatore, la città è quella di chi aspetta da più tempo e la durata è sempre 5 minuti |
+| R-119 | Si parte solo quando ci sono tutti. Dopo "Parti" il gioco aspetta che ogni concorrente sia davvero dentro la gara; solo allora parte il conto alla rovescia di 5 secondi, uguale per tutti. Si aspetta al massimo 40 secondi: chi non è pronto entro quel tempo può ancora entrare in gara, ma parte svantaggiato | 25/10/2026 | Fatto | "Dentro" vuol dire che la pista è caricata e disegnata sul suo telefono o PC: non serve premere niente. Intanto tutti vedono "In attesa degli altri: 2 su 3 pronti · al massimo 35 s". Chi esce durante l'attesa non blocca gli altri. Chi è pronto dopo i 40 s, o apre il link a gara già partita, entra in gara (fino a 8 giocatori), parte dalla linea di partenza con il cronometro che corre già dal via comune e vede "Sei entrato in ritardo"; gli altri lo vedono comparire in pista e in classifica. Vale anche per le sale online |
 | R-115 | Condividere la sfida e il risultato con gli amici | 24/10/2026 | Fatto | Pulsanti WhatsApp e Telegram nella stanza della sfida; "Condividi" a fine gara con posizione, città e tempo (sul telefono apre il menu di condivisione) |
 | R-116 | Moderazione dei messaggi vocali | 24/10/2026 | Fatto | Sul fumetto "sta parlando" ci sono 🔇 (non senti più quel giocatore, resta salvato sul tuo dispositivo) e ⚠️ (segnala); con 2 segnalazioni da persone diverse il server blocca i vocali del segnalato in quella stanza |
 
@@ -60,7 +63,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-201 | Ostacoli da evitare o saltare, bonus da raccogliere, porte e rampe | ott 2026 | Fatto | Le rocce si saltano, gli alberi no |
 | R-202 | Atterraggio assistito: il gioco aiuta ad atterrare, si cade meno facilmente | 24/10/2026 | Fatto | Si cade solo atterrando molto storti |
 | R-203 | Acrobazie più belle con le frecce destra, sinistra, alto e basso | 24/10/2026 | Fatto | Avvitamenti, salti mortali, presa della tavola; nomi e punti a schermo |
-| R-204 | Ali stampate sulla giacca del giocatore | 24/10/2026 | Fatto | Sul fianco visto dalla telecamera e sulla schiena |
+| R-204 | Ali stampate sulla giacca del giocatore | 24/10/2026 | Sostituito | Dal 25/10 al posto delle ali c'è lo stemma CYF (R-216) |
 | R-205 | Nelle città senza neve si va in skateboard con le rotelle al posto dello snowboard | 24/10/2026 | Fatto | In tutte le 12 città; vale anche per gli avversari |
 | R-206 | Freccia giù: si va più veloci e il rider si abbassa sulle ginocchia | 24/10/2026 | Fatto | +12% di velocità in posizione raccolta |
 | R-207 | Freccia su: il rider si sposta un po' in avanti e la velocità diminuisce | 24/10/2026 | Fatto | Peso in avanti e frenata; a terra non fa più saltare (si salta con Spazio) |
@@ -70,6 +73,9 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-211 | Sul telefono il pulsante Salta a sinistra | 24/10/2026 | Fatto | Pulsante tondo arancione in basso a sinistra; tenuto premuto in aria fa il backflip. Banane e bombe sopra il Salta |
 | R-212 | Simbolo del microfono in alto per mandare i vocali agli altri giocatori durante il gioco | 24/10/2026 | Fatto | In alto a sinistra, sempre visibile mentre si gioca, su qualsiasi telefono. In sfida e online è arancione e manda il vocale; in allenamento è grigio e, toccato, spiega che i vocali sono per le sfide |
 | R-213 | Il microfono deve essere presente e funzionare anche sugli altri telefoni Android, non solo su quello di Luigi | 25/10/2026 | Fatto | Vedi R-106: registrazione Web Audio + WAV, riproduzione con doppia via, messaggi chiari se manca il permesso o il browser dell'app non dà il microfono. Provato da telefono a telefono con un microfono simulato (`tools/verifica/test_vocale.py`) |
+| R-214 | Trampolini non tutti uguali: circa il 15% deve essere un trampolino gigante, grande almeno il doppio, che fa saltare più in alto e lascia il tempo per più acrobazie | 25/10/2026 | Fatto | Grande il doppio in ogni misura (largo 6 m, lungo 9 m, alto 2,2 m). Dalla rampa normale si sale a 3 m e si resta in aria 0,9 s; dal trampolino gigante a 6,6 m per 1,45 s, abbastanza per un salto mortale con avvitamento. Compare "Trampolino gigante!". Davanti e sopra non ci sono ostacoli, bonus o porte. Come su ogni rampa, i punti delle acrobazie valgono doppio. Sulla neve e in tutte le città, uguale per tutti nella stessa gara (provato su 30 km di pista: 14-15% delle rampe) |
+| R-215 | Correzione: la faccia del rider guarda in avanti, ma dopo una mezza acrobazia (180°), quando il corpo si gira dall'altra parte, guardava indietro. Deve guardare sempre dove si va | 25/10/2026 | Fatto | Dopo un 180° si scende "al contrario" (come i rider veri in switch): ora tutto il corpo si specchia, quindi testa, spalle e braccio davanti girano verso dove si va. Durante l'avvitamento il passaggio è graduale, senza scatti. Vale anche per gli avversari visti in pista. Controllato con le foto del rider da dietro e da davanti, prima e dopo la correzione |
+| R-216 | Togliere le ali dalle giacche e mettere lo stemma CYF | 25/10/2026 | Fatto | Stemma a scudo: bianco, bordo blu notte, scritta CYF, una cima innevata e una fascia arancione in basso. È sui due fianchi (quello che si vede da dietro cambia dopo un 180°), piccolo sul petto e grande sulla schiena; su tutte le maglie e colori, anche per gli avversari |
 
 # 4. Scenari e città
 
@@ -79,7 +85,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-302 | Napoli: strade al posto della neve, mare, Vesuvio sullo sfondo; rocce lasciate; pizze e caffè al posto dei cristalli | 24/10/2026 | Fatto | |
 | R-303 | Roma: in fondo allo scenario si vede il Colosseo; piatti di carbonara e carciofi al posto di pizza e caffè | 24/10/2026 | Fatto | Strada in sampietrini, palazzi romani, cupole e pini sullo sfondo |
 | R-304 | In tutti gli scenari i testi dicono "albero" (non "abete") | 24/10/2026 | Fatto | A Napoli sono palme, a Roma pini; gli ostacoli che non sono alberi dicono il loro nome (Lampione!, Fioriera!…) |
-| R-305 | La pista è troppo rettilinea: servono curve naturali, non troppo complicate | 24/10/2026 | Fatto | Tre onde sovrapposte danno curve ampie e dolci; la pista resta uguale per tutti nella stessa gara. Dalla 0.10.0 le curve sono più frequenti e più spinte (R-311) |
+| R-305 | La pista è troppo rettilinea: servono curve naturali, non troppo complicate | 24/10/2026 | Fatto | Tre onde sovrapposte danno curve ampie e dolci; la pista resta uguale per tutti nella stessa gara. Dalla 0.10.0 le curve sono più frequenti e più spinte (R-311). Dalla 0.11.0 ogni città ha anche la sua forma di pista, con tempi simili (R-312) |
 | R-306 | Tutte le altre città della tabella "CYF-elementi-per-citta.xlsx" (cartella sul Desktop) | 24/10/2026 | Fatto | Milano, Parigi, Londra, Francoforte, Madrid, Lisbona, Zagabria, Berlino, Zurigo, New York: ostacoli, bonus, rampe, porte, paletti, strada, palazzi, monumenti e, dalla 0.9.1, anche gli oggetti ai lati della tabella (tram arancione a Milano, cabine rosse e bus a due piani a Londra, tram giallo a Lisbona, ombrelloni rossi a Zagabria, tratti del Muro a Berlino, tram blu e bianco a Zurigo, taxi a New York), doppie linee gialle al marciapiede a Londra, marciapiedi a mosaico a Berlino, fiume Meno a Francoforte. Tabella verificata riga per riga il 25/10 (sezione 10) |
 
 # 5. Grafica e qualità
@@ -108,11 +114,11 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | ID | Scelta | Data | Stato |
 |---|---|---|---|
 | S-01 | A Napoli le palme sostituiscono gli abeti; a Roma i pini a ombrello | 24/10/2026 | Da confermare |
-| S-02 | In città la strada è chiusa dai palazzi: chi va contro il muro rimbalza e rallenta ("Muro!"), senza perdere vite | 24/10/2026 | Da confermare |
-| S-03 | In città le rocce sono di pietra, senza neve sopra | 24/10/2026 | Da confermare |
-| S-04 | Il messaggio vocale dura al massimo circa 8 secondi | 24/10/2026 | Da confermare |
-| S-05 | La pista è identica in tutti gli scenari, così i tempi restano confrontabili | 24/10/2026 | Da confermare | Dalla 0.10.0 vale per la sequenza di ostacoli, bonus, rampe e porte e per la larghezza giocabile; quello che c'è ai lati cambia città per città (R-307) |
-| S-06 | Per bombe e banane si spendono i punti guadagnati nella gara in corso; quelli che restano a fine gara si aggiungono ai punti collezionati (R-112) | 24/10/2026 | Da confermare |
+| S-02 | In città la strada è chiusa dai palazzi: chi va contro il muro rimbalza e rallenta ("Muro!"), senza perdere vite | 24/10/2026 | Confermata 25/10 |
+| S-03 | In città le rocce sono di pietra, senza neve sopra | 24/10/2026 | Confermata 25/10 |
+| S-04 | Il messaggio vocale dura al massimo circa 8 secondi | 24/10/2026 | Confermata 25/10 |
+| S-05 | La pista è identica in tutti gli scenari, così i tempi restano confrontabili | 24/10/2026 | Aggiornata 25/10 | Dalla 0.11.0 resta identica la sequenza di ostacoli, bonus, rampe e porte (R-309) e la larghezza giocabile; la forma della strada invece è propria di ogni città, con tempi simili (R-312); i lati cambiano città per città (R-307) |
+| S-06 | Per bombe e banane si spendono i punti guadagnati nella gara in corso; quelli che restano a fine gara si aggiungono ai punti collezionati (R-112) | 24/10/2026 | Confermata 25/10 |
 | S-07 | La freccia su a terra non fa più saltare, perché ora frena (R-207): si salta con la barra spaziatrice. In aria le frecce su e giù restano per i salti mortali | 24/10/2026 | Da confermare |
 | S-08 | Lunghezza della gara = minuti × 40 m/s (velocità media stimata): 5 min ≈ 12 km, 10 ≈ 24, 15 ≈ 36. Fuori tempo massimo al doppio dei minuti scelti | 24/10/2026 | Da confermare |
 | S-09 | Punti di fine gara: 100/70/50 ai primi tre, 30 agli altri arrivati. Costi: banana 50, bomba 150, pagati con i punti della gara in corso | 24/10/2026 | Da confermare |
@@ -130,6 +136,11 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-21 | Sul telefono l'interruttore dell'audio è in alto accanto al microfono, i messaggi del vocale ("sta parlando…") compaiono a metà schermo; su PC il microfono è in alto a sinistra e i comandi touch non si vedono | 24/10/2026 | Da confermare |
 | S-22 | I vocali viaggiano in WAV a 11-12 kHz (qualità da telefonata, circa 25 KB al secondo) invece che in Opus compresso: pesa di più ma si registra e si riproduce su ogni telefono senza dipendere dal browser | 25/10/2026 | Da confermare |
 | S-23 | Strade scelte dove le fonti ne indicano più d'una: Milano corso Vittorio Emanuele II (è pedonale e sbocca sul Duomo, che è il simbolo richiesto; via Montenapoleone e corso Garibaldi non portano a un simbolo); New York Broadway (la fonte la chiama la più famosa); Lisbona tiene il tram giallo anche se l'Avenida da Liberdade non lo ha, perché è l'elemento della tabella delle città (R-306) | 25/10/2026 | Da confermare |
+| S-24 | Nelle sale online, dove non c'è un organizzatore, la città della gara è quella di chi aspetta da più tempo | 25/10/2026 | Da confermare |
+| S-25 | Il trampolino gigante è grande il doppio in ogni misura e fa salire circa 2,2 volte più in alto della rampa normale (6,6 m contro 3 m) | 25/10/2026 | Da confermare |
+| S-26 | La classifica dei migliori tempi resta una sola per durata, con tutte le città insieme, perché le piste hanno tempi simili (R-312) | 25/10/2026 | Da confermare |
+| S-27 | Un concorrente è "pronto" quando la pista è caricata e disegnata sul suo dispositivo: non deve premere nessun pulsante (R-119) | 25/10/2026 | Da confermare |
+| S-28 | Lo stemma CYF è uno scudo bianco con bordo blu notte, scritta CYF, cima innevata e fascia arancione (i colori del sito) | 25/10/2026 | Da confermare |
 
 # 8. Idee per il futuro (da confermare)
 
@@ -142,7 +153,7 @@ Emerse nelle chat precedenti; nessuna è stata ancora approvata.
 | F-03 | Accesso con un account (es. Google) | Da confermare |
 | F-04 | Controlli più forti contro chi bara (il server verifica il percorso, non solo il tempo) | Da confermare |
 | F-05 | Altre città, con sfondo e bonus propri | Da confermare |
-| F-06 | Piste diverse | Da confermare |
+| F-06 | Piste diverse | Approvata: ora è R-312 |
 | F-07 | Stili di guida: powder, racing, freestyle | Da confermare |
 | F-08 | Tornei e leghe | Da confermare |
 | F-09 | Altri mezzi: sci, monopattino, deltaplano | Da confermare |
@@ -157,11 +168,12 @@ Appunti operativi per la prossima sessione. "Chi": chi deve muoversi per primo.
 | D-01 | Provare la v0.9.1 dai telefoni con qualche amico (microfono su iPhone, comandi touch, fluidità) e scrivere a Claude i numeri dei requisiti che vanno bene ("R-303 controllato") | Luigi |
 | D-02 | Leggere il rapporto del primo controllo notturno (parte stasera alle 21:33) | Luigi |
 | D-03 | Comprare il dominio (es. cyfgaming.it, ~10-15 €/anno) e collegarlo: Cloudflare → Workers & Pages → cyf-gaming → Domains. Claude guida se serve | Luigi, ~10 min |
-| D-04 | Decidere le scelte S-01…S-22: basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
+| D-04 | Decidere le scelte ancora aperte (S-01, S-07…S-28; S-02, S-03, S-04 e S-06 confermate il 25/10): basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
 | D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione | Claude |
 | D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
 | D-08 | ~~Proteggere `main` su GitHub~~ Fatto il 25/10 alle 9:46 (A-08) | Luigi ✓ |
 | D-09 | Provare la v0.10.0 dal telefono: Napoli (mare a destra, Vesuvio in fondo) e Roma (pini e ruderi, Colosseo in fondo) sono le più cambiate; meno ostacoli e curve più spinte in tutte | Luigi |
+| D-10 | Provare con gli amici la 0.11.0: partenza quando ci sono tutti, città e durata decise dall'organizzatore, maglia nella stanza, trampolini giganti, forma della pista di ogni città, faccia dopo un 180°, stemma CYF | Luigi |
 | D-07 | ~~Ricopiare sul Desktop i file Word aggiornati~~ Fatto il 25/10 alle 8: Word dei requisiti alla 0.9.2 e tabella Excel delle città aggiornata con lo stato nel gioco (tutte le 12 città "Nel gioco", in arancione i 4 punti diversi dalla tabella, vedi S-12) | Claude ✓ |
 
 # 10. Verifica completa del 25 ottobre 2026
@@ -209,6 +221,17 @@ Nella notte tra il 24 e il 25 ottobre Claude ha ricontrollato ogni requisito nel
 | R-503 | ✓ | Attività pianificata attiva: primo giro 24/10 dalle 21:33 alle 22:12, riuscito (ha pubblicato la 0.8.3); prossimo 25/10 alle 21:33 |
 | R-505 | ✓ | `BUSINESS-PLAN.md` nel repo e Word sul Desktop |
 | S-01 … S-21 | ✓ | Ogni scelta corrisponde al codice (S-12 aggiornata: le porte di Zagabria ora sono a scacchi) |
+
+**Controllo della 0.11.0 (25/10, mattina)**: 81 controlli sul server, controlli statici, 13 scenari con la diagnosi e prove di gioco tutti superati, con queste in più:
+
+| ID | Esito | Come è stato verificato |
+|---|---|---|
+| R-312 | ✓ | 13 tracciati tutti diversi; pendenza laterale massima 0,47, raggio minimo 140 m; fattore di tempo entro ±0,1% della Neve (`tools/verifica/piste.py`). Con la stessa città e lo stesso seed la pista è identica (tutti i giocatori della gara); con un'altra città cambia la forma della strada ma ostacoli, bonus, rampe e porte sono nella stessa sequenza rispetto alla strada (R-309) |
+| R-118 | ✓ | La stanza prende la città di chi la crea; l'ospite non può cambiarla, l'organizzatore sì e tutti la vedono; città sconosciuta → Neve; conto alla rovescia con la stessa città e lo stesso seed per tutti; chi entra durante la gara riceve la città della gara; sala online: città di chi aspetta da più tempo. Maglia cambiata nella stanza da un ospite: gli altri la vedono; a gara avviata non si cambia |
+| R-119 | ✓ | Dopo "Parti": nessun via finché uno su due è pronto; con tutti pronti il conto alla rovescia di 5 s parte subito; con uno che non carica mai e uno che esce, il via arriva dopo 40 s; chi entra dopo il via entra in gara con il cronometro già partito e gli altri lo vedono. Schermata di attesa provata su telefono simulato |
+| R-214 | ✓ | Su 30 km di pista (Neve, Napoli, New York): 14-15% di trampolini giganti, modello grande il doppio, nessun ostacolo sopra. Salto misurato: 6,6 m e 1,45 s contro 3 m e 0,9 s della rampa normale; atterraggio pulito e messaggio "Trampolino gigante!" |
+| R-215 | ✓ | Foto del rider da dietro e da davanti in posizione normale, dopo un 180° prima della correzione (si vedeva il viso da dietro) e dopo (si vede la nuca da dietro e il viso da davanti) |
+| R-216 | ✓ | Nella texture della giacca c'è lo stemma (bianco, blu notte, arancione) sui due fianchi, sulla schiena e sul petto, e nessuna traccia delle ali; foto del rider con lo stemma leggibile |
 
 Difetto trovato e corretto nella 0.9.1: una banana o bomba lasciata mentre un telefono lento era ancora al conto alla rovescia veniva ignorata da quel telefono.
 
@@ -275,6 +298,7 @@ Richiesta del 25/10/2026. Il processo da seguire per ogni città, oggi e per le 
 | R-309 | Le piste delle città devono avere lunghezza e difficoltà simili: giocando non si deve sentire che sono molto diverse | 25/10/2026 | Fatto | La lunghezza è la stessa per tutte (dipende solo dalla durata scelta, R-108). La sequenza di ostacoli, bonus, rampe e porte è identica in tutte le città con lo stesso seed (S-05): cambiano solo i lati e lo sfondo |
 | R-310 | Ridurre del 35% gli elementi che interrompono o che vanno schivati (rocce, alberi e simili) | 25/10/2026 | Fatto | Ostacoli alti e bassi −35% esatto (prima erano il 58% degli elementi di una fila, ora il 37,7%; il resto della fila resta vuoto). Bonus, rampe e porte invariati |
 | R-311 | Qualche curva in più, un po' più spinta | 25/10/2026 | Fatto | Le tre onde della pista sono più corte (una curva ogni 230 m invece di 250, poi 105 e 46) e più ampie (27 + 12 + 4,5 m invece di 22 + 10 + 4); pendenza laterale massima 0,33 invece di 0,27, sempre sotto il limite di 0,35 della prova automatica |
+| R-312 | Ogni città ha una pista diversa: qualche curva in più qui, qualche rettilineo in più là. I tempi devono restare più o meno gli stessi, anche se non identici | 25/10/2026 | Fatto | Ogni città ha la sua forma di strada (13 tracciati, Neve compresa). Lisbona, Londra e Napoli sono curve e controcurve continue; New York, Milano, Berlino, Parigi e Roma alternano tratti quasi dritti a curve più decise; le altre stanno nel mezzo. Tutte hanno la stessa pendenza media della Neve con le curve più spinte di R-311, quindi a guida ideale i tempi sono uguali entro lo 0,1%; le curve restano dolci (pendenza laterale massima 0,47, raggio minimo 140 m). Come chiede R-309, ostacoli, bonus, rampe e porte restano nella stessa sequenza in tutte le città (rispetto alla strada): cambia solo la forma della strada, così la difficoltà resta simile. In gara tutti corrono nella città scelta da chi organizza (R-118), quindi sulla stessa pista. Il tracciato di ogni città è descritto nella riga "Pista" della tabella Excel delle città. Era l'idea F-06 |
 
 **Strade scelte (P-01 applicato il 25/10/2026).** Dove le fonti indicano più strade, la scelta è segnata come S-23 nella sezione 7.
 
@@ -313,3 +337,4 @@ Richiesta del 25/10/2026. Il processo da seguire per ogni città, oggi e per le 
 | 0.9.2 | 25/10/2026 | Microfono su tutti i telefoni (R-213): registrazione con Web Audio e vocali in WAV, riproduzione con doppia via, messaggi chiari se il microfono è negato o il browser dell'app non lo dà |
 | 0.10.0 | 25/10/2026 | Baco: un vocale non decodificabile lasciava un "errore non gestito" nel browser (trovato con il nuovo cancello). Prova del silenzio in test_gioco.py allineata alla 0.9.2 (il fumetto compare solo dopo la decodifica del WAV). La pista è la strada famosa della città (sezione 12, processo P-01): lati veri per 12 città (mare a Napoli, fori e pini a Roma, portici a Milano, platani a Parigi, taxi neri a Londra, case a graticcio a Francoforte, palazzi monumentali a Madrid, jacaranda a Lisbona, tram blu a Zagabria, tigli a Berlino e Zurigo, grattacieli a New York), simbolo della città dritto in fondo alla strada (R-308), ostacoli −35% (R-310), curve più frequenti e più spinte (R-311) |
 | 0.9.3 | 25/10/2026 | Struttura del software (sezione 11): cancello dei test su GitHub a ogni modifica (A-01), prove che segnalano davvero gli errori (A-02), `npm test` e `npm run test:tutto` (A-03), controlli statici (A-04), giro completo nel controllo notturno (A-05), pannello di diagnosi nel gioco con numero di versione nel menu (A-06), errori dei telefoni raccolti su /api/errors (A-07) |
+| 0.11.0 | 25/10/2026 | Ogni città con la sua forma di pista e tempi simili, ostacoli nella stessa sequenza (R-312); trampolini giganti, il 15% delle rampe (R-214); in sfida l'organizzatore sceglie città e durata, gli altri solo la maglia, anche dentro la stanza (R-118); si parte quando ci sono tutti, al massimo dopo 40 s, e chi arriva dopo corre svantaggiato (R-119); la faccia guarda avanti anche dopo un 180° (R-215); stemma CYF al posto delle ali (R-216); regola: ogni modifica vale per PC, Android e iPhone (R-010). Confermate S-02, S-03, S-04, S-06 |
