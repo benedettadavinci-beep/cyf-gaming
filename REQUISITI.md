@@ -247,6 +247,7 @@ Raccomandazioni del 25/10/2026 per far sì che, man mano che il gioco cresce, le
 Richiesta del 25/10/2026. Il processo da seguire per ogni città, oggi e per le città future, è **P-01**; il risultato della sua applicazione è la tabella qui sotto, con le fonti consultate.
 
 **P-01 · Processo (vale per ogni città, anche quelle future).**
+
 1. Chiedere a internet qual è la strada più famosa della città.
 2. Chiedere quali sono le sue caratteristiche: cosa c'è a destra e a sinistra (mare, alberi, palazzi, fori), fondo stradale, mezzi presenti (auto, tram, bus, taxi), larghezza.
 3. Dimensionare la pista in funzione di quelle caratteristiche: i lati della strada nel gioco riproducono i lati della strada vera.
