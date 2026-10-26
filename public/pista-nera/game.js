@@ -75,7 +75,7 @@
   const PISTA = PN.pista({ scene, world, ANISO, TEX });
   const { TRACKS, center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_TEX, GROUND_MAKE, groundMat, ground, updateGround, ranges } = PISTA;
 
-  const SFONDI = PN.sfondi({ scene, ANISO, telefono: isPhone, renderer });
+  const SFONDI = PN.sfondi({ scene, telefono: isPhone });
   const { builtSky, skylineFor } = SFONDI;
   const { merge, lumpy, vcMat, GEO, gateGeo } = PN.geometria;
   const CITTA = PN.citta({ world, ANISO, pista: PISTA });

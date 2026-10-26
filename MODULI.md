@@ -48,16 +48,16 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/lingua.js` | lingua | 37 | base (store) |
 | `moduli/oggetti.js` | oggetti | 176 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
-| `moduli/panorami.js` | panorami | 1092 | base (mulberry32) |
+| `moduli/panorami.js` | panorami | 1110 | base (mulberry32) |
 | `moduli/personaggio.js` | personaggio | 104 | base (store, lin); rider (JERSEYS, myJersey, myHair, myGear, makeRider) |
 | `moduli/pista.js` | pista | 176 | base (TAU, clamp, isPhone, lin, mulberry32) |
 | `moduli/profilo.js` | profilo | 100 | base (store); lingua (tr) |
 | `moduli/rider.js` | rider | 532 | base (TAU, lin, store, mulberry32) |
 | `moduli/schermate.js` | schermate | 302 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (tr, ord, fmtLen); protocollo (COSTI) |
-| `moduli/sfondi.js` | sfondi | 114 | base (lin); panorami (dipingi) |
+| `moduli/sfondi.js` | sfondi | 119 | base (lin); panorami (dipingi) |
 | `moduli/tracciato.js` | tracciato | 98 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 180 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr) |
-| `game.js` | — | 1013 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); profilo (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); oggetti (); avversari (); bot () |
+| `game.js` | — | 1015 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); profilo (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); oggetti (); avversari (); bot () |
 | `diagnosi.js` | — | 162 | nessuno |
 | `i18n.js` | — | 369 | nessuno |
 | `shared/protocollo.js` | protocollo | 94 | nessuno |

@@ -15,6 +15,9 @@ PN.panorami = (() => {
   const S_MAX = R * ARCO / 2;   // ~1100 m da ogni lato
   const cl = (v, a, b) => (v < a ? a : v > b ? b : v);
   // una tela: nella pagina un <canvas>, dentro il worker (moduli/sfondi.js) un OffscreenCanvas
+  // tele sul processore, non sulla scheda video: sono ~150.000 rettangoli piccoli, che il processore dipinge in pochi
+  // decimi di secondo mentre la scheda video (soprattutto quella software delle prove) ci metteva da 11 a 45 secondi
+  const CPU = { willReadFrequently: true };
   const nuovaTela = (w, h) => { if (typeof document === 'undefined') return new OffscreenCanvas(w, h); const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
   // ---------- colori ----------
@@ -45,7 +48,7 @@ PN.panorami = (() => {
   function tela(W, cielo, seme, citta) {
     const k = W / (R * ARCO), Hpx = Math.round((ALTO - BASSO) * k);
     const c = nuovaTela(W, Hpx);
-    const g = c.getContext('2d');
+    const g = c.getContext('2d', CPU);
     const rnd = mulberry32(seme);
     return {
       c, g, W, H: Hpx, k, rnd, orizzonte: cielo.orizzonte, nebbia: cielo.nebbia, fosch: citta.foschia || 1,
@@ -57,11 +60,11 @@ PN.panorami = (() => {
   // un livello separato grande come la tela (per bucare, sfumare o riflettere un monumento); fn disegna su Q
   function strato(P, fn) {
     const c = nuovaTela(P.W, P.H);
-    const Q = Object.assign({}, P, { c, g: c.getContext('2d') });
+    const Q = Object.assign({}, P, { c, g: c.getContext('2d', CPU) });
     fn(Q);
     return c;
   }
-  function copia(P) { const c = nuovaTela(P.W, P.H); c.getContext('2d').drawImage(P.c, 0, 0); return c; }
+  function copia(P) { const c = nuovaTela(P.W, P.H); c.getContext('2d', CPU).drawImage(P.c, 0, 0); return c; }
   // una tela di passaggio si svuota appena usata: ognuna occupa ~11 MB e, lasciata al garbage collector, nel worker
   // si accumulano (con la grafica software la quarta città arrivava dopo 35 s invece di 3)
   const butta = c => { c.width = 0; c.height = 0; };

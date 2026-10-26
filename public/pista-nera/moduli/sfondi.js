@@ -6,17 +6,15 @@
 // non si attraversano mai. Prima (fino alla 0.19.0) erano blocchi 3D a tinta unita, costruiti uno per uno.
 // Dipingere una città costa qualche decimo di secondo: se il browser lo permette si dipinge in un worker (un'altra
 // "corsia" del processore), così il gioco non si ferma; intanto si vede solo il cielo e, appena pronta, la cartolina.
-// Se il worker non c'è o sbaglia, si dipinge nella pagina come prima. Anche con la grafica software (niente scheda video,
-// come nelle prove automatiche) si dipinge nella pagina: lì il processore è già tutto occupato a disegnare il gioco e il
-// worker restava in coda anche 30 s, mentre nella pagina bastano ~0,3 s una volta sola. `?pittore=worker` o
-// `?pittore=pagina` nell'indirizzo scelgono a mano (prove e diagnosi). Si tengono in memoria al massimo due città
+// Se il worker non c'è o sbaglia, si dipinge nella pagina come prima. `?pittore=pagina` nell'indirizzo lo forza (prove e
+// diagnosi). Si tengono in memoria al massimo due città
 // (ogni tela occupa ~14 MB sulla scheda video, ~3,5 MB sul telefono).
-// Si crea con PN.sfondi({ scene, ANISO, telefono, renderer }) una volta sola, dal gioco.
+// Si crea con PN.sfondi({ scene, telefono }) una volta sola, dal gioco.
 window.PN = window.PN || {};
 PN.sfondi = (() => {
   // dove sono i file dei moduli: servono al worker, che li ricarica per conto suo
   const QUI = document.currentScript ? document.currentScript.src : location.href;
-  return ({ scene, ANISO, telefono, renderer }) => {
+  return ({ scene, telefono }) => {
     const { lin } = PN.base;
     const PAN = PN.panorami, G = PAN.GEOMETRIA;
     const LARGHEZZA = telefono ? 2048 : 4096;   // pixel della tela su 180°: sul computer ~1 pixel della tela per pixel dello schermo
@@ -25,17 +23,12 @@ PN.sfondi = (() => {
     const ordine = [];     // città costruite, l'ultima usata in fondo
 
     // ---------- il pittore nel worker ----------
-    // grafica software? (SwiftShader, llvmpipe…: il nome della "scheda video" lo dice)
-    function software() {
-      try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); return /swiftshader|llvmpipe|software|basic render/i.test(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ''); }
-      catch (e) { return false; }
-    }
     const scelta = new URLSearchParams(location.search).get('pittore');
     let lavoro = null, attese = new Map(), prossimo = 1;
     function worker() {
       if (lavoro !== null) return lavoro;
       lavoro = false;
-      if (scelta === 'pagina' || (scelta !== 'worker' && renderer && software())) return false;
+      if (scelta === 'pagina') return false;
       try {
         if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined' || !('transferToImageBitmap' in OffscreenCanvas.prototype)) return false;
         const file = n => new URL(n, QUI).href;
@@ -88,7 +81,7 @@ PN.sfondi = (() => {
         const tex = new THREE.Texture(img);
         tex.flipY = false;
         tex.encoding = THREE.sRGBEncoding;
-        tex.anisotropy = ANISO;
+        tex.anisotropy = 1;   // la cartolina si guarda di fronte: il filtro anisotropo non migliorerebbe niente
         tex.minFilter = THREE.LinearMipmapLinearFilter;
         tex.needsUpdate = true;
         mat.map = tex; mat.needsUpdate = true;

@@ -35,28 +35,29 @@ with sync_playwright() as p:
         # clic via JS: con la grafica software Playwright aspetterebbe a lungo che la pagina sia ferma
         pg.evaluate("""sc => { const s = document.getElementById('selScena'); s.value = sc; s.dispatchEvent(new Event('change'));
                                document.getElementById('btnSolo').click(); }""", sc)
-        if sc != 'neve':   # R-405: la cartolina della città arriva (con la grafica software la dipinge la pagina, A-22)
+        if sc != 'neve':   # R-405: la cartolina della città arriva (dipinta dal worker, A-22)
             try: pg.wait_for_function("window.CYFDiag.state().sfondo === 'pronto'", timeout=30000)
             except Exception: pass
             check(pg.evaluate('window.CYFDiag.state().sfondo') == 'pronto' and not errs, f'{sc}: sfondo della città dipinto', '; '.join(errs)[:200])
         try: pg.wait_for_function('window.CYFDiag.state().dist > 0.5', timeout=30000)
         except Exception: pass
         st = pg.evaluate('window.CYFDiag.state()')
+        if sc == 'napoli': check(st['pittore'] == 'worker', 'le cartoline le dipinge il worker (A-22)', st['pittore'])
         check(not errs and st['scena'] == sc and st['modo'] == 'solo' and st['dist'] > 0.5,
               f'{sc}: nessun errore, allenamento partito, {st["dist"]:.1f} m percorsi', '; '.join(errs)[:200])
         pg.evaluate("document.getElementById('btnMenu').click()")
         check(pg.evaluate('window.CYFDiag.state().modo') == 'menu', f'{sc}: ritorno al menu') if sc == SCENE[-1] else None
     pg.close()
 
-    print('R1b · cartolina dipinta nel worker (A-22): con ?pittore=worker la pagina non si ferma e la cartolina arriva')
+    print('R1b · cartolina dipinta nella pagina se il worker non si può usare (A-22): con ?pittore=pagina arriva lo stesso')
     pg = ctx.new_page(); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.goto(f'{BASE}/pista-nera/?scena=parigi&pittore=worker', wait_until='domcontentloaded')
+    pg.goto(f'{BASE}/pista-nera/?scena=parigi&pittore=pagina', wait_until='domcontentloaded')
     pg.wait_for_function('window.CYFDiag && window.CYFDiag.state')
     try: pg.wait_for_function("window.CYFDiag.state().sfondo === 'pronto'", timeout=90000)
     except Exception: pass
     st = pg.evaluate('window.CYFDiag.state()')
-    check(st['sfondo'] == 'pronto' and st['pittore'] == 'worker' and not errs, 'parigi: cartolina arrivata dal worker', f"{st['sfondo']} · {st['pittore']} · {'; '.join(errs)[:150]}")
+    check(st['sfondo'] == 'pronto' and st['pittore'] == 'pagina' and not errs, 'parigi: cartolina dipinta nella pagina', f"{st['sfondo']} · {st['pittore']} · {'; '.join(errs)[:150]}")
     pg.close()
 
     print('R2 · diagnosi: pannello, versione nel menu, errori nel registro')
