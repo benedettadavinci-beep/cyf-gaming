@@ -1,14 +1,15 @@
 // modulo: avversari
 // dipende da: base, lingua, rider, pista
 // Gli altri giocatori in pista: modello con il nome sopra, posizione interpolata tra un messaggio di rete e l'altro,
-// classifica (standings) e classifica dal vivo in alto a destra (renderLive).
+// classifica (standings) e classifica dal vivo in alto a destra (renderLive). Anche gli avversari guidati dal software
+// (R-234): in pista uguali agli altri, con l'aspetto dal loro codice; un piccolo 🤖 solo in classifica.
 // Si crea con PN.avversari({ world, pista, net, stato }) dal gioco: pista è l'istanza di PN.pista; stato dà lo stato
 // del gioco in sola lettura (P, mode, racing(), raceLen, isCity(), myId).
 window.PN = window.PN || {};
 PN.avversari = ({ world, pista, net, stato }) => {
   const { TAU, PALETTE, fmtTime } = PN.base;
   const { tr, ord, fmtLen } = PN.lingua;
-  const { JERSEYS, makeRider, bodyTurn, switchOf } = PN.rider;
+  const { JERSEYS, makeRider, bodyTurn, switchOf, lookBot } = PN.rider;
   const { center, hgt } = pista;
   const $ = id => document.getElementById(id);
   // ---------- remote riders ----------
@@ -31,6 +32,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
     return sp;
   }
   function remoteFor(id, info, mySlot) {
+    if (info && info.bot) info = Object.assign({}, info, lookBot(id));   // aspetto degli avversari del software
     let r = remotes.get(id);
     if (!r) {
       const color = PALETTE[(info.color || 0) % PALETTE.length];
@@ -58,6 +60,15 @@ PN.avversari = ({ world, pista, net, stato }) => {
     if (!info) return;
     const r = remotes.get(m.id) || remoteFor(m.id, info);
     r.tx = m.x; r.tz = m.z; r.ty = m.y; r.ta = m.a; r.s = m.s; r.f = m.f || 0; r.g = m.g ? 1 : 0; r.v = m.v; r.c = m.c; r.k = m.k || 0; r.last = performance.now(); r.has = true;
+    if (m.p != null) { r.p = m.p; r.top = m.top || 0; r.tk = m.tk || 0; }   // punti e statistiche degli avversari del software (servono a chi li guida dopo)
+  }
+  // avversari del software guidati da questo dispositivo (R-234): posizione esatta, senza aspettare la rete.
+  // info serve in allenamento, dove non c'è l'elenco dei concorrenti del server
+  function botUpdate(id, m, info) {
+    let r = remotes.get(id);
+    if (!r) { const inf = info || net.racers.find(x => x.id === id); if (!inf) return; r = remoteFor(id, inf); }
+    r.tx = r.x = m.x; r.tz = r.z = m.z; r.ty = r.y = m.y; r.ta = r.a = m.a; r.s = m.s; r.f = m.f; r.g = m.g; r.v = m.v; r.c = m.c; r.k = m.k;
+    r.p = m.p; r.top = m.top; r.tk = m.tk; r.last = performance.now(); r.has = true; r.model.group.visible = true;
   }
   function updateRemotes(dt) {
     const now = performance.now();
@@ -90,7 +101,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
     const { myId, P } = stato;
     const list = net.racers.map(r => {
       const rm = r.id === myId ? null : remotes.get(r.id);
-      return { id: r.id, name: r.name, color: r.id === myId ? net.myColor : r.color, d: r.id === myId ? -P.z : (rm ? -rm.tz : 0), ms: net.finished.get(r.id) };
+      return { id: r.id, name: r.name, bot: !!r.bot, color: r.id === myId ? net.myColor : r.color, d: r.id === myId ? -P.z : (rm ? -rm.tz : 0), ms: net.finished.get(r.id) };
     });
     list.sort((a, b) => {
       const fa = a.ms != null, fb = b.ms != null;
@@ -116,7 +127,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
       if (r.id === myId) li.className = 'me';
       const pos = document.createElement('span'); pos.textContent = ord(i + 1);
       const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(r.color || 0) % PALETTE.length];
-      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.name + (r.id === myId ? tr('you') : '');
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.name + (r.bot ? ' 🤖' : '') + (r.id === myId ? tr('you') : '');
       const gap = document.createElement('span'); gap.className = 'gap';
       gap.textContent = r.ms != null ? fmtTime(r.ms) : (i === 0 ? fmtLen(Math.max(0, raceLen - r.d)) : '−' + fmtLen(Math.max(0, leadD - r.d)));
       li.append(pos, dot, nm, gap);
@@ -125,5 +136,5 @@ PN.avversari = ({ world, pista, net, stato }) => {
     $('liveTitle').textContent = tr('liveTitle');
     void lead;
   }
-  return { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, setReady, playThrow, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive };
+  return { remotes, nameSprite, remoteFor, remoteUpdate, botUpdate, updateRemotes, setReady, playThrow, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive };
 };

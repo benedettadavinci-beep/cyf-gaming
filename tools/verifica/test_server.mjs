@@ -315,11 +315,11 @@ console.log('T6 · sala online: /api/quick, partenza automatica in 30 s, 3 s se 
   const A = new Client(code, 'oa' + code + Date.now(), 'Online1'), B = new Client(code, 'ob' + code + Date.now(), 'Online2');
   await A.connect(); const wA = await A.waitType('welcome'); ok(wA && wA.pub === true, 'la sala è pubblica');
   let lb = await A.wait(m => m.t === 'lobby' && m.players.length === 1, 3000);
-  ok(lb && lb.autoAt === 0 && lb.hostId === null, 'da soli non parte niente e non c\'è organizzatore');
+  ok(lb && lb.autoBot === true && lb.autoAt - lb.now > 13000 && lb.autoAt - lb.now <= 15000 && lb.hostId === null, 'da soli: tra 15 s si parte con gli avversari del computer (R-235), e non c\'è organizzatore', lb && JSON.stringify({ autoBot: lb.autoBot, tra: lb.autoAt - lb.now }));
   A.send({ t: 'start' }); ok(!(await A.waitType('countdown', 800)), 'in sala online "Parti" non esiste');
   await B.connect(); await B.waitType('welcome');
   lb = await A.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
-  ok(lb && lb.autoAt - lb.now > 28000 && lb.autoAt - lb.now <= 30000, 'con 2 giocatori la gara parte da sola entro 30 s', lb && String(lb.autoAt - lb.now));
+  ok(lb && !lb.autoBot && lb.autoAt - lb.now > 28000 && lb.autoAt - lb.now <= 30000, 'con 2 giocatori la gara parte da sola entro 30 s, senza avversari del computer', lb && String(lb.autoAt - lb.now));
   A.send({ t: 'settings', minutes: 15 }); await sleep(300); ok(A.last('lobby').minutes === 5, 'in sala online la durata resta 5 minuti');
   A.send({ t: 'ready', ready: true }); B.send({ t: 'ready', ready: true });
   lb = await A.wait(m => m.t === 'lobby' && m.players.every(p => p.ready), 3000);
@@ -501,6 +501,89 @@ console.log('T12 · pista del giorno (R-233): giorno italiano, città e seed ugu
   await D2.connect(); await D2.waitType('welcome'); const lb2 = await D2.waitType('lobby', 2000);
   ok(lb2 && lb2.round === 0 && lb2.phase === 'lobby', 'chi esce lascia la stanza del giorno vuota e pulita (niente resta salvato)', lb2 && JSON.stringify({ round: lb2.round, phase: lb2.phase }));
   D2.close();
+}
+
+console.log('T13 · avversari del computer (R-234…R-238, S-39): sfida, pilota, posizioni, azioni, arrivo, sala online e pista del giorno');
+{
+  const AV = await import('../../src/avversari.mjs');
+  ok(AV.stimaArrivo(-6000, 150000, 12000, 230769, 600000) === 300000 && AV.stimaArrivo(-150, 5000, 12000, 230769, 600000) === null && AV.stimaArrivo(-3000, 10000, 12000, 230769, 600000) === null,
+    'tempo stimato a fine gara: alla velocità media fino a lì; troppo poca strada o tempo impossibile = non arrivato');
+  const code = rnd();
+  const A = new Client(code, 'ba' + code, 'Capo'), B = new Client(code, 'bb' + code, 'Ospite');
+  await A.connect(); await A.waitType('welcome'); await B.connect(); await B.waitType('welcome');
+  await B.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
+  B.send({ t: 'settings', minutes: 5, bots: 4 }); await sleep(300);
+  ok((A.last('lobby').bots || 0) === 0, 'solo chi organizza sceglie gli avversari del computer');
+  A.send({ t: 'settings', minutes: 5, bots: 2 });
+  let lb = await B.wait(m => m.t === 'lobby' && m.bots === 2, 3000);
+  ok(!!lb, 'chi organizza ne sceglie 2 e la stanza lo vede (R-237)');
+  A.send({ t: 'settings', minutes: 5, bots: 9 }); await sleep(300);
+  ok(A.last('lobby').bots === 2, 'più di 4 avversari non si possono scegliere');
+  A.send({ t: 'start' });
+  const g = await B.waitType('gathering', 3000);
+  const bots = g ? g.racers.filter(r => r.bot) : [];
+  ok(g && g.racers.length === 4 && bots.length === 2 && bots.every(b => b.name && b.lv && /^bot/.test(b.id)) && bots[0].lv === 'forte' && bots[1].lv === 'medio',
+    'in gara 2 persone e 2 avversari, con nome e livello (misti)', g && JSON.stringify(g.racers.map(r => r.name + (r.bot ? '/' + r.lv : ''))));
+  ok(g && g.pilota === A.id && bots.every(b => g.ready.includes(b.id)), 'li guida chi organizza; gli avversari hanno già alzato la mano', g && JSON.stringify({ pilota: g.pilota, ready: g.ready.length }));
+  ok(g && new Set(g.racers.map(r => r.color)).size === 4, 'ognuno ha il suo colore');
+  A.send({ t: 'pronto' }); B.send({ t: 'pronto' });
+  const go = await B.waitType('go', 6000);
+  ok(!!go, 'quando le persone sono pronte si parte (gli avversari non fanno aspettare)');
+  await sleep(Math.max(0, go.startAt - go.now + 150));
+  const [b1, b2] = bots;
+  A.send({ t: 'pos', x: 0, z: -10 });
+  A.send({ t: 'bots', b: [{ id: b1.id, x: 1, z: -300, y: 0, a: 0.1, s: 0, f: 0, g: 0, v: 40, c: 0, k: 0.8, top: 41, tk: 3, p: 220 }, { id: 'nessuno', x: 0, z: -5 }] });
+  const bm = await B.waitType('bots', 2000);
+  ok(bm && bm.b.length === 1 && bm.b[0].id === b1.id && bm.b[0].z === -300 && bm.b[0].p === 220, 'il pilota manda le posizioni degli avversari e gli altri le ricevono (gli sconosciuti no)', bm && JSON.stringify(bm.b));
+  B.send({ t: 'bots', b: [{ id: b1.id, x: 5, z: -999 }] });
+  ok(!(await A.wait(m => m.t === 'bots', 700)), 'chi non è il pilota non può muovere gli avversari');
+  A.send({ t: 'drop', kind: 'bomb', x: 1, z: -290, hid: 'bd1', as: b1.id });
+  const dr = await B.waitType('drop', 2000);
+  ok(dr && dr.id === b1.id && dr.name === b1.name, 'il pilota lascia una bomba a nome di un avversario', dr && JSON.stringify(dr));
+  B.send({ t: 'drop', kind: 'bomb', x: 1, z: -290, hid: 'bd2', as: b1.id });
+  ok(!(await A.wait(m => m.t === 'drop' && m.hid === 'bd2', 700)), 'chi non è il pilota non può agire a nome di un avversario');
+  await sleep(950);
+  A.send({ t: 'throw', target: B.id, hid: 'bt1', kind: 'banana', as: b1.id });
+  const th = await B.waitType('throw', 2000);
+  ok(th && th.id === b1.id && th.target === B.id, 'un avversario lancia una banana a una persona', th && JSON.stringify(th));
+  B.send({ t: 'throw', target: b2.id, hid: 'bt2', kind: 'banana' });
+  const th2 = await A.wait(m => m.t === 'throw' && m.hid === 'bt2', 2000);
+  ok(th2 && th2.target === b2.id, 'una persona lancia una banana a un avversario (arriva al pilota, che lo ferma)');
+  A.send({ t: 'botfinish', id: b2.id, top: 30, tk: 1, p: 40 });
+  const fb = await B.wait(m => m.t === 'finished' && m.id === b2.id, 2000);
+  ok(fb && fb.ms === null, 'arrivo di un avversario troppo veloce: non valido, come per le persone');
+  A.close();
+  const pl = await B.waitType('pilota', 3000);
+  ok(pl && pl.id === B.id && pl.bots.some(q => q.id === b1.id && q.z === -300), 'chi guidava esce: li prende l\'altra persona, con le ultime posizioni (S-39)', pl && JSON.stringify(pl).slice(0, 160));
+  B.send({ t: 'bots', b: [{ id: b1.id, x: 1, z: -320, v: 40 }] });
+  B.send({ t: 'finish', top: 20, tk: 0, p: 10 });
+  const res = await B.waitType('results', 4000);
+  const rb = res ? res.results.filter(r => r.bot) : [];
+  ok(res && rb.length === 2 && rb.every(r => r.earned === null), 'risultati: gli avversari ci sono, con 🤖, e non prendono punti', res && JSON.stringify(res.results.map(r => [r.name, r.ms, r.bot || 0, r.earned])));
+  const lbd = (await api('/api/leaderboard?min=5')).body;
+  ok(!lbd.some(r => rb.some(b => b.name === r.name && /^bot/.test(b.id) && r.ms === b.ms)), 'i tempi degli avversari non vanno nella classifica generale');
+  B.close();
+
+  // sala online da soli (R-235): con "Sono pronto" si parte dopo 3 s con 3 avversari
+  const q = await api('/api/quick');
+  const O = new Client(q.body.code, 'bo' + Date.now(), 'Solitario'); await O.connect(); await O.waitType('welcome');
+  let lo = await O.wait(m => m.t === 'lobby' && m.players.length === 1 && m.autoBot, 3000);
+  if (lo && (lo.phase === 'lobby' || lo.phase === 'results')) {   // anche dopo una gara (risultati) vale lo stesso
+    O.send({ t: 'ready', ready: true });
+    const go2 = await O.waitType('gathering', 6000);
+    const ob = go2 ? go2.racers.filter(r => r.bot) : [];
+    ok(go2 && ob.length === 3 && go2.pilota === O.id && go2.racers.length === 4, 'sala online da soli: si parte con 3 avversari del computer, guidati da chi c\'è', go2 && JSON.stringify({ n: go2.racers.length, bot: ob.length, pilota: go2.pilota === O.id }));
+  } else ok(false, 'sala online da soli: stanza libera trovata', lo && lo.phase);
+  O.close();
+
+  // pista del giorno (R-238): 3 avversari, niente banane nemmeno a nome loro
+  const gc = 'G' + rnd().slice(0, 5) + 'B';
+  const Gd = new Client(gc, 'bg' + gc, 'Mattiniero'); Gd.path = '/api/giorno/';
+  await Gd.connect(); await Gd.waitType('welcome'); Gd.send({ t: 'start' });
+  const gg = await Gd.waitType('gathering', 3000);
+  const gb = gg ? gg.racers.filter(r => r.bot) : [];
+  ok(gg && gb.length === 3 && gg.pilota === Gd.id && gb.map(b => b.lv).join() === 'forte,medio,lento', 'pista del giorno: 3 avversari (forte, medio, lento) guidati dal giocatore', gg && JSON.stringify(gb.map(b => b.lv)));
+  Gd.close();
 }
 
 if (process.env.VELOCE === '1') console.log('T8 saltata (VELOCE=1: giro rapido del cancello; il giro completo la fa ogni notte)');

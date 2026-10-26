@@ -168,7 +168,9 @@
     // per le schermate (si leggono solo dopo l'avvio, quando tutto è già definito)
     get net() { return net; }, serverNow: () => serverNow(), get lives() { return lives; }, get myTotal() { return myTotal; },
     get remotes() { return remotes; }, throwAnim: () => { throwT = 0.001; },
-    distM: () => distM(), score: () => score(), racePlace: () => racePlace(), renderLive: l => renderLive(l), amIn: l => amIn(l), toMenu: () => toMenu()
+    distM: () => distM(), score: () => score(), racePlace: () => racePlace(), renderLive: l => renderLive(l), amIn: l => amIn(l), toMenu: () => toMenu(),
+    // banana o bananone lanciati da qui a un avversario del software guidato da qui: il colpo lo applica questo dispositivo
+    colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); }
   };
 
   // Altezza della superficie della rampa (sopra la sua base) nel punto z della pista. Ricalca il modello: profilo
@@ -224,6 +226,7 @@
     mode = 'solo';
     me.setColor(PALETTE[0], myJersey());
     reset((Math.random() * 2 ** 31) | 0, null, false);
+    BOT.allenamento(lastSeed);   // 3 avversari guidati dal software (R-239)
     hudLabels();
     show(null); setBanner('');
   }
@@ -629,12 +632,19 @@
         if (mode === 'lobby') net.send({ t: 'start' });
         return;
       }
-      if ((m.phase === 'countdown' || m.phase === 'racing') && amIn(net.racers) && !racing()) beginRace(true);
+      net.pilota = m.pilota || null;
+      if ((m.phase === 'countdown' || m.phase === 'racing') && amIn(net.racers) && !racing()) {
+        beginRace(true);
+        // avversari del software: le ultime posizioni note; se li guida questo dispositivo, ripartono da lì (S-39)
+        for (const e of m.bots || []) remoteUpdate(e);
+        BOT.gara();
+      }
       renderLobby();
     } else if (m.t === 'lobby') {
       if (m.now) net.offset = m.now - Date.now();
       net.players = m.players; net.hostId = m.hostId; net.phase = m.phase;
       net.pub = !!m.pub; net.minutes = m.minutes || 5; net.autoAt = m.autoAt || 0;
+      net.bots = m.bots || 0; net.autoBot = !!m.autoBot;   // avversari del computer (R-235, R-237)
       if (!racing()) raceLen = m.length || raceLen;
       // in attesa si vede già la città (e la pista) della prossima gara
       net.roomScena = m.scena || 'neve';
@@ -649,6 +659,7 @@
       net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || []; net.ready = m.ready || [];
       raceLen = m.length || raceLen;
       net.giorno = m.giorno || null;
+      net.pilota = m.pilota || null;
       if (amIn(net.racers)) beginRace(false);
       else renderLobby();
     } else if (m.t === 'racers') {
@@ -665,6 +676,13 @@
       setBanner('');
     } else if (m.t === 'pos') {
       remoteUpdate(m);
+    } else if (m.t === 'bots') {
+      for (const e of m.b || []) remoteUpdate(e);   // avversari del software (R-234), guidati dal pilota
+    } else if (m.t === 'pilota') {
+      // chi li guidava è uscito o si è fermato: ora li guida un altro (S-39); si riparte dalle ultime posizioni note
+      net.pilota = m.id;
+      for (const e of m.bots || []) remoteUpdate(e);
+      if (racing()) BOT.gara();
     } else if (m.t === 'finished') {
       net.finished.set(m.id, m.ms);
       const who = (net.racers.find(r => r.id === m.id) || {}).name || tr('someone');
@@ -710,7 +728,7 @@
       const big = m.kind === 'bananone';
       AVV.playThrow(m.id);
       OGG.showThrow(m.id, m.target, m.hid, big ? 'bananone' : 'banana');
-      if (m.target === myId) setTimeout(() => { if (racing()) crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: m.name || tr('someone') }), PN.protocollo.FERMO[big ? 'bananone' : 'banana']); }, 450);
+      BOT.colpo(m.target, big ? 'bananone' : 'banana', m.name);   // fermo per chi è colpito: questo giocatore o un avversario del software guidato da qui
     } else if (m.t === 'hit') {
       removeHazard(m.hid);
       if (m.owner === myId) say(tr(m.kind === 'bomb' ? 'hitYourBomb' : m.kind === 'bananone' ? 'hitYourBananone' : 'hitYourBanana', { n: m.name || tr('someone') }), '#ff5a1f');
@@ -720,6 +738,7 @@
 
   function toMenu() {
     net.close();
+    BOT.ferma();
     net.daily = false; net.giorno = null;
     history.replaceState(null, '', location.pathname);
     mode = 'menu';
@@ -747,6 +766,7 @@
     show(null);
     setBanner('');
     for (const r of net.racers) if (r.id !== myId) remoteFor(r.id, r, slot);
+    BOT.gara();   // se questo dispositivo è il pilota, guida gli avversari del software (R-234, S-39)
     lastCount = -1;
     // pronto: lo si dice al server dopo due fotogrammi disegnati (il telefono ha davvero caricato la pista)
     requestAnimationFrame(() => requestAnimationFrame(() => net.send({ t: 'loaded' })));
@@ -760,6 +780,7 @@
     net.posTimer = setInterval(() => {
       if (!racing()) return;
       net.send({ t: 'pos', x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), a: +P.ang.toFixed(3), s: +P.spin.toFixed(2), f: +P.flip.toFixed(2), g: P.grab > 0.5 ? 1 : 0, v: +P.speed.toFixed(2), c: P.crash > 0 ? 1 : 0, k: +(tuckS - brakeS).toFixed(2), ...myStats() });
+      BOT.invia();
     }, 100);
   }
   const myStats = () => ({ top: +maxSpeed.toFixed(1), tk: tricksN, p: Math.max(0, Math.round(bonus)) });
@@ -813,6 +834,7 @@
   }
   function endRaceView() {
     clearInterval(net.posTimer);
+    BOT.ferma();
     $('count').hidden = true;
     setBanner('');
     mode = 'results';
@@ -852,6 +874,8 @@
   const { hazards, addHazard, removeHazard, clearHazards, updateHazards, collideHazards, useItem } = OGG;
   const AVV = PN.avversari({ world, pista: PISTA, net, stato });
   const { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive } = AVV;
+  // avversari guidati dal software (R-234…R-239): in allenamento li guida questo dispositivo, in gara il pilota scelto dal server
+  const BOT = PN.bot({ pista: PISTA, rampTop, RAMP_FOOT, net, stato, oggetti: OGG, avversari: AVV, say, crash });
 
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
@@ -933,8 +957,8 @@
   function frame(now) {
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
-    if (mode === 'solo') { update(dt, false); hud(dt); }
-    else if (racing()) { raceClock(); update(dt, false); updateRemotes(dt); hud(dt); }
+    if (mode === 'solo') { update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); }
+    else if (racing()) { raceClock(); update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); }
     else if (mode === 'menu' || mode === 'lobby' || mode === 'results') update(dt, true);
     else if (mode === 'over') { updateSpray(dt); updateFlakes(dt, P.x, P.z, 0); }
     const playing = mode === 'solo' || racing();

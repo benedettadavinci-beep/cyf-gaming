@@ -64,6 +64,8 @@ PN.schermate = ({ diag, stato: S }) => {
       li.append(r);
       ul.append(li);
     }
+    // avversari del computer scelti da chi organizza (R-237)
+    if (!pub && S.net.bots > 0) { const li = document.createElement('li'); const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = tr('botsInRoom', { n: S.net.bots }); li.append(nm); ul.append(li); }
     const isHost = !pub && S.net.hostId === S.myId;
     // durata della gara: la sceglie chi organizza (nelle sale pubbliche è sempre 5 minuti)
     $('durBox').hidden = pub;
@@ -72,6 +74,10 @@ PN.schermate = ({ diag, stato: S }) => {
       b.disabled = !isHost;
     });
     $('durLabel').textContent = tr('durationLabel') + (isHost ? '' : ' · ' + tr('durationHost'));
+    // quanti avversari del computer aggiungere (R-237): li sceglie chi organizza
+    $('botBox').hidden = pub;
+    document.querySelectorAll('[data-bots]').forEach(b => { b.setAttribute('aria-pressed', String(+b.dataset.bots === (S.net.bots || 0))); b.disabled = !isHost; });
+    $('botLabel').textContent = tr('botsLabel') + (isHost ? '' : ' · ' + tr('durationHost'));
     // città della gara: la sceglie chi organizza; gli altri la vedono e basta
     const rc = $('selRoomCity');
     if (rc.options.length !== selScena.options.length) rc.innerHTML = selScena.innerHTML;
@@ -96,7 +102,7 @@ PN.schermate = ({ diag, stato: S }) => {
     else if (busy && !S.amIn(S.net.racers)) status = tr('raceRunning');
     else if (S.net.pub) {
       const left = S.net.autoAt ? Math.max(0, Math.ceil((S.net.autoAt - S.serverNow()) / 1000)) : 0;
-      status = n < 2 ? tr('pubWaiting') : (left ? tr('pubStartsIn', { n, s: left }) : tr('pubStarting', { n }));
+      status = n < 2 ? (S.net.autoBot && left ? tr('pubBots', { s: left }) : tr('pubWaiting')) : (left ? tr('pubStartsIn', { n, s: left }) : tr('pubStarting', { n }));
     }
     else if (n < 2) status = tr('shareLink');
     else status = tr('lobbyCount', { n, r: ready }) + ' ' + (isHost ? tr('pressGo') : tr('waitHost'));
@@ -109,6 +115,7 @@ PN.schermate = ({ diag, stato: S }) => {
     else if (S.mode === 'results') renderResultsStatus();
   }, 500);
   document.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => S.net.send({ t: 'settings', minutes: +b.dataset.min })));
+  document.querySelectorAll('[data-bots]').forEach(b => b.addEventListener('click', () => S.net.send({ t: 'settings', minutes: S.net.minutes || 5, bots: +b.dataset.bots })));
   $('selRoomCity').addEventListener('change', () => {
     selScena.value = $('selRoomCity').value;
     selScena.dispatchEvent(new Event('change'));
@@ -155,9 +162,9 @@ PN.schermate = ({ diag, stato: S }) => {
     ul.innerHTML = '';
     S.net.results.forEach((r, i) => {
       const li = document.createElement('li');
-      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = r.ms != null ? (G ? '🏁' : i === 0 ? '🏆' : ord(i + 1)) : '–';
+      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = r.ms != null ? (G && S.net.results.length < 2 ? '🏁' : i === 0 ? '🏆' : ord(i + 1)) : '–';
       const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(r.color || 0) % PALETTE.length];
-      const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = r.name + (r.id === S.myId ? tr('you') : '');
+      const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = r.name + (r.bot ? ' 🤖' : '') + (r.id === S.myId ? tr('you') : '');   // 🤖: avversario del computer (R-234)
       const tm = document.createElement('span'); tm.className = r.ms != null ? 'time' : 'time dnf'; tm.textContent = r.ms != null ? fmtTime(r.ms) : tr('dnf');
       li.append(pos, dot, nm, tm);
       if (r.earned != null) { const e = document.createElement('span'); e.className = 'earned'; e.textContent = '+' + fmt(r.earned); li.append(e); }
@@ -171,7 +178,7 @@ PN.schermate = ({ diag, stato: S }) => {
       const d = document.createElement('div');
       const k = document.createElement('span'); k.className = 'k'; k.textContent = label;
       const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(a.color || 0) % PALETTE.length];
-      const n = document.createElement('span'); n.textContent = a.name + (a.id === S.myId ? tr('you') : '');
+      const n = document.createElement('span'); n.textContent = a.name + (a.bot ? ' 🤖' : '') + (a.id === S.myId ? tr('you') : '');
       const v = document.createElement('b'); v.textContent = value; v.style.marginLeft = 'auto';
       d.append(k, dot, n, v);
       aw.append(d);
@@ -212,7 +219,7 @@ PN.schermate = ({ diag, stato: S }) => {
     if (S.net.daily) txt = tr('dailyHint');
     else if (S.net.pub) {
       const left = S.net.autoAt ? Math.max(0, Math.ceil((S.net.autoAt - S.serverNow()) / 1000)) : 0;
-      txt = S.net.players.length < 2 ? tr('pubWaiting') : (left ? tr('nextRaceIn', { s: left }) : tr('pubStarting', { n: S.net.players.length }));
+      txt = S.net.players.length < 2 ? (S.net.autoBot && left ? tr('pubBots', { s: left }) : tr('pubWaiting')) : (left ? tr('nextRaceIn', { s: left }) : tr('pubStarting', { n: S.net.players.length }));
     } else {
       const isHost = S.net.hostId === S.myId;
       const host = S.net.players.find(p => p.id === S.net.hostId);

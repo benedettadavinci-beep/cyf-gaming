@@ -1,5 +1,5 @@
 // modulo: generazione
-// dipende da: base, geometria, pista, citta
+// dipende da: base, geometria, pista, citta, tracciato
 // La pista si costruisce man mano che il rider scende, con il seme della gara: stessi numeri casuali su ogni dispositivo,
 // quindi stessa pista per tutti (R-103). Qui stanno le file di ostacoli, bonus, rampe e porte (uguali in ogni città,
 // R-309), i trampolini giganti con lo spazio libero attorno (R-214), gli alberi della neve, i palazzi, gli oggetti e i
@@ -7,7 +7,7 @@
 // Si crea con PN.generazione({ world, ANISO, pista, citta, stato }) dal gioco: stato dà P, mode, racing(), raceLen, theme, isCity().
 window.PN = window.PN || {};
 PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
-  const { TAU, clamp, lin, mulberry32 } = PN.base;
+  const { TAU, lin, mulberry32 } = PN.base;
   const { GEO, vcMat } = PN.geometria;
   const { center, hgt, addMesh } = pista;
   const { CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat } = CITTA;
@@ -136,55 +136,35 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     if (isCity()) return { type: 'tree', x, z, s, mesh: addMesh(assets().tall, vcMat, x, z, { s: s * 1.05, sy, ry, tilt, shadow }) };
     return { type: 'tree', x, z, s, mesh: addMesh(geo, vcMat, x, z, { s, sy, ry, tilt, shadow }) };
   }
+  // una fila di ostacoli, bonus, rampe e porte: dove vanno lo decide il tracciato (moduli/tracciato.js, uguale per
+  // tutti e anche per gli avversari del software, R-234); qui si costruiscono i modelli. ghost: fila già alle spalle,
+  // si consumano solo i numeri casuali
   function spawnRow(z, ghost) {
-    const r = rowRng, rr = (a, b) => a + r() * (b - a);
-    const d = -z, c = center(z);
-    const n = r() < Math.min(0.8, 0.4 + d / 3500) ? 2 : 1;
-    const xs = [];
-    for (let i = 0; i < n; i++) {
-      let x = c + rr(-15.5, 15.5);
-      const kind = r();
-      if (xs.some(v => Math.abs(v - x) < 4.5) || inBigZone(x, z, 1.3)) continue;
-      xs.push(x);
-      // R-310 (0.10.0): ostacoli −35%. Prima: alberi fino a 0,38 e rocce fino a 0,58; ora 0,247 e 0,377, e fino a 0,58 non si mette nulla
-      if (kind < 0.247) { const t = addTree(r, x, z, rr(0.75, 1.05), true, ghost); if (t) objs.push(t); }
-      else if (kind < 0.377) { const s = rr(0.8, 1.25), ry = r() * TAU; if (!ghost) objs.push({ type: 'rock', x, z, s, mesh: addMesh(isCity() ? assets().low : GEO.rock, vcMat, x, z, { s, ry }) }); }
-      else if (kind < 0.58) { /* posto lasciato libero */ }
-      else if (kind < 0.71) {
-        const k = 3 + Math.floor(r() * 3);
-        if (!ghost) for (let j = 0; j < k; j++) {
-          const gz = z - j * 2.2, gx = x + (center(gz) - c) + Math.sin(j * 0.9) * 0.8;   // la fila di bonus segue la curva della strada: uguale in ogni città (R-309)
-          if (inBigZone(gx, gz, 0.5)) continue;
-          const alt = (Math.round(z) + j) % 2;
-          const CC = CITY_CFG[stato.theme];
-          const food = CC ? (alt ? assets().fa : assets().fb) : null;
-          objs.push({ type: 'gem', x: gx, z: gz, mesh: food ? addMesh(food, vcMat, gx, gz, { y: 0.9 }) : addMesh(gemGeo, gemMat, gx, gz, { y: 0.9 }), phase: j, food: CC ? (alt ? CC.fa : CC.fb) : null });
-        }
-      }
-      else if (kind < 0.83) {
-        // circa una rampa su sette (15%) è un trampolino gigante: grande il doppio, fa saltare molto più in alto (R-214)
-        const big = r() < 0.15;
-        if (big) x = clamp(x, c - 13.5, c + 13.5);   // largo 6 m: resta tutto dentro la strada
-        if (big) {
-          const zone = { x, z0: z + 5, z1: z - 5.5, hw: 3.6 };
-          bigZones.push(zone);
-          // via quello che il trampolino coprirebbe (anche dalla fila prima): stessa scelta su ogni dispositivo
-          objs = objs.filter(o => {
-            if (o.type === 'tree' || o.type === 'rock' || o.type === 'gem' || o.type === 'ramp' || o.type === 'gate') {
-              const hw = zone.hw + (o.type === 'gate' ? o.half + 0.3 : o.type === 'gem' ? 0.5 : 1.3);
-              if (o.z <= zone.z0 && o.z >= zone.z1 && Math.abs(o.x - x) < hw) { removeObj(o); return false; }
-            }
-            return true;
-          });
-        }
-        if (!ghost) objs.push({ type: 'ramp', x, z, used: false, big, mesh: addMesh(isCity() ? assets().ramp : GEO.ramp, vcMat, x, z, big ? { recv: true, s: 2 } : { recv: true }) });
-      }
-      else {
-        const gx = c + rr(-9, 9), gi = r() < 0.5 ? 0 : 1;
-        const CG = CITY_CFG[stato.theme];
-        if (!ghost && !inBigZone(gx, z, 2.7)) objs.push({ type: 'gate', x: gx, z, half: 2.4, done: false, mesh: addMesh(CG ? assets().gates[gi] : (gi ? GEO.gateBlue : GEO.gateRed), vcMat, gx, z), col: CG ? CG.gate[gi] : (gi ? '#2766c6' : '#d8302a') });
-      }
+    PN.tracciato.riga(z, {
+      r: rowRng, center, inBigZone,
+      zona: zone => {
+        bigZones.push(zone);
+        // via quello che il trampolino coprirebbe (anche dalla fila prima): stessa scelta su ogni dispositivo
+        objs = objs.filter(o => { if (PN.tracciato.coperto(o, zone)) { removeObj(o); return false; } return true; });
+      },
+      metti: o => { if (!ghost) objs.push(costruisci(o)); }
+    });
+  }
+  function costruisci(o) {
+    const { x, z } = o;
+    if (o.type === 'tree') {
+      if (isCity()) return { type: 'tree', x, z, s: o.s, mesh: addMesh(assets().tall, vcMat, x, z, { s: o.s * 1.05, sy: o.sy, ry: o.ry, tilt: o.tilt, shadow: true }) };
+      return { type: 'tree', x, z, s: o.s, mesh: addMesh(GEO.trees[o.gi], vcMat, x, z, { s: o.s, sy: o.sy, ry: o.ry, tilt: o.tilt, shadow: true }) };
     }
+    if (o.type === 'rock') return { type: 'rock', x, z, s: o.s, mesh: addMesh(isCity() ? assets().low : GEO.rock, vcMat, x, z, { s: o.s, ry: o.ry }) };
+    const CC = CITY_CFG[stato.theme];
+    if (o.type === 'gem') {
+      const food = CC ? (o.alt ? assets().fa : assets().fb) : null;
+      return { type: 'gem', x, z, mesh: food ? addMesh(food, vcMat, x, z, { y: 0.9 }) : addMesh(gemGeo, gemMat, x, z, { y: 0.9 }), phase: o.phase, food: CC ? (o.alt ? CC.fa : CC.fb) : null };
+    }
+    if (o.type === 'ramp') return { type: 'ramp', x, z, used: false, big: o.big, mesh: addMesh(isCity() ? assets().ramp : GEO.ramp, vcMat, x, z, o.big ? { recv: true, s: 2 } : { recv: true }) };
+    const gi = o.gi;
+    return { type: 'gate', x, z, half: 2.4, done: false, mesh: addMesh(CC ? assets().gates[gi] : (gi ? GEO.gateBlue : GEO.gateRed), vcMat, x, z), col: CC ? CC.gate[gi] : (gi ? '#2766c6' : '#d8302a') };
   }
   function inBigZone(x, z, pad) {
     for (const b of bigZones) if (z <= b.z0 && z >= b.z1 && Math.abs(x - b.x) < b.hw + pad) return true;
@@ -256,7 +236,7 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     while (rowZ > horizon) {
       // in gara niente ostacoli negli ultimi 25 m prima del traguardo
       if (soloWorld || (stato.racing() && -rowZ < raceLen - 25)) spawnRow(rowZ, rowZ > bLine);
-      rowZ -= (6 + rowRng() * 4) * Math.max(0.5, 1 - (-rowZ) / 3200);
+      rowZ -= PN.tracciato.passo(rowRng, rowZ);
     }
     if (isCity()) {
       while (buildZ > horizon) spawnBuildings(buildZ > bLine);

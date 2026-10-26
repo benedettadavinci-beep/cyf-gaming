@@ -377,6 +377,16 @@
             <button type="button" data-min="15" aria-pressed="false">15 min</button>
           </div>
         </div>
+        <div class="field" id="botBox" style="display:flex;flex-direction:column;gap:4px">
+          <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase" id="botLabel"></span>
+          <div class="seg" role="group" data-i18n-aria="botsLabel">
+            <button type="button" data-bots="0" aria-pressed="true">0</button>
+            <button type="button" data-bots="1" aria-pressed="false">1</button>
+            <button type="button" data-bots="2" aria-pressed="false">2</button>
+            <button type="button" data-bots="3" aria-pressed="false">3</button>
+            <button type="button" data-bots="4" aria-pressed="false">4</button>
+          </div>
+        </div>
         <button type="button" class="look-btn" id="btnRoomLook"><span class="look-ico" aria-hidden="true">🎨</span><span data-i18n="editLook"></span></button>
         <div class="field" id="cityBox" style="display:flex;flex-direction:column;gap:4px">
           <span class="muted" style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase" id="cityLabel"></span>
@@ -578,6 +588,7 @@
 <script src="moduli/sfondi.js"></script>
 <script src="moduli/pista.js"></script>
 <script src="moduli/citta.js"></script>
+<script src="moduli/tracciato.js"></script>
 <script src="moduli/generazione.js"></script>
 <script src="citta/napoli.js"></script>
 <script src="citta/roma.js"></script>
@@ -599,6 +610,7 @@
 <script src="moduli/personaggio.js"></script>
 <script src="moduli/oggetti.js"></script>
 <script src="moduli/avversari.js"></script>
+<script src="moduli/bot.js"></script>
 <script src="moduli/comandi.js"></script>
 <script src="moduli/schermate.js"></script>
 <script src="game.js"></script>

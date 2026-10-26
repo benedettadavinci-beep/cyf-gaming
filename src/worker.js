@@ -16,6 +16,8 @@ const PROTO = globalThis.CYF_PROTOCOLLO;
 import { ritorni } from './ritorni.mjs';
 // pista del giorno (R-233): giorno italiano, numero, città e seed uguali per tutti
 import { pistaDelGiorno, giornoDi } from './giorno.mjs';
+// avversari guidati dal software (R-234): tempo stimato di chi è ancora in pista a fine gara
+import { stimaArrivo } from './avversari.mjs';
 
 const MAX_PLAYERS = PROTO.MAX_PLAYERS;
 const AVG_SPEED_MS = 40;                     // velocità media di un giocatore medio: serve a trasformare minuti in metri
@@ -36,6 +38,11 @@ const DROP_KINDS = PROTO.DROP_KINDS;
 // scenari: ogni città ha la sua pista, quindi in una gara tutti corrono nella stessa città (R-118, R-312)
 const cleanScena = PROTO.cleanScena;
 const PLACE_POINTS = [100, 70, 50];          // punti per 1°, 2°, 3°; chi arriva dopo ne prende 30
+// avversari guidati dal software (R-234…R-238, S-39)
+const BOT_ATTESA_MS = 15000;                 // sala online: da soli per 15 s, poi si parte con gli avversari (R-235)
+const BOT_SALA = 3, BOT_GIORNO = 3;          // quanti nella sala online vuota e nella pista del giorno (R-238)
+const BOT_LIVELLI = ['forte', 'medio', 'lento', 'medio'];   // livelli misti
+const BOT_PILOTA_MS = 3000;                 // se chi li guida non manda le loro posizioni per 3 s, li prende un'altra persona
 // misure (R-232): fasce dei punti fatti in una gara, allineate ai costi (sotto la banana, banana, bomba, bananone)
 // e fasce del tempo di caricamento della pagina del gioco (3 s è la soglia dello studio di Google sui siti da telefono)
 const fasciaPunti = g => (g < PROTO.COSTI.banana ? 'pts_lt50' : g < PROTO.COSTI.bomb ? 'pts_50_149' : g < PROTO.COSTI.bananone ? 'pts_150_1499' : 'pts_1500');
@@ -192,6 +199,8 @@ export class RaceRoom extends DurableObject {
     this.state = null;
     this.stats = new Map();    // ultime statistiche dichiarate da ogni corridore (velocità max, acrobazie, punti gara)
     this.lastDrop = new Map();
+    this.botUltimo = new Map();   // ultima posizione nota di ogni avversario del software (per il tempo stimato e per un nuovo pilota)
+    this.botsAt = 0;              // quando il pilota ha mandato le posizioni l'ultima volta
     // i client mandano "ping" ogni 20 s: risponde il sistema senza svegliare la stanza
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
@@ -248,7 +257,7 @@ export class RaceRoom extends DurableObject {
     const st = this.state;
     return {
       t: 'lobby', phase: st.phase, hostId: st.pub ? null : st.hostId, round: st.round, pub: st.pub,
-      minutes: st.minutes, length: lengthFor(st.minutes), autoAt: st.autoAt, now: Date.now(), scena: this.roomScena(except),
+      minutes: st.minutes, length: lengthFor(st.minutes), autoAt: st.autoAt, autoBot: !!st.autoBot, bots: st.nBots || 0, now: Date.now(), scena: this.roomScena(except),
       players: this.players(except).map(p => ({ id: p.id, name: p.name, ready: p.ready, color: p.color, j: p.j || '', h: p.h || '', p: p.p || '', e: p.e || '', s: p.s || '' }))
     };
   }
@@ -266,14 +275,21 @@ export class RaceRoom extends DurableObject {
     if (!ids.includes(this.state.hostId)) this.state.hostId = ids[0] || null;
   }
 
-  // stanze pubbliche: con almeno 2 giocatori in attesa parte il conto alla rovescia automatico
+  // stanze pubbliche: con almeno 2 giocatori in attesa parte il conto alla rovescia automatico; da soli, dopo 15 s
+  // si parte con gli avversari guidati dal software (R-235)
   updateAuto(except) {
     const st = this.state;
-    if (!st.pub) { st.autoAt = 0; return; }
-    if (st.phase !== 'lobby' && st.phase !== 'results') { st.autoAt = 0; return; }
+    if (!st.pub || (st.phase !== 'lobby' && st.phase !== 'results')) { st.autoAt = 0; st.autoBot = false; return; }
     const list = this.players(except);
-    if (list.length < 2) { st.autoAt = 0; return; }
     const now = Date.now();
+    if (list.length === 0) { st.autoAt = 0; st.autoBot = false; return; }
+    if (list.length === 1) {
+      if (!st.autoBot || !st.autoAt) st.autoAt = now + BOT_ATTESA_MS;
+      st.autoBot = true;
+      if (list[0].ready) st.autoAt = Math.min(st.autoAt, now + 3000);
+      return;
+    }
+    if (st.autoBot) { st.autoAt = 0; st.autoBot = false; }   // è arrivato qualcuno: la gara è tra persone, come prima
     if (!st.autoAt) st.autoAt = now + AUTO_START_MS;
     if (list.every(p => p.ready)) st.autoAt = Math.min(st.autoAt, now + 3000);
   }
@@ -302,6 +318,13 @@ export class RaceRoom extends DurableObject {
     st.autoAt = 0;
     st.timeoutAt = 0;
     st.racers = list.map(p => ({ id: p.id, name: p.name, color: p.color, j: p.j || '', h: p.h || '', p: p.p || '', e: p.e || '', s: p.s || '' }));
+    // avversari guidati dal software (R-234): nella pista del giorno 3, nella sala online 3 se si è da soli, nella sfida quanti ne sceglie chi organizza
+    const nb = Math.max(0, Math.min(st.daily ? BOT_GIORNO : st.pub ? (list.length === 1 ? BOT_SALA : 0) : (st.nBots || 0), MAX_PLAYERS - list.length));
+    const bots = this.creaBot(nb, st.racers);
+    st.racers.push(...bots);
+    // chi li guida (S-39): chi organizza se è in gara, altrimenti la prima persona
+    st.pilota = bots.length ? (list.some(p => p.id === st.hostId) ? st.hostId : list[0].id) : null;
+    this.botUltimo = new Map(); this.botsAt = now;
     st.raceScena = st.daily ? st.giorno.scena : this.roomScena();
     st.results = [];
     st.drops = 0;
@@ -309,12 +332,50 @@ export class RaceRoom extends DurableObject {
     st.usati = {};      // oggetti usati in questa gara, per tipo (R-232)
     this.stats = new Map();
     for (const s of this.sockets()) { const a = s.deserializeAttachment(); if (a && a.id) { a.ready = false; s.serializeAttachment(a); } }
+    st.ready = bots.map(b => b.id);   // gli avversari alzano subito la mano (R-237)
     await this.save();
     await this.schedule();
     board(this.env).bump('races_started').catch(() => {});
+    if (bots.length) board(this.env).bump('races_bots').catch(() => {});
     board(this.env).bump('racers', list.length).catch(() => {});
-    this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: 0, gatherUntil: st.gatherUntil, loaded: [], racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round, scena: st.raceScena, giorno: st.daily ? { n: st.giorno.n, giorno: st.giorno.giorno } : null });
+    this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: 0, gatherUntil: st.gatherUntil, loaded: [], ready: st.ready, pilota: st.pilota, racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round, scena: st.raceScena, giorno: st.daily ? { n: st.giorno.n, giorno: st.giorno.giorno } : null });
     this.broadcast(this.lobbyMsg());
+  }
+
+  // avversari guidati dal software (R-234): nomi da una lista comune, colori liberi, livelli misti. Il loro aspetto lo
+  // calcola il gioco dal codice (uguale su ogni dispositivo), quindi qui bastano codice, nome, colore e livello
+  creaBot(n, racers) {
+    const usati = new Set(racers.map(r => r.color)), nomi = new Set(racers.map(r => r.name.toLowerCase()));
+    const liberi = PROTO.NOMI_BOT.filter(x => !nomi.has(x.toLowerCase())).sort(() => Math.random() - 0.5);
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      let color = 0; while (usati.has(color) && color < MAX_PLAYERS) color++;
+      usati.add(color);
+      const id = 'bot' + this.state.round + 'x' + i + Math.random().toString(36).slice(2, 7);
+      out.push({ id, name: liberi[i % liberi.length] || 'Rider', color: color % MAX_PLAYERS, j: '', h: '', p: '', e: '', s: '', bot: 1, lv: BOT_LIVELLI[i % BOT_LIVELLI.length] });
+    }
+    return out;
+  }
+  // chi compie un'azione: il giocatore stesso, oppure un avversario del software se lo manda il pilota (campo "as")
+  attore(me, m) {
+    if (!m.as) return me;
+    const st = this.state, id = cleanId(m.as);
+    if (me.id !== st.pilota) return null;
+    const r = st.racers.find(x => x.id === id && x.bot);
+    return r ? { id: r.id, name: r.name, bot: true } : null;
+  }
+  // un'altra persona in gara prende la guida degli avversari (S-39): chi guidava è uscito o non manda più niente
+  nuovoPilota(id, except) {
+    const st = this.state;
+    if (!st.racers.some(r => r.bot)) return;
+    if (!id) {
+      const online = new Set(this.players(except).map(p => p.id));
+      const r = st.racers.find(x => !x.bot && online.has(x.id));
+      id = r ? r.id : null;
+    }
+    st.pilota = id;
+    this.botsAt = Date.now();
+    if (id) this.broadcast({ t: 'pilota', id, bots: [...this.botUltimo.values()] }, except);
   }
 
   // Attesa fissa della sfida. Solo le prove locali la accorciano con la variabile ATTESA_SFIDA_MS di wrangler dev
@@ -358,6 +419,7 @@ export class RaceRoom extends DurableObject {
     const st = this.state, m = {};
     const add = (k, n = 1) => { m[k] = (m[k] || 0) + n; };
     for (const r of st.results) {
+      if (r.bot) continue;   // gli avversari del software non contano nelle misure (S-39)
       const fatti = (r.p || 0) + ((st.spesa || {})[r.id] || 0);
       add(fasciaPunti(fatti)); add('pts_sum', fatti); add('pts_n');
     }
@@ -417,6 +479,7 @@ export class RaceRoom extends DurableObject {
       board(this.env).touch(id).catch(() => {});
       this.send(ws, {
         t: 'welcome', you: id, code: st.code, now, max: st.daily ? 1 : MAX_PLAYERS, length: lengthFor(st.minutes), minutes: st.minutes, pub: st.pub, daily: !!st.daily,
+        pilota: st.pilota || null, bots: [...this.botUltimo.values()],
         phase: st.phase, seed: st.seed, startAt: st.startAt, gatherUntil: st.gatherUntil || 0, loaded: st.loaded || [], ready: st.ready || [], racers: st.racers, scena: cleanScena(st.raceScena), results: st.results, awards: st.awards || null,
         voiceNext: ((st.voiceAt || {})[id] || 0) + VOICE_COOLDOWN_MS
       });
@@ -439,6 +502,7 @@ export class RaceRoom extends DurableObject {
     if (m.t === 'settings') {
       if (st.pub || st.daily || me.id !== st.hostId || (st.phase !== 'lobby' && st.phase !== 'results')) return;
       if (DURATIONS.includes(m.minutes)) st.minutes = m.minutes;
+      if (Number.isInteger(m.bots) && m.bots >= 0 && m.bots <= PROTO.MAX_BOTS) st.nBots = m.bots;   // avversari del software (R-237)
       await this.save();
       this.broadcast(this.lobbyMsg());
       return;
@@ -493,6 +557,8 @@ export class RaceRoom extends DurableObject {
       if (st.phase !== 'countdown' && st.phase !== 'racing') return;
       if (st.phase === 'countdown' && st.startAt && now >= st.startAt) st.phase = 'racing';
       this.readStats(me.id, m);
+      // il pilota non manda più le posizioni degli avversari (app in secondo piano, rete persa): li prende chi è qui (S-39)
+      if (st.pilota && st.pilota !== me.id && now - this.botsAt > BOT_PILOTA_MS && st.racers.some(r => r.id === me.id && !r.bot)) this.nuovoPilota(me.id);
       this.broadcast({
         t: 'pos', id: me.id,
         x: num(m.x, -1e5, 1e5), z: num(m.z, -1e5, 1e5), y: num(m.y, -50, 50),
@@ -502,38 +568,77 @@ export class RaceRoom extends DurableObject {
       return;
     }
 
-    // banane e bombe: il server controlla solo che chi le lascia sia in gara e non esageri
+    // banane e bombe: il server controlla solo che chi le lascia sia in gara e non esageri.
+    // "as": lo fa un avversario del software, e lo può dire solo il pilota (R-234)
     if (m.t === 'drop') {
-      if (st.daily || st.phase !== 'racing' || !st.racers.some(r => r.id === me.id) || !DROP_KINDS.includes(m.kind)) return;
-      if (now - (this.lastDrop.get(me.id) || 0) < 900) return;
-      this.lastDrop.set(me.id, now);
+      const chi = this.attore(me, m);
+      if (!chi || st.daily || st.phase !== 'racing' || !st.racers.some(r => r.id === chi.id) || !DROP_KINDS.includes(m.kind)) return;
+      if (now - (this.lastDrop.get(chi.id) || 0) < 900) return;
+      this.lastDrop.set(chi.id, now);
       st.drops = (st.drops || 0) + 1;
       if (st.drops > 400) return;
       const hid = String(m.hid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
       if (!hid) return;
-      this.contaOggetto(me.id, m.kind);
-      this.broadcast({ t: 'drop', id: me.id, name: me.name, kind: m.kind, x: num(m.x, -1e5, 1e5), z: num(m.z, -1e5, 1e5), hid }, ws);
+      if (!chi.bot) this.contaOggetto(chi.id, m.kind);
+      this.broadcast({ t: 'drop', id: chi.id, name: chi.name, kind: m.kind, x: num(m.x, -1e5, 1e5), z: num(m.z, -1e5, 1e5), hid }, ws);
       return;
     }
     // banana o bananone lanciati al giocatore davanti (R-224, R-231): il server li inoltra a tutti, il bersaglio si ferma 2 s (banana) o 4 s (bananone)
     if (m.t === 'throw') {
-      if (st.daily || st.phase !== 'racing' || !st.racers.some(r => r.id === me.id)) return;
+      const chi = this.attore(me, m);
+      if (!chi || st.daily || st.phase !== 'racing' || !st.racers.some(r => r.id === chi.id)) return;
       const target = cleanId(m.target);
-      if (!target || target === me.id || !st.racers.some(r => r.id === target)) return;
-      if (now - (this.lastDrop.get(me.id) || 0) < 900) return;
-      this.lastDrop.set(me.id, now);
+      if (!target || target === chi.id || !st.racers.some(r => r.id === target)) return;
+      if (now - (this.lastDrop.get(chi.id) || 0) < 900) return;
+      this.lastDrop.set(chi.id, now);
       const hid = String(m.hid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
       if (!hid) return;
       const kind = PROTO.THROW_KINDS.includes(m.kind) ? m.kind : 'banana';
-      this.contaOggetto(me.id, kind);
-      this.broadcast({ t: 'throw', id: me.id, name: me.name, target, hid, kind }, ws);
+      if (!chi.bot) this.contaOggetto(chi.id, kind);
+      this.broadcast({ t: 'throw', id: chi.id, name: chi.name, target, hid, kind }, ws);
       return;
     }
     if (m.t === 'hit') {
-      if (st.phase !== 'racing') return;
+      const chi = this.attore(me, m);
+      if (!chi || st.phase !== 'racing') return;
       const hid = String(m.hid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
       if (!hid) return;
-      this.broadcast({ t: 'hit', hid, id: me.id, name: me.name, owner: cleanId(m.owner), kind: DROP_KINDS.includes(m.kind) ? m.kind : 'banana' }, ws);
+      this.broadcast({ t: 'hit', hid, id: chi.id, name: chi.name, owner: cleanId(m.owner), kind: DROP_KINDS.includes(m.kind) ? m.kind : 'banana' }, ws);
+      return;
+    }
+
+    // posizioni degli avversari del software (R-234): solo dal pilota, un messaggio per tutti, inoltrato agli altri
+    if (m.t === 'bots') {
+      if ((st.phase !== 'countdown' && st.phase !== 'racing') || me.id !== st.pilota || !Array.isArray(m.b)) return;
+      if (st.phase === 'countdown' && st.startAt && now >= st.startAt) st.phase = 'racing';
+      this.botsAt = now;
+      const out = [];
+      for (const e of m.b.slice(0, MAX_PLAYERS)) {
+        if (!e || typeof e !== 'object') continue;
+        const id = cleanId(e.id);
+        if (!st.racers.some(r => r.id === id && r.bot)) continue;
+        const s = this.readStats(id, e);
+        const q = {
+          id, x: num(e.x, -1e5, 1e5), z: num(e.z, -1e5, 1e5), y: num(e.y, -50, 50), a: num(e.a, -4, 4), s: num(e.s, -100, 100), f: num(e.f, -100, 100),
+          g: e.g ? 1 : 0, v: num(e.v, 0, 60), c: e.c ? 1 : 0, k: num(e.k, -1, 1), p: s.p, top: s.top, tk: s.tk
+        };
+        this.botUltimo.set(id, q);
+        out.push(q);
+      }
+      if (out.length) this.broadcast({ t: 'bots', b: out }, ws);
+      return;
+    }
+    // un avversario del software arriva: il tempo lo misura il server, come per le persone; niente classifica generale
+    if (m.t === 'botfinish') {
+      if ((st.phase !== 'countdown' && st.phase !== 'racing') || me.id !== st.pilota) return;
+      const id = cleanId(m.id), r = st.racers.find(x => x.id === id && x.bot);
+      if (!r || st.results.some(x => x.id === id) || !st.startAt || now < st.startAt) return;
+      const ms = now - st.startAt;
+      const valid = ms >= Math.floor(lengthFor(st.minutes) / MAX_SPEED_MS * 1000);
+      const s = this.readStats(id, m);
+      st.results.push({ id, name: r.name, color: r.color, ms: valid ? ms : null, dnf: !valid, top: s.top, tk: s.tk, p: s.p, bot: 1 });
+      await this.save();
+      this.broadcast({ t: 'finished', id, ms: valid ? ms : null });
       return;
     }
 
@@ -599,11 +704,15 @@ export class RaceRoom extends DurableObject {
   }
 
   async endRace(except) {
-    const st = this.state;
+    const st = this.state, now = Date.now();
+    const minMs = Math.floor(lengthFor(st.minutes) / MAX_SPEED_MS * 1000);
     for (const r of st.racers) {
       if (st.results.some(x => x.id === r.id)) continue;
       const s = this.stats.get(r.id) || { top: 0, tk: 0, p: 0 };
-      st.results.push({ id: r.id, name: r.name, color: r.color, ms: null, dnf: true, top: s.top, tk: s.tk, p: s.p });
+      // avversari del software ancora in pista: tempo calcolato dalla loro velocità media fino a ora (S-39), così nessuno aspetta
+      const u = r.bot ? this.botUltimo.get(r.id) : null;
+      const ms = u && st.startAt ? stimaArrivo(u.z, now - st.startAt, lengthFor(st.minutes), minMs, st.minutes * 2 * 60 * 1000) : null;
+      st.results.push({ id: r.id, name: r.name, color: r.color, ms, dnf: ms == null, top: s.top, tk: s.tk, p: s.p, ...(r.bot ? { bot: 1 } : {}) });
     }
     st.results.sort((a, b) => (a.ms ?? Infinity) - (b.ms ?? Infinity));
     // punti: posizione in classifica + punti rimasti dalla gara (acrobazie, bonus, meno quelli spesi)
@@ -612,15 +721,16 @@ export class RaceRoom extends DurableObject {
       const pos = r.ms != null ? place++ : -1;
       r.earned = (pos < 0 || st.daily ? 0 : (PLACE_POINTS[pos] ?? 30)) + (r.p || 0);   // pista del giorno: da soli, niente punti del piazzamento (S-40)
       r.won = pos === 0;
+      if (r.bot) r.earned = null;   // gli avversari del software non prendono punti (S-39); il piazzamento delle persone li conta
     }
     const best = (key) => st.results.reduce((a, r) => (r[key] > (a ? a[key] : 0) ? r : a), null);
     const fast = best('top'), tricks = best('tk');
     st.awards = {
-      fastest: fast ? { id: fast.id, name: fast.name, color: fast.color, top: fast.top } : null,
-      tricks: tricks ? { id: tricks.id, name: tricks.name, color: tricks.color, tk: tricks.tk } : null
+      fastest: fast ? { id: fast.id, name: fast.name, color: fast.color, top: fast.top, bot: fast.bot ? 1 : 0 } : null,
+      tricks: tricks ? { id: tricks.id, name: tricks.name, color: tricks.color, tk: tricks.tk, bot: tricks.bot ? 1 : 0 } : null
     };
     try {
-      const totals = await board(this.env).addPoints(st.results.map(r => ({ id: r.id, name: r.name, earned: r.earned, won: r.won })));
+      const totals = await board(this.env).addPoints(st.results.filter(r => !r.bot).map(r => ({ id: r.id, name: r.name, earned: r.earned, won: r.won })));
       for (const r of st.results) r.total = totals[r.id] ?? null;
     } catch (e) {}
     st.phase = 'results';
@@ -646,7 +756,7 @@ export class RaceRoom extends DurableObject {
     if (st.phase === 'countdown' && !st.startAt && st.gatherUntil && now >= st.gatherUntil - 50) { await this.go(); return; }   // 40 s scaduti: si parte con chi c'è
     if ((st.phase === 'countdown' || st.phase === 'racing') && st.timeoutAt && now >= st.timeoutAt - 50) { await this.endRace(); return; }
     if ((st.phase === 'lobby' || st.phase === 'results') && st.autoAt && now >= st.autoAt - 50) {
-      if (this.players().length >= 2) { await this.startRace(); return; }
+      if (this.players().length >= (st.autoBot ? 1 : 2)) { await this.startRace(); return; }   // da soli: con gli avversari del software (R-235)
       st.autoAt = 0;
       await this.save();
     }
@@ -659,6 +769,8 @@ export class RaceRoom extends DurableObject {
     try { ws.close(1000, 'Chiusa'); } catch (e) {}
     if (!me || !me.id) return;
     this.fixHost(ws);
+    // chi guidava gli avversari del software è uscito durante la gara: li prende un'altra persona (S-39)
+    if ((this.state.phase === 'countdown' || this.state.phase === 'racing') && this.state.pilota === me.id) this.nuovoPilota(null, ws);
     if (this.players(ws).length === 0 && this.state.phase !== 'countdown' && this.state.phase !== 'racing') {
       this.state.phase = 'lobby';
       this.state.voiceRep = {};

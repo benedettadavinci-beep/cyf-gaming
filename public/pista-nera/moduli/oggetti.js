@@ -134,6 +134,7 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
       const ah = aheadOf(P);
       if (ah) {
         net.send({ t: 'throw', target: ah.id, hid, kind });
+        if (stato.colpo) stato.colpo(ah.id, kind);   // il bersaglio è un avversario del software guidato da qui (R-234)
         showThrow(myId, ah.id, hid, kind);
         say(tr(kind === 'bananone' ? 'bananoneThrownAt' : 'bananaThrownAt', { n: nameOf(ah.id) }) + '  −' + COST[kind], '#8a6d3b');
         return;

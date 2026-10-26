@@ -11,7 +11,7 @@
 // quella del server, il server risponde { t: 'aggiorna' } e chiude: chi ha ancora la pagina vecchia aperta vede
 // "aggiorna la pagina" invece di errori strani.
 globalThis.CYF_PROTOCOLLO = (() => {
-  const VERSIONE = 6;   // 2 (0.13.0): "pronto" e banana lanciata ("throw"); 3 (0.14.0): capelli (h); 4 (0.15.0): pantaloni (p), casco (e), tavola (s); 5 (0.16.0): bananone (kind nel "throw"); 6 (0.17.0): pista del giorno (daily nel "welcome", giorno in "countdown" e "results")
+  const VERSIONE = 7;   // 2 (0.13.0): "pronto" e banana lanciata ("throw"); 3 (0.14.0): capelli (h); 4 (0.15.0): pantaloni (p), casco (e), tavola (s); 5 (0.16.0): bananone (kind nel "throw"); 6 (0.17.0): pista del giorno (daily nel "welcome", giorno in "countdown" e "results"); 7 (0.18.0): avversari del software (bots, botfinish, pilota, as)
 
   // città: ogni città ha la sua pista, quindi in una gara tutti corrono nella stessa città (R-118, R-312)
   const SCENE = ['neve', 'napoli', 'roma', 'milano', 'parigi', 'londra', 'francoforte', 'madrid', 'lisbona', 'zagabria', 'berlino', 'zurigo', 'newyork'];
@@ -23,11 +23,15 @@ globalThis.CYF_PROTOCOLLO = (() => {
   const COSTI = { banana: 50, bomb: 150 };     // punti della gara spesi per lasciare l'oggetto (R-113)
   COSTI.bananone = COSTI.bomb * 10;            // bananone: 10 volte la bomba (R-231)
   const FERMO = { banana: 2, bomb: 4, bananone: 4 };   // secondi di fermo per chi viene colpito (R-223, R-224, R-231)
+  // avversari guidati dal software (R-234, S-39): nomi comuni in più lingue, usati dal server (gare) e dal gioco (allenamento)
+  const NOMI_BOT = ['Marco', 'Giulia', 'Luca', 'Sofia', 'Matteo', 'Chiara', 'Davide', 'Elena', 'Paolo', 'Sara', 'Andrea', 'Marta', 'Léa', 'Hugo', 'Chloé', 'Louis',
+    'Lucía', 'Mateo', 'Carmen', 'Javier', 'Emma', 'Noah', 'Olivia', 'Jack', 'Mia', 'Leon', 'Hannah', 'Felix', 'Ana', 'Tiago', 'Ivan', 'Petra', 'Nina', 'Tom', 'Alex', 'Zoe'];
+  const MAX_BOTS = 4;                          // avversari che chi organizza può aggiungere a una sfida (R-237)
 
   // messaggi dal gioco al server: tipo → campi obbligatori con il loro tipo ("n" numero, "s" testo, "b" vero/falso)
   const CLIENT = {
     hello:       { id: 's', name: 's', v: 'n' },                  // facoltativi: j (maglia), h (capelli), p (pantaloni), e (casco), s (tavola), sc (città)
-    settings:    { minutes: 'n' },                                // solo l'organizzatore
+    settings:    { minutes: 'n' },                                // solo l'organizzatore; bots facoltativo: avversari del software 0…4 (R-237)
     scena:       { scena: 's' },                                  // solo l'organizzatore
     jersey:      { j: 's' },                                      // aspetto del personaggio (R-229): h, p, e, s facoltativi
     ready:       {},
@@ -37,8 +41,10 @@ globalThis.CYF_PROTOCOLLO = (() => {
     throw:       { target: 's', hid: 's' },                       // banana lanciata al giocatore davanti (R-224); kind facoltativo: 'banana' o 'bananone' (R-231)
     pos:         { x: 'n', z: 'n' },                              // y, a, s, f, g, v, c, k, top, tk, p facoltativi
     finish:      {},                                              // top, tk, p facoltativi
-    drop:        { kind: 's', x: 'n', z: 'n', hid: 's' },
-    hit:         { hid: 's' },                                    // owner, kind facoltativi
+    drop:        { kind: 's', x: 'n', z: 'n', hid: 's' },        // as facoltativo: un avversario del software (solo il pilota), anche in throw e hit
+    hit:         { hid: 's' },                                    // owner, kind, as facoltativi
+    bots:        { b: 'o' },                                      // posizioni degli avversari del software, solo dal pilota (R-234)
+    botfinish:   { id: 's' },                                     // un avversario del software arriva al traguardo; top, tk, p facoltativi
     voice:       { mime: 's', data: 's' },                        // dur facoltativa
     reportVoice: { id: 's' }
   };
@@ -63,7 +69,9 @@ globalThis.CYF_PROTOCOLLO = (() => {
     voiceOk:      { next: 'n' },
     voiceWait:    { next: 'n', now: 'n' },
     voiceBlocked: {},
-    reported:     {}
+    reported:     {},
+    bots:         { b: 'o' },                                      // posizioni degli avversari del software (R-234)
+    pilota:       { id: 's' }                                      // chi guida gli avversari del software (S-39); bots facoltativo: le ultime posizioni
   };
 
   // controlla un messaggio contro il contratto: restituisce null se va bene, altrimenti il motivo
@@ -80,6 +88,6 @@ globalThis.CYF_PROTOCOLLO = (() => {
     return null;
   }
 
-  return { VERSIONE, SCENE, cleanScena, DURATIONS, MAX_PLAYERS, DROP_KINDS, THROW_KINDS, COSTI, FERMO, CLIENT, SERVER, valida };
+  return { VERSIONE, SCENE, cleanScena, DURATIONS, MAX_PLAYERS, DROP_KINDS, THROW_KINDS, COSTI, FERMO, NOMI_BOT, MAX_BOTS, CLIENT, SERVER, valida };
 })();
 if (typeof window !== 'undefined') { window.PN = window.PN || {}; window.PN.protocollo = globalThis.CYF_PROTOCOLLO; }

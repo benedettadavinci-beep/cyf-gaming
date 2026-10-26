@@ -69,7 +69,7 @@ with sync_playwright() as p:
     pg.evaluate("localStorage.removeItem('cyf.debug')")
     pg.close()
 
-    print('R3 · pista del giorno (R-233): pulsante nel menu, si parte subito nella città di oggi, niente banane')
+    print('R3 · pista del giorno (R-233, R-238): pulsante nel menu, si parte subito nella città di oggi con 3 avversari, niente banane')
     import json
     pg = ctx.new_page(); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))
@@ -88,6 +88,9 @@ with sync_playwright() as p:
     check(st['modo'] in ('countdown', 'race') and st['scena'] == G['scena'] and st['stanza'].startswith('G') and st['gara'] == 12000,
           'si parte subito, senza stanza d\'attesa, nella città di oggi con la gara da 5 minuti', json.dumps({k: st[k] for k in ('modo', 'scena', 'stanza', 'gara')}))
     check(pg.evaluate("document.getElementById('items').hidden") and pg.evaluate("document.getElementById('lobby').hidden"), 'niente banane e bombe, e niente stanza della sfida')
+    try: pg.wait_for_function('window.CYFDiag.state().avversari === 3', timeout=15000)
+    except Exception: pass
+    check(pg.evaluate('window.CYFDiag.state().avversari') == 3, 'in pista ci sono 3 avversari del computer (R-238)', str(pg.evaluate('window.CYFDiag.state().avversari')))
     check(not errs and '?sfida=' not in pg.url, 'nessun errore e nessun link di sfida nell\'indirizzo', '; '.join(errs)[:200])
     br.close()
 

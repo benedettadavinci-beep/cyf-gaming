@@ -7,7 +7,7 @@
 // Solo modello e animazione: niente fisica, niente stato di gioco.
 window.PN = window.PN || {};
 PN.rider = (() => {
-  const { TAU, lin, store } = PN.base;
+  const { TAU, lin, store, mulberry32 } = PN.base;
   // ---------- riders (local and remote share the same model) ----------
   const RM = c => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.7, metalness: 0 });
   const SHARED = { stripe: RM('#ff5a1f'), glove: RM('#141414'), boot: RM('#1b1b1b'), skin: RM('#dfae8c'), goggle: new THREE.MeshStandardMaterial({ color: lin('#ffb347'), roughness: 0.15, metalness: 0.6 }) };
@@ -212,6 +212,18 @@ PN.rider = (() => {
     'colore-nero': { body: ['#23262c'], sleeves: '#23262c', color: true }, 'colore-bianco': { body: ['#eceff2'], sleeves: '#eceff2', color: true }
   };
   const myJersey = () => { const v = store.get('cyf.jersey') || ''; return JERSEYS[v] ? v : ''; };
+  // aspetto degli avversari guidati dal software (R-234): scelto a caso dal loro codice, quindi uguale su ogni dispositivo
+  function lookBot(id) {
+    let h = 2166136261;
+    for (const ch of String(id || '')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+    const r = mulberry32(h), any = n => Math.floor(r() * n);
+    const js = Object.keys(JERSEYS);
+    return {
+      j: r() < 0.6 ? js[any(js.length)] : '', h: HAIR_STYLES[any(HAIR_STYLES.length)].name + ':' + any(HAIR_COLORS.length),
+      p: r() < 0.7 ? String(any(PANTS.length)) : '', e: r() < 0.45 ? HELMETS[any(HELMETS.length)] + ':' + any(HELMET_COLORS.length) : '',
+      s: BOARDS[any(BOARDS.length)] + ':' + (r() < 0.3 ? '' : any(BOARD_COLORS.length))
+    };
+  }
   // la giacca è una texture per colore o maglia, con lo stemma CYF sui fianchi, sul petto e sulla schiena (R-216, al posto delle ali)
   const jacketTex = new Map();
   // stemma CYF: scudo bianco bordato di blu notte, fascia arancione con la cima innevata e la scritta CYF.
@@ -515,5 +527,5 @@ PN.rider = (() => {
     setBoard('snow');
     return { group, body, pose, setColor, setBoard, setLook, setGear };
   }
-  return { JERSEYS, HAIR_STYLES, HAIR_COLORS, HAIR_RE, PANTS, HELMETS, HELMET_COLORS, BOARDS, BOARD_COLORS, cleanGear, lookOf, myHair, myGear, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
+  return { JERSEYS, HAIR_STYLES, HAIR_COLORS, HAIR_RE, PANTS, HELMETS, HELMET_COLORS, BOARDS, BOARD_COLORS, cleanGear, lookOf, lookBot, myHair, myGear, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
 })();
