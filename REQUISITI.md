@@ -1,7 +1,51 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.16.1 · aggiornato al 26 ottobre 2026, ore 13 · piano per far crescere il gioco (sezione 13): misure, pista del giorno, fantasmi, sfida con il link"
+subtitle: "Versione 0.17.0 · aggiornato al 26 ottobre 2026, ore 21 · in testa i prossimi passi, dopo tutto quello che è stato fatto"
 ---
+
+# Prossimi passi
+
+Aggiornati il 26/10/2026 alle 21 (versione online: 0.17.0). È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
+
+## Cosa puoi fare tu, Luigi
+
+| N. | Cosa | Tempo | ID |
+|---|---|---|---|
+| 1 | Approvare i lavori per il turno di notte (tabella di Claude qui sotto, colonna "Notte" = "Da approvare"): basta scrivere "ok notte" oppure i numeri delle righe | 1 min | R-506 |
+| 2 | Dal telefono, provare la **pista del giorno** (pulsante azzurro nel menu) e le novità dalla 0.10 alla 0.17, meglio con qualche amico; poi scrivere i requisiti che vanno bene ("R-233 controllato") | 15-30 min | D-01, D-09, D-10 |
+| 3 | Decidere le scelte aperte di Claude (sezione 7). Le più urgenti: S-39 (fantasmi, serve per la 0.18), S-41 (regole del giorno e della notte) e S-42 (struttura del software). Basta "S-xx va bene" oppure cosa cambiare | 10 min | D-04 |
+| 4 | Dire dove vuoi trovare il Word aggiornato in automatico anche a PC spento (R-507): oggi è su GitHub (`docs/`) e in chat; sul Desktop arriva solo con il PC collegato | 1 min | R-507 |
+| 5 | Creare la chiave Cloudflare per il sito di prova `cyf-gaming-prova`, per provare le novità dal telefono prima che le vedano tutti | 10 min | A-09 |
+| 6 | Comprare e collegare il dominio (es. cyfgaming.it, ~10-15 €/anno) | 10 min | D-03 |
+| 7 | Leggere al mattino il rapporto del turno di notte e verso le 18 il confronto con le altre app (arriva la notifica sul telefono) | 5 min al giorno | R-503, R-508 |
+
+## Cosa fa Claude, in ordine
+
+**Giorno**: Claude scrive i requisiti e il codice su un ramo `giorno/…`, senza prove. **Notte**: il turno di notte (dalle 23:07) prova tutto, corregge gli errori e pubblica; la novità è online la mattina dopo. Nella colonna "Notte", "Sì" vuol dire che il turno di notte può farlo da solo con il tempo che gli resta; "Da approvare" aspetta l'ok di Luigi.
+
+| N. | Cosa | Perché | ID | Versione | Notte |
+|---|---|---|---|---|---|
+| 1 | Fantasmi: le discese migliori corrono in pista come avversari trasparenti | Si gioca in gara anche quando non c'è nessuno collegato | R-234 | 0.18 | No (serve S-39) |
+| 2 | Nella sala online, dopo 30 s da soli si corre contro i fantasmi | Niente più attese a vuoto | R-235 | 0.18 | No |
+| 3 | Server diviso per argomento, prima che `src/worker.js` superi le 1.000 righe | Ogni novità del server tocca un file piccolo | A-20 | 0.18.x | Da approvare |
+| 4 | Link "batti il mio tempo" con il fantasma e immagine del risultato | Chi gioca porta altri giocatori | R-236, D-05 | 0.19 | No |
+| 5 | Prestazioni misurate ogni notte, con soglie (fps, peso della pagina, caricamento) | Si vede subito se una novità rallenta il gioco | A-14 | — | Da approvare |
+| 6 | Pagina più leggera: file del gioco uniti e compressi, città scaricate solo quando servono, Three.js dal sito stesso | Il caricamento non cresce con le città nuove | A-19, A-16 | 0.20 | Da approvare |
+| 7 | Prove divise per modulo: il cancello prova solo i moduli toccati, la notte tutto | Il cancello resta veloce anche con molti moduli | A-22 | — | Da approvare |
+| 8 | Fisica separata dalla grafica, poi controllo contro chi bara sul server | Serve anche ai fantasmi e alle classifiche | A-11 | 0.21 | No |
+| 9 | Dati del server divisi per argomento | Un solo punto di passaggio rallenterebbe con molti giocatori | A-21 | quando le misure lo chiedono | No |
+| 10 | Parte comune C-Y-F per il secondo gioco, controllo dei tipi, interruttori per le novità | Il secondo gioco costa una frazione del primo | A-13, A-15, A-17 | dopo | No |
+
+## Regole di lavoro (decise da Luigi)
+
+1. **Prove solo di notte (R-506).** Di giorno nessuna prova, nemmeno quella rapida, se Luigi non lo chiede chiaramente ("fai le prove adesso", "pubblica adesso"). Il turno di notte parte alle 23:07, fa il giro completo, corregge tutti gli errori che le prove e i telefoni dei giocatori mostrano, e pubblica solo se tutto è verde.
+2. **Prima il file dei requisiti, poi il software (R-501),** e il Word si rigenera a ogni cosa fatta, con i prossimi passi in testa (R-507).
+3. **Ogni giorno verso le 18 il confronto con le altre app** e cosa manca (R-508).
+4. **All'inizio di ogni attività: tempo che serve e token (R-509).**
+5. **Il software deve crescere senza rallentare (R-510):** struttura scelta nella sezione 11, piano del 26/10.
+6. **Un solo gioco per PC, Android e iPhone (R-010).**
+
+# Come leggere questo documento
 
 Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta e lo salva nella cartella "CYF gaming" sul Desktop; la copia tecnica è su GitHub (REQUISITI.md).
 
@@ -118,10 +162,14 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 |---|---|---|---|---|
 | R-501 | File con tutti i requisiti del gioco, aggiornato a ogni richiesta, nella cartella "CYF gaming" sul Desktop | 24/10/2026 | Fatto | Questo documento; copia anche su GitHub (REQUISITI.md) |
 | R-502 | Nel file dei requisiti, oltre a fatto e da fare, lo stato "Controllato" | 24/10/2026 | Fatto | Vedi la legenda all'inizio |
-| R-503 | Controllo generale automatico ogni sera verso le 22: qualità, bachi, stabilità e idee di miglioramento | 24/10/2026 | Fatto | Attività pianificata ogni sera alle 22:59 ora italiana (fino al 24/10 alle 21:33; spostata per lasciare libera la serata di lavoro); corregge solo bachi piccoli e sicuri e lascia un rapporto. Dal 25/10 fa anche il giro completo del cancello dei test (A-05) |
+| R-503 | Controllo generale automatico ogni sera verso le 22: qualità, bachi, stabilità e idee di miglioramento | 24/10/2026, aggiornato 26/10 | Fatto | **Turno di notte** ogni sera alle 23:07 ora italiana (fino al 26/10 alle 22:59): unisce i rami del giorno `giorno/*`, fa il giro completo delle prove, corregge ogni errore che trovano le prove o che arriva dai telefoni (con una prova nuova che lo avrebbe trovato), pubblica solo con tutte le prove verdi, rigenera il Word e lascia il rapporto con le misure. Con il tempo che resta fa i lavori dei Prossimi passi con "Sì" nella colonna Notte; si ferma entro le 6:30. Se una correzione richiede una scelta, non sceglie: la mette nei prossimi passi |
 | R-504 | Migliorare la descrizione del documento Word e delle tabelle | 24/10/2026 | Fatto | Introduzione, legenda e colonne riscritte; colonna "Come funziona oggi" |
 | R-505 | Business plan con aspetti economici e strategia aziendale, in un file separato | 24/10/2026 | Fatto | CYF-Gaming-business-plan.docx nella cartella sul Desktop |
-| R-506 | Le prove lunghe (gioco completo, risultati, lingue, comandi, vocali) girano solo di notte; di giorno solo il cancello rapido, per non perdere tempo e token (P-02) | 25/10/2026 | Fatto | Di giorno: `npm test` (cancello rapido, anche su GitHub a ogni push) più controlli mirati e foto quando servono. Le prove lunghe le fa il controllo notturno (R-503); se trova un problema lo corregge o lo segnala nel rapporto del mattino |
+| R-506 | Nessuna prova di giorno se Luigi non lo chiede chiaramente: le prove si fanno di notte, dopo le 23, sfruttando al massimo la notte; gli errori che il sistema vede vanno corretti (P-02) | 25/10/2026, aggiornato 26/10 | Fatto | Dal 26/10 sera. Di giorno Claude non lancia prove (né `npm test` né altre): scrive requisiti e codice su un ramo `giorno/<nome>`, dove il cancello di GitHub non parte (`branches-ignore` in `.github/workflows/cancello.yml`). Il turno di notte (R-503) unisce i rami, prova, corregge e pubblica: le novità vanno online la mattina dopo. Se Luigi scrive "pubblica adesso", si fa il cancello e si pubblica subito (S-41). Fino al 26/10 di giorno girava il cancello rapido |
+| R-507 | Nel Word, all'inizio i prossimi passi e dopo tutto quello che è stato fatto; il Word si aggiorna da solo quando qualcosa viene fatto | 26/10/2026 | Fatto | Sezione "Prossimi passi" in testa: cosa può fare Luigi e cosa fa Claude, in ordine, con "Notte" per i lavori del turno di notte; poi le regole di lavoro, le sezioni 1-13 e lo storico. A ogni cosa fatta Claude (o il turno di notte) rigenera il Word con `tools/requisiti_docx.py` e lo mette in `docs/CYF-Gaming-requisiti.docx` su GitHub; Claude lo manda anche in chat. Sul Desktop arriva solo con il PC collegato e il permesso sulla cartella: da decidere con Luigi se usare Google Drive, che si sincronizza da solo sul PC |
+| R-508 | Ogni giorno verso le 18 un confronto tra questo software e le altre app, e cosa manca per migliorarlo | 26/10/2026 | Fatto | Attività pianificata "Confronto concorrenti CYF Gaming" alle 17:59 ora italiana, con notifica sul telefono: ogni giorno 3-4 app diverse (corse nel browser, snowboard, giochi sociali e "del giorno", corse per telefono), dati pubblici e notizie degli ultimi 30 giorni, misure del sito; al massimo 5 proposte ordinate per giocatori che tornano diviso lavoro, con le fonti. Non tocca il codice e non fa prove: le proposte nuove sono "Da confermare". Primo rapporto il 27/10 |
+| R-509 | All'inizio di ogni attività dire il tempo che serve e a quanti token si è | 26/10/2026 | Fatto | Prima frase di ogni lavoro: tempo stimato e token. Claude vede i token che restano nella sessione, non il conto esatto di quelli usati: dà i token rimasti e una stima del consumo dell'attività |
+| R-510 | Il software deve essere costruito per crescere senza rallentamenti quando arriveranno nuove funzioni | 26/10/2026 | In corso | Struttura scelta da Claude (S-42), piano del 26/10 nella sezione 11: A-19…A-22 più A-11, A-13…A-17, un passo alla volta tra una funzione e l'altra (vedi Prossimi passi), ognuno provato di notte. Già fatto: moduli e matrice delle dipendenze (A-10, A-11 in parte, A-12, A-18), cancello delle prove (A-01…A-05) |
 
 # 7. Scelte fatte da Claude (da confermare)
 
@@ -168,6 +216,8 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-38 | Misure (R-232), scelte di Claude: i ritorni si contano "classici", cioè chi torna esattamente 1, 7 o 30 giorni dopo il primo giorno (come negli studi sui giochi, così i numeri si possono confrontare); i giorni sono in ora UTC (cambiano all'una di notte, alle 2 in estate); il tempo di caricamento va dall'apertura della pagina alla prima immagine del gioco; i punti "fatti" in una gara sono quelli rimasti più quelli spesi in banane, bombe e bananoni. Le visite le manda il gioco senza un controllo del server, quindi qualcuno potrebbe gonfiarle: vanno lette come ordine di grandezza. Nelle prime settimane chi giocava già prima del 26/10 risulta "nuovo" il primo giorno in cui torna | 26/10/2026 | Da confermare |
 | S-39 | Fantasmi (R-234), scelte di Claude: non si possono colpire con banane, bombe e bananoni e non possono colpire (non c'è nessuno da fermare); sono trasparenti, con nome e tempo, e non entrano nella classifica dal vivo dei giocatori veri | 26/10/2026 | Da confermare |
 | S-40 | Pista del giorno (R-233), scelte di Claude: la #1 è il 26/10/2026; le città girano in un ordine fisso di 13 giorni (Napoli, Neve, Roma, Parigi, Londra, Milano, Berlino, Madrid, New York, Zagabria, Lisbona, Francoforte, Zurigo), così due giorni di fila non hanno mai la stessa città; si riprova quante volte si vuole e conta il tempo migliore del giorno; la gara del giorno dà solo i punti fatti in gara (acrobazie e bonus), non i 100 punti del primo posto, perché si corre da soli; banane, bombe, bananoni e vocali non ci sono, perché non c'è nessuno da colpire o da sentire; un tempo valido entra anche nella classifica generale dei 5 minuti; vale il giorno in cui si parte (una gara iniziata alle 23:58 conta per quel giorno) | 26/10/2026 | Da confermare |
+| S-41 | Regole del giorno e della notte (R-506): il codice del giorno va su rami `giorno/*`, dove il cancello di GitHub non parte, e lo pubblica il turno di notte dopo il giro completo; "pubblica adesso" di Luigi vale come richiesta chiara di fare le prove subito. Il turno di notte corregge da solo gli errori, ma se la correzione richiede una scelta tra due comportamenti non sceglie e la mette nei prossimi passi | 26/10/2026 | Da confermare |
+| S-42 | Struttura per crescere (R-510): si resta su JavaScript senza framework, Three.js, Cloudflare Workers e GitHub, senza riscrivere nulla. Si aggiungono: un passo di costruzione con esbuild che unisce e comprime i file e scarica le città solo quando servono (A-19), server e dati divisi per argomento (A-20, A-21), prove per modulo e soglie di prestazioni (A-22, A-14). Alternative scartate: un motore di gioco come Babylon.js o PlayCanvas (vorrebbe dire riscrivere), TypeScript completo (basta il controllo con JSDoc, A-15), un altro hosting o un'altra piattaforma al posto di GitHub (i limiti attuali sono lontani) | 26/10/2026 | Da confermare |
 | S-37 | Bananone (R-231), scelte di Claude: tasto **G** (libero; B e N restano a banana e bomba); il doppio tocco sulla pista lancia sempre la banana normale, per non spendere 1.500 punti per sbaglio; il costo è legato alla bomba (se un giorno cambia la bomba, cambia anche il bananone); a terra si prende entro 2 m (la banana entro 1 m); dopo un colpo, come per gli altri oggetti, per qualche secondo non si viene colpiti di nuovo. 1.500 punti in una gara si raccolgono soprattutto con le acrobazie sui trampolini: se dopo le prove sembra troppo difficile arrivarci, si può abbassare il moltiplicatore | 25/10/2026 | Da confermare |
 
 # 8. Idee per il futuro (da confermare)
@@ -192,21 +242,14 @@ Emerse nelle chat precedenti; nessuna è stata ancora approvata.
 | F-14 | Livelli e parti del personaggio da sbloccare con i punti collezionati, solo estetiche e senza vantaggi in gara, come Smash Karts. Niente ruote della fortuna o bauli a sorpresa. Attenzione: i punti delle sfide tra amici oggi si possono gonfiare | Da confermare |
 | F-15 | Pubblicare il gioco anche sui portali di giochi nel browser (Poki, CrazyGames): da verificare requisiti e condizioni | Da confermare |
 
-# 9. Da fare
+# 9. Da fare (archivio)
 
-Appunti operativi (aggiornati al 26/10). "Chi": chi deve muoversi per primo.
+Dal 26/10 le cose da fare sono all'inizio del documento, nei **Prossimi passi** (D-01, D-03, D-04, D-05, D-06, D-09 e D-10 sono confluiti lì). Qui restano quelle chiuse.
 
 | ID | Cosa | Chi |
 |---|---|---|
-| D-01 | Provare la v0.9.1 dai telefoni con qualche amico (microfono su iPhone, comandi touch, fluidità) e scrivere a Claude i numeri dei requisiti che vanno bene ("R-303 controllato") | Luigi |
 | D-02 | ~~Leggere il rapporto del primo controllo notturno~~ Il controllo gira ogni sera alle 22:59 e lascia il rapporto | Luigi ✓ |
-| D-03 | Comprare il dominio (es. cyfgaming.it, ~10-15 €/anno) e collegarlo: Cloudflare → Workers & Pages → cyf-gaming → Domains. Claude guida se serve | Luigi, ~10 min |
-| D-04 | Decidere le scelte ancora aperte (S-01, S-07…S-39; S-02, S-03, S-04 e S-06 confermate il 25/10): basta scrivere "S-xx va bene" oppure cosa cambiare | Luigi |
-| D-05 | Immagine automatica del risultato ("1° a Napoli in 5:12") da allegare alla condivisione: dal 26/10 fa parte di R-236 | Claude |
-| D-06 | Prime letture dei contatori (/api/stats) dopo le gare di prova, per partire con i numeri del business plan | Insieme |
 | D-08 | ~~Proteggere `main` su GitHub~~ Fatto il 25/10 alle 9:46 (A-08) | Luigi ✓ |
-| D-09 | Provare dal telefono le novità dalla 0.10 alla 0.16: città (Napoli e Roma le più cambiate), "Sono pronto" e mano alzata, banana lanciata e bananone, bomba 4 s, "Modifica il personaggio" e codice personale | Luigi |
-| D-10 | Provare con gli amici la 0.11.0: partenza quando ci sono tutti, città e durata decise dall'organizzatore, maglia nella stanza, trampolini giganti, forma della pista di ogni città, faccia dopo un 180°, stemma CYF | Luigi |
 | D-07 | ~~Ricopiare sul Desktop i file Word aggiornati~~ Fatto il 25/10 alle 8: Word dei requisiti alla 0.9.2 e tabella Excel delle città aggiornata con lo stato nel gioco (tutte le 12 città "Nel gioco", in arancione i 4 punti diversi dalla tabella, vedi S-12) | Claude ✓ |
 
 # 10. Verifica completa del 25 ottobre 2026
@@ -385,6 +428,12 @@ Raccomandazioni del 25/10/2026 per far sì che, man mano che il gioco cresce, le
 | A-16 | Aggiornare Three.js e servirlo dal sito stesso | 25/10/2026 | Da fare | Oggi si usa la r128 (2021) da un CDN esterno: se il CDN ha un problema, il gioco non parte. Va fatto dopo A-11, con le foto delle città per confrontare prima e dopo |
 | A-18 | Lavorare con 2-4 chat di Claude in parallelo, ognuna su una parte diversa del software | 25/10/2026 | Fatto | Dalla 0.12.0 è possibile: moduli separati (A-10, A-11), contratto di rete (A-12), `main` protetto (A-08) e la **matrice dei moduli** in `MODULI.md`, generata da `node tools/verifica/matrice.mjs` (nel cancello con `--check`: se un modulo usa qualcosa che non dichiara, o due moduli si usano a vicenda, le prove si chiudono). Regole: nella prima frase di ogni chat si dice su quale modulo lavora ("questa chat tocca solo `citta/milano.js`"); ogni chat lavora su un ramo proprio e unisce a `main` solo con il cancello verde; ogni chat aggiorna solo le proprie righe di questo file e lo storico; il controllo notturno rigenera il Word sul Desktop. Coppie sicure: moduli che nella matrice non si toccano (città e vocali, rider e rete, oggetti e sfondi). Due chat sullo stesso modulo o tutte e due su `game.js`: una alla volta |
 | A-17 | Interruttori per le novità | 25/10/2026 | Da fare | In `config.js`, per accendere una novità solo per Luigi (o con `?prova=nome`) prima che per tutti |
+| A-19 | Pagina che non si appesantisce quando il gioco cresce | 26/10/2026 | Da fare | Oggi la pagina del gioco carica 35 file separati (circa 430 KB di codice non compresso, più Three.js da un CDN esterno), comprese tutte le 12 città anche se se ne usa una. Un passo di costruzione con esbuild (uno strumento solo, molto veloce) unisce e comprime i file, e ogni città si scarica solo quando serve. Il codice sorgente resta diviso in moduli come oggi; aggiungere città e moduli non allunga più il caricamento. Con A-16 |
+| A-20 | Server diviso per argomento | 26/10/2026 | Da fare | `src/worker.js` (864 righe) contiene stanze, classifiche, pista del giorno, misure, profili ed errori. Va diviso in file per argomento (stanze, classifica, giorno, misure, profili, errori) con un piccolo smistatore degli indirizzi `/api/…`, come già fatto per il gioco, prima che i fantasmi (R-234) lo facciano crescere ancora |
+| A-21 | Dati del server divisi per argomento | 26/10/2026 | Da fare | Oggi un solo oggetto "Leaderboard" tiene classifiche, punti, visite, profili, errori e pista del giorno, e dalla 0.16.1 ogni pagina aperta vi fa una richiesta. La documentazione di Cloudflare indica per un singolo Durable Object un limite indicativo di circa 1.000 richieste al secondo: lontanissimo dai numeri di oggi. Si divide quando le misure (R-232) mostrano la crescita |
+| A-22 | Prove divise per modulo | 26/10/2026 | Da fare | Ogni modulo ha le sue prove; il cancello, grazie alla matrice di `MODULI.md`, lancia solo quelle dei moduli toccati e di chi ne dipende, così resta sotto i 3 minuti anche con molti moduli. Il turno di notte lancia sempre tutto |
+
+**Piano del 26/10 per crescere senza rallentare (R-510, S-42).** Luigi: "questo software crescerà inevitabilmente". I rallentamenti possibili sono di due tipi. Per chi gioca: pagina più pesante e meno fps a ogni città o funzione nuova; contro questi A-19, A-16 e A-14, che misura e blocca i peggioramenti. Per chi sviluppa: file sempre più grandi, prove sempre più lunghe, modifiche che rompono altro; contro questi A-20, A-22, A-11, A-13, A-15 e A-17. Ordine: un passo di struttura tra una funzione e l'altra (vedi Prossimi passi), mai tutti insieme e mai una riscrittura. Piattaforma: si resta su GitHub e Cloudflare (motivi in S-42).
 
 **Cosa non fare.** Niente riscrittura completa: è la causa classica di progetti fermi per mesi; si sposta un pezzo alla volta, con le prove che confermano che nulla cambia. Niente framework come React per il gioco: non servono e appesantiscono. Niente server diviso in tanti servizi: con i numeri attuali Worker e Durable Objects bastano largamente.
 
