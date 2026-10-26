@@ -1,5 +1,5 @@
 // modulo: generazione
-// dipende da: base, geometria, pista, citta, tracciato
+// dipende da: base, geometria, pista, citta, tracciato, fisica
 // La pista si costruisce man mano che il rider scende, con il seme della gara: stessi numeri casuali su ogni dispositivo,
 // quindi stessa pista per tutti (R-103). Qui stanno le file di ostacoli, bonus, rampe e porte (uguali in ogni città,
 // R-309), i trampolini giganti con lo spazio libero attorno (R-214), gli alberi della neve, i palazzi, gli oggetti e i
@@ -150,6 +150,40 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
       metti: o => { if (!ghost) objs.push(costruisci(o)); }
     });
   }
+  // scritta CYF sul trampolino gigante (R-240): un foglio che segue la curva vera della salita (la stessa rampTop della
+  // fisica), con i colori dello stemma; si legge arrivando. Texture e materiale uno solo per tutti i trampolini
+  let cyfMat = null;
+  function materialeCYF() {
+    if (cyfMat) return cyfMat;
+    const c = document.createElement('canvas'); c.width = 512; c.height = 256;
+    const g = c.getContext('2d');
+    const box = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+    box(10, 18, 492, 220, 46); g.fillStyle = '#13233a'; g.fill();
+    g.lineWidth = 12; g.strokeStyle = '#ffffff'; g.stroke();
+    g.font = '900 170px "Barlow Condensed", "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineJoin = 'round'; g.lineWidth = 14; g.strokeStyle = '#ffffff'; g.strokeText('CYF', 256, 134);
+    g.fillStyle = '#ff5a1f'; g.fillText('CYF', 256, 134);
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = Math.min(8, ANISO);
+    cyfMat = new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.7, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
+    return cyfMat;
+  }
+  function scrittaCYF(r) {
+    const k = 2, city = isCity(), base = hgt(r.x, r.z), NX = 4, NZ = 14, W = 5.2;
+    const z0 = r.z + 1.6 * k, z1 = r.z - 1.7 * k;   // dal piede della salita fino quasi al bordo di stacco
+    const pos = [], uv = [], idx = [];
+    for (let i = 0; i <= NZ; i++) {
+      const z = z0 + (z1 - z0) * i / NZ, y = base + PN.fisica.rampTop(r, z, city) + 0.03;
+      for (let j = 0; j <= NX; j++) { pos.push(r.x + (j / NX - 0.5) * W, y, z); uv.push(j / NX, i / NZ); }
+      if (i) for (let j = 0; j < NX; j++) { const a = (i - 1) * (NX + 1) + j, b = a + NX + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx); geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, materialeCYF()); m.receiveShadow = true;
+    world.add(m);
+    return m;
+  }
   function costruisci(o) {
     const { x, z } = o;
     if (o.type === 'tree') {
@@ -162,7 +196,11 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
       const food = CC ? (o.alt ? assets().fa : assets().fb) : null;
       return { type: 'gem', x, z, mesh: food ? addMesh(food, vcMat, x, z, { y: 0.9 }) : addMesh(gemGeo, gemMat, x, z, { y: 0.9 }), phase: o.phase, food: CC ? (o.alt ? CC.fa : CC.fb) : null };
     }
-    if (o.type === 'ramp') return { type: 'ramp', x, z, used: false, big: o.big, mesh: addMesh(isCity() ? assets().ramp : GEO.ramp, vcMat, x, z, o.big ? { recv: true, s: 2 } : { recv: true }) };
+    if (o.type === 'ramp') {
+      const r = { type: 'ramp', x, z, used: false, big: o.big, mesh: addMesh(isCity() ? assets().ramp : GEO.ramp, vcMat, x, z, o.big ? { recv: true, s: 2 } : { recv: true }) };
+      if (o.big) r.deco = scrittaCYF(r);   // sul trampolino gigante la scritta CYF (R-240)
+      return r;
+    }
     const gi = o.gi;
     return { type: 'gate', x, z, half: 2.4, done: false, mesh: addMesh(CC ? assets().gates[gi] : (gi ? GEO.gateBlue : GEO.gateRed), vcMat, x, z), col: CC ? CC.gate[gi] : (gi ? '#2766c6' : '#d8302a') };
   }
@@ -215,6 +253,7 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
   }
   function removeObj(o) {
     world.remove(o.mesh);
+    if (o.deco) { world.remove(o.deco); o.deco.geometry.dispose(); }
     if (o.type === 'bldg' || o.type === 'edge' || o.type === 'side') o.mesh.geometry.dispose();
   }
   function spawnForest(z, ghost) {

@@ -196,7 +196,7 @@ console.log('T3 · organizzatore, durata, partenza, stesso seed, arrivo troppo v
   lb = A.last('lobby'); ok(lb.minutes === 5, 'un non organizzatore non può cambiare la durata', String(lb.minutes));
   B.send({ t: 'start' }); const cd0 = await A.waitType('countdown', 1200); ok(!cd0, 'un non organizzatore non può far partire la gara');
   A.send({ t: 'settings', minutes: 10 }); lb = await B.wait(m => m.t === 'lobby' && m.minutes === 10, 3000);
-  ok(lb && lb.length === 24000, 'durata 10 min → lunghezza 24.000 m', lb && String(lb.length));
+  ok(lb && lb.length === 8400, 'durata 10 min → lunghezza 8.400 m (R-242)', lb && String(lb.length));
   A.send({ t: 'settings', minutes: 7 }); await sleep(300); ok(A.last('lobby').minutes === 10, 'durata non ammessa (7) ignorata');
   A.send({ t: 'settings', minutes: 5 }); await B.wait(m => m.t === 'lobby' && m.minutes === 5, 3000);
   const t0 = Date.now();
@@ -205,17 +205,17 @@ console.log('T3 · organizzatore, durata, partenza, stesso seed, arrivo troppo v
   ok(cA && cB && cA.seed === cB.seed && cA.startAt === cB.startAt, 'stesso seed e stesso istante di partenza per tutti');
   ok(cA && Math.abs(cA.startAt - cA.now - 5000) < 50, 'conto alla rovescia di 5 s', cA && String(cA.startAt - cA.now));
   ok(cA && cA.racers.length === 2 && cA.racers.every(r => 'j' in r), 'elenco dei corridori con la maglia');
-  ok(cA && cA.length === 12000 && cA.minutes === 5, 'gara da 5 min = 12.000 m');
+  ok(cA && cA.length === 4200 && cA.minutes === 5, 'gara da 5 min = 4.200 m (50 km/h di media, R-242)');
   // posizioni: inoltrate agli altri, con limiti
-  A.send({ t: 'pos', x: 1, z: -50, y: 0, a: 0, s: 0, f: 0, g: 0, v: 999, c: 0, k: 0, top: 30, tk: 2, p: 120 });
+  A.send({ t: 'pos', x: 1, z: -50, y: 0, a: 0, s: 0, f: 0, g: 0, v: 999, c: 0, k: 0, top: 18, tk: 2, p: 120 });
   const pB = await B.waitType('pos', 2000);
   ok(pB && pB.id === A.id && pB.v === 60, 'posizione inoltrata agli altri, velocità limitata a 60', pB && String(pB.v));
   // arrivo appena dopo il via: più veloce del limite fisico → tempo non valido
   await sleep(Math.max(0, cA.startAt - Date.now() + 200));
-  A.send({ t: 'finish', top: 30, tk: 2, p: 120 });
+  A.send({ t: 'finish', top: 18, tk: 2, p: 120 });
   const fA = await A.waitType('finished', 3000);
   ok(fA && fA.id === A.id && fA.ms === null, 'arrivo troppo veloce scartato (ms = null)', JSON.stringify(fA));
-  B.send({ t: 'finish', top: 44, tk: 5, p: 80 });
+  B.send({ t: 'finish', top: 22, tk: 5, p: 80 });   // velocità massime sotto gli 80 km/h (R-242): oltre, il server le taglia a 24 m/s
   const res = await A.waitType('results', 3000);
   ok(!!res, 'con tutti arrivati arrivano i risultati');
   if (res) {
@@ -588,7 +588,7 @@ console.log('T13 · avversari del computer (R-234…R-238, S-39): sfida, pilota,
 
 if (process.env.VELOCE === '1') console.log('T8 saltata (VELOCE=1: giro rapido del cancello; il giro completo la fa ogni notte)');
 else {
-console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, chi esce è "non arrivato", contatori');
+console.log('T8 · gara valida con attesa reale (≥ 175 s), classifica, punti, chi esce è "non arrivato", contatori');
 {
   const statsBefore = (await api('/api/stats')).body;
   const code = rnd();
@@ -602,16 +602,16 @@ console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, 
   const V = new Client(vcode, 'gv' + code, 'Del giorno' + code.slice(0, 3)); V.path = '/api/giorno/';
   await V.connect(); await V.waitType('welcome'); V.send({ t: 'start' }); const vgo = await V.waitType('go', 5000);
   const vStart = Date.now() + (vgo ? vgo.startAt - vgo.now : 5000);
-  const minMs = Math.floor(12000 / 52 * 1000);
+  const minMs = Math.floor(4200 / 24 * 1000);   // 4,2 km a 24 m/s, il limite fisico con margine (R-242)
   console.log('   aspetto', Math.round((cd.startAt + minMs - Date.now()) / 1000), 's per un arrivo valido…');
-  const pinger = setInterval(() => { A.send({ t: 'pos', x: 0, z: -100, top: 41, tk: 3, p: 210 }); B.send({ t: 'pos', x: 0, z: -90, top: 38, tk: 7, p: 50 }); V.send({ t: 'pos', x: 0, z: -80, top: 30, tk: 2, p: 90 }); }, 5000);
+  const pinger = setInterval(() => { A.send({ t: 'pos', x: 0, z: -100, top: 21, tk: 3, p: 210 }); B.send({ t: 'pos', x: 0, z: -90, top: 19, tk: 7, p: 50 }); V.send({ t: 'pos', x: 0, z: -80, top: 18, tk: 2, p: 90 }); }, 5000);
   await sleep(cd.startAt + minMs + 1500 - Date.now());
-  A.send({ t: 'finish', top: 41, tk: 3, p: 210 });
+  A.send({ t: 'finish', top: 21, tk: 3, p: 210 });
   const fA = await A.waitType('finished', 3000);
   ok(fA && typeof fA.ms === 'number' && fA.ms >= minMs, 'arrivo valido con tempo misurato dal server', fA && String(fA.ms));
   clearInterval(pinger);
   await sleep(Math.max(0, vStart + minMs + 1500 - Date.now()));
-  V.send({ t: 'finish', top: 30, tk: 2, p: 90 });
+  V.send({ t: 'finish', top: 18, tk: 2, p: 90 });
   const vf = await V.waitType('finished', 3000), vr = await V.waitType('results', 4000);
   ok(vf && typeof vf.ms === 'number' && vf.ms >= minMs, 'pista del giorno: arrivo valido con tempo misurato dal server', vf && String(vf.ms));
   const vg = vr && vr.giorno;
@@ -629,7 +629,7 @@ console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, 
     ok(rA.id === A.id && rA.ms === fA.ms && rB.id === B.id && rB.dnf && rB.ms === null, 'classifica: il valido primo, chi è uscito "non arrivato"');
     ok(rA.earned === 100 + 210 && rB.earned === 50, 'punti: 100 al vincitore + 210 rimasti; 0 + 50 al non arrivato', rA.earned + '/' + rB.earned);
     ok(rA.total === 310, 'totale del vincitore salvato sul server', String(rA.total));
-    ok(res.awards.fastest.id === A.id && res.awards.tricks.id === B.id, 'premi: velocità a A (41 m/s), acrobazie a B (7)');
+    ok(res.awards.fastest.id === A.id && res.awards.tricks.id === B.id, 'premi: velocità a A (21 m/s), acrobazie a B (7)');
   }
   const me = (await api('/api/me?id=' + A.id)).body; ok(me.points === 310 && me.races === 1 && me.wins === 1, '/api/me: punti, gare e vittorie', JSON.stringify(me));
   const lbd = (await api('/api/leaderboard?min=5')).body;

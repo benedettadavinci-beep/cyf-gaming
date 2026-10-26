@@ -8,12 +8,16 @@ window.PN = window.PN || {};
 PN.fisica = (() => {
   const { TAU, clamp } = PN.base;
 
-  // velocità massima lungo la pista (m/s): cresce con i metri percorsi d
-  const vmax = d => 18 + Math.min(26, d * 0.00975);
-  const MAX = 46;              // nessuno va più veloce di così, nemmeno uscendo da una rampa
+  // Velocità come nella realtà (R-242, dalla 0.19.0): in uno studio con radar su 1.023 sciatori e snowboarder la media
+  // è 52 km/h (snowboarder 44) e la massima 81,7 km/h. Qui: velocità massima lungo la pista (m/s) che cresce con i metri
+  // percorsi d, da 41 km/h al via fino a 71 km/h dopo ~2,4 km; in posizione raccolta +12%, cioè 80 km/h, e mai oltre.
+  // Prima: da 65 a 158 km/h (18 + min(26, d · 0,00975) m/s), con le rampe fino a 46 m/s.
+  const vmax = d => 11.5 + Math.min(8.34, d * 0.0035);
+  const MAX = 80 / 3.6;        // 80 km/h: nessuno va più veloce, nemmeno in discesa ripida o uscendo da una rampa
   const RACCOLTA = 1.12;       // posizione raccolta (freccia giù): +12%
   const FRENATA = 0.5;         // freccia su: metà velocità
-  const AUTO = 15;             // velocità del rider che scende da solo nel menu
+  const AUTO = 11;             // velocità del rider che scende da solo nel menu
+  const limita = v => (v > MAX ? MAX : v);
   const STERZO = 2.4;          // rad/s: quanto in fretta cambia la direzione
   const ANGOLO = 1.25;         // rad: angolo massimo rispetto alla pista
   const GRAVITA = 20;          // m/s²
@@ -66,5 +70,5 @@ PN.fisica = (() => {
   // dopo l'atterraggio: un numero dispari di mezzi giri vuol dire scendere "al contrario"
   const switchDopo = spin => (Math.round(spin / Math.PI) % 2 ? Math.PI : 0);
 
-  return { vmax, MAX, RACCOLTA, FRENATA, AUTO, STERZO, ANGOLO, GRAVITA, SALTO, RAMPA, TRAMPOLINO, CADUTA, obiettivo, stacco, invuln, RAMP_FOOT, rampTop, nearest, atterraggio, switchDopo };
+  return { vmax, MAX, limita, RACCOLTA, FRENATA, AUTO, STERZO, ANGOLO, GRAVITA, SALTO, RAMPA, TRAMPOLINO, CADUTA, obiettivo, stacco, invuln, RAMP_FOOT, rampTop, nearest, atterraggio, switchDopo };
 })();

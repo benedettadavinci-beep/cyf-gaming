@@ -66,7 +66,8 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
       if (b.frenaT > 0) { b.frenaT -= dt; target *= 0.5; }
       if (b.arrivato) target = 0;
       b.speed += (target - b.speed) * (target > b.speed ? 0.75 : (b.arrivato ? 0.9 : 1.3)) * dt;
-      b.k = b.arrivato || b.frenaT > 0 ? -0.6 : (Math.abs(b.ang) < 0.35 && b.speed > 14 ? 0.8 : 0);   // posizione raccolta o frenata (si vede)
+      b.speed = F.limita(b.speed);
+      b.k = b.arrivato || b.frenaT > 0 ? -0.6 : (Math.abs(b.ang) < 0.35 && b.speed > 9 ? 0.8 : 0);   // posizione raccolta o frenata (si vede)
       // roccia da saltare: si stacca poco prima, come farebbe una persona premendo Salta
       if (b.salto && !b.onRamp && b.z - b.salto.z < Math.max(2.2, b.speed * 0.3) && b.z > b.salto.z) { b.salto = null; salta(b); }
     } else {
@@ -134,7 +135,7 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
     };
     let best = scegli(v);
     // nessuna corsia libera: frena (come una persona con la freccia su) e riprova più piano
-    if (best.costo >= 90 && v > 14) { const piano = scegli(v * 0.55); if (piano.costo < best.costo - 50) { best = piano; b.frenaT = 0.6; } }
+    if (best.costo >= 90 && v > 8) { const piano = scegli(v * 0.55); if (piano.costo < best.costo - 50) { best = piano; b.frenaT = 0.6; } }
     b.meta = best.off;
     b.salto = best.roccia ? { z: best.roccia.z } : null;
   }
@@ -394,14 +395,19 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
       if (e.owner === stato.myId) say(tr(e.kind === 'bomb' ? 'hitYourBomb' : e.kind === 'bananone' ? 'hitYourBananone' : 'hitYourBanana', { n: b.nome }), '#ff5a1f');
     }
   }
-  // banana o bananone lanciati (da un avversario del software o da una persona): chi è colpito si ferma dopo il volo
+  // banana o bananone lanciati (da un avversario del software o da una persona): chi è colpito si ferma dopo il volo.
+  // Regola R-241: chi in quel momento è in aria (salto, rampa, trampolino) non viene colpito, persone e avversari
   function colpo(bersaglio, kind, chi) {
     const big = kind === 'bananone';
     setTimeout(() => {
       if (!stato.racing()) return;
-      if (bersaglio === stato.myId) { crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: chi || tr('someone') }), FERMO[big ? 'bananone' : 'banana']); return; }
+      if (bersaglio === stato.myId) {
+        if (stato.P.air) { say(tr('dodgedAir'), '#1f8a4c'); return; }
+        crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: chi || tr('someone') }), FERMO[big ? 'bananone' : 'banana']);
+        return;
+      }
       const b = lista.find(x => x.id === bersaglio);
-      if (b) cade(b, FERMO[big ? 'bananone' : 'banana']);
+      if (b && !b.air) cade(b, FERMO[big ? 'bananone' : 'banana']);
     }, 450);
   }
   const guida_ = id => lista.some(b => b.id === id);

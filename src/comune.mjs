@@ -4,10 +4,10 @@ import '../public/shared/protocollo.js';
 export const PROTO = globalThis.CYF_PROTOCOLLO;
 
 export const MAX_PLAYERS = PROTO.MAX_PLAYERS;
-export const AVG_SPEED_MS = 40;                     // velocità media di un giocatore medio: serve a trasformare minuti in metri
+export const AVG_SPEED_MS = 14;                     // velocità media di un giocatore medio: serve a trasformare minuti in metri
 export const DURATIONS = PROTO.DURATIONS;            // minuti
 export const lengthFor = min => min * 60 * AVG_SPEED_MS;
-export const MAX_SPEED_MS = 52;                     // velocità massima possibile nel gioco (m/s), con margine
+export const MAX_SPEED_MS = 24;                     // velocità massima possibile nel gioco (m/s), con margine
 export const COUNTDOWN_MS = 5000;
 export const GATHER_MAX_MS = 40000;                 // sala online: dopo l'avvio si aspetta che tutti abbiano caricato la gara, al massimo 40 s (R-119)
 export const ATTESA_SFIDA_MS = 25000;               // sfida con gli amici: dopo "Parti" si aspettano 25 s, così chi ha l'invito fa in tempo a entrare (R-119); prima se tutti sono pronti (R-222)

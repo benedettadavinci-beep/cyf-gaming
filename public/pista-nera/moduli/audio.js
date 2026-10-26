@@ -45,9 +45,10 @@ PN.audio = ({ btnSound, isCity, isActive }) => {
   function soundLevels(speed, carve, onSnow) {
     if (!audio) return;
     const now = audio.ac.currentTime, active = isActive();
-    audio.windG.gain.setTargetAtTime(active ? Math.min(0.32, (speed / 45) * 0.3) : 0.03, now, 0.15);
-    audio.windF.frequency.setTargetAtTime(300 + speed * 18, now, 0.2);
-    audio.carveG.gain.setTargetAtTime(active && onSnow ? Math.min(0.22, carve * (speed / 45) * 0.4 + 0.02) : 0, now, 0.06);
+    // velocità riferite agli 80 km/h (22 m/s) della 0.19.0 (R-242); prima ai 45 m/s
+    audio.windG.gain.setTargetAtTime(active ? Math.min(0.32, (speed / 22) * 0.3) : 0.03, now, 0.15);
+    audio.windF.frequency.setTargetAtTime(300 + speed * 36, now, 0.2);
+    audio.carveG.gain.setTargetAtTime(active && onSnow ? Math.min(0.22, carve * (speed / 22) * 0.4 + 0.02) : 0, now, 0.06);
   }
   function setMuted(m) {
     muted = m;

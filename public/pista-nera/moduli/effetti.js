@@ -120,7 +120,7 @@ PN.effetti = ({ world, hgt }) => {
       const o = i * 3;
       fRel[o + 1] -= PART.fall * (1 + (i % 5) * 0.12) * dt;
       fRel[o] += Math.sin(t * 0.7 + i) * PART.sway * dt;
-      fRel[o + 2] += speed * dt * 0.02;
+      fRel[o + 2] += speed * dt * 0.04;
       if (fRel[o + 1] < 0) fRel[o + 1] += 22;
       fPos[o] = px + fRel[o]; fPos[o + 1] = base + fRel[o + 1]; fPos[o + 2] = pz + fRel[o + 2];
     }

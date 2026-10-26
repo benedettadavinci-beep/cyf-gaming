@@ -23,14 +23,15 @@ PN.tracciato = (() => {
       const kind = r();
       if (xs.some(v => Math.abs(v - x) < 4.5) || ctx.inBigZone(x, z, 1.3)) continue;
       xs.push(x);
-      // R-310 (0.10.0): ostacoli −35%. Prima: alberi fino a 0,38 e rocce fino a 0,58; ora 0,247 e 0,377, e fino a 0,58 non si mette nulla
-      if (kind < 0.247) {
+      // R-310 (0.10.0): ostacoli −35% (alberi fino a 0,247, rocce fino a 0,377). R-313 (0.19.0): alberi, rocce e porte
+      // −30% esatto: alberi fino a 0,173, rocce da 0,173 a 0,264, porte da 0,881 in su; il resto della fila resta vuoto
+      if (kind < 0.173) {
         const s = rr(0.75, 1.05);
         const tilt = [(r() - 0.5) * 0.1, (r() - 0.5) * 0.1];
         const gi = r() < 0.3 ? 1 : 0;
         const sy = 0.9 + r() * 0.25, ry = r() * TAU;   // stessi numeri casuali in ogni scenario: la pista resta identica
         ctx.metti({ type: 'tree', x, z, s, tilt, gi, sy, ry });
-      } else if (kind < 0.377) {
+      } else if (kind < 0.264) {
         const s = rr(0.8, 1.25), ry = r() * TAU;
         ctx.metti({ type: 'rock', x, z, s, ry });
       } else if (kind < 0.58) { /* posto lasciato libero */ }
@@ -49,7 +50,8 @@ PN.tracciato = (() => {
           ctx.zona({ x, z0: z + 5, z1: z - 5.5, hw: 3.6 });
         }
         ctx.metti({ type: 'ramp', x, z, big });
-      } else {
+      } else if (kind < 0.881) { /* posto lasciato libero (prima c'era una porta) */ }
+      else {
         const gx = c + rr(-9, 9), gi = r() < 0.5 ? 0 : 1;
         if (!ctx.inBigZone(gx, z, 2.7)) ctx.metti({ type: 'gate', x: gx, z, half: 2.4, gi });
       }

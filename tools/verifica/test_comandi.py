@@ -69,7 +69,7 @@ with sync_playwright() as p:
         st2 = drag_hold(pg, cx, cy, 0, 70, 3.0); v_dn = pg.evaluate('__dbg.P.speed')
         end(pg, cx, cy + 70)
         print(f'  su: stick={st}  velocità {v_up:.1f} m/s | giù: stick={st2}  velocità {v_dn:.1f} m/s')
-        if not (st['y'] < -0.9 and st2['y'] > 0.9 and v_up > v_dn + 3): problems.append(f'{orient}: accelera/frena non funziona ({v_up:.1f} vs {v_dn:.1f})')
+        if not (st['y'] < -0.9 and st2['y'] > 0.9 and v_up > v_dn + 2): problems.append(f'{orient}: accelera/frena non funziona ({v_up:.1f} vs {v_dn:.1f})')
         # 2. curva: destra poi sinistra, l'angolo del rider cambia segno
         drag_hold(pg, cx, cy, 60, 0, 0.6); a_r = pg.evaluate('__dbg.P.ang'); end(pg, cx + 60, cy)
         drag_hold(pg, cx, cy, -60, 0, 0.9); a_l = pg.evaluate('__dbg.P.ang'); end(pg, cx - 60, cy)

@@ -314,6 +314,7 @@
       if (brake) target *= F.FRENATA;
       if (braking) target = 0;
       P.speed += (target - P.speed) * (target > P.speed ? (tuck ? 0.85 : 0.65) : (braking ? 0.9 : (brake ? 2.0 : 1.3))) * dt;
+      P.speed = F.limita(P.speed);   // mai oltre 80 km/h (R-242)
       if (Math.abs(P.ang) > 0.6 && Math.random() < 0.8) spray(P.x, 0, P.z, 2, 1.6, 2.4, Math.cos(P.ang) * Math.sign(P.ang) * 3);
     } else {
       const flipIn = (keys.down || stick.y < -0.35 ? 1 : 0) - (keys.up || stick.y > 0.35 ? 1 : 0);
@@ -911,9 +912,9 @@
     world.localToWorld(v2);
     camera.lookAt(v2);
     camera.rotateZ(-lean * 0.035);
-    const fov = 58 + Math.min(16, P.speed * 0.33);
+    const fov = 58 + Math.min(16, P.speed * 0.72);   // velocità più basse dalla 0.19.0 (R-242): stessa sensazione di prima
     if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, 3 * dt); camera.updateProjectionMatrix(); }
-    vignette.style.opacity = String(clamp((P.speed - 18) / 30, 0, 0.85));
+    vignette.style.opacity = String(clamp((P.speed - 12) / 14, 0, 0.85));
 
     v3.set(P.x, gH, P.z); world.localToWorld(v3);
     sun.target.position.copy(v3);

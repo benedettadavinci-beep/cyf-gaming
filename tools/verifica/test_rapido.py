@@ -85,7 +85,7 @@ with sync_playwright() as p:
     try: pg.wait_for_function("['countdown', 'race'].includes(window.CYFDiag.state().modo) && window.CYFDiag.state().fase !== 'lobby'", timeout=30000)
     except Exception: pass
     st = pg.evaluate('window.CYFDiag.state()')
-    check(st['modo'] in ('countdown', 'race') and st['scena'] == G['scena'] and st['stanza'].startswith('G') and st['gara'] == 12000,
+    check(st['modo'] in ('countdown', 'race') and st['scena'] == G['scena'] and st['stanza'].startswith('G') and st['gara'] == 4200,
           'si parte subito, senza stanza d\'attesa, nella città di oggi con la gara da 5 minuti', json.dumps({k: st[k] for k in ('modo', 'scena', 'stanza', 'gara')}))
     check(pg.evaluate("document.getElementById('items').hidden") and pg.evaluate("document.getElementById('lobby').hidden"), 'niente banane e bombe, e niente stanza della sfida')
     try: pg.wait_for_function('window.CYFDiag.state().avversari === 3', timeout=15000)

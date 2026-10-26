@@ -113,8 +113,18 @@ with sync_playwright() as p:
     gp.wait_for_function("(() => { const D = window.__dbg; const b = D.net.racers.filter(x => x.bot); return b.length === 2 && b.every(x => { const r = D.remotes.get(x.id); return r && r.has && r.tz < -5; }); })()", timeout=30000)
     g = gp.evaluate("() => { const D = window.__dbg; return { modo: D.BOT.modo, live: [...document.querySelectorAll('#liveList li .nm')].map(e => e.textContent) }; }")
     check(g['modo'] is None and sum('🤖' in x for x in g['live']) == 2, "l'ospite li vede scendere (non li guida) e in classifica dal vivo hanno il 🤖", json.dumps(g))
+    # regola R-241: chi è in aria non viene colpito dalla banana lanciata
+    t0 = pg.evaluate("""() => { const D = window.__dbg; const b = D.BOT.lista[0]; D.P.z = b.z + 25; D.P.x = b.x; D.bonus = 200; window.__toasts.length = 0;
+      for (const [id, r] of D.remotes) if (!D.BOT.guida(id)) r.model.group.visible = false;
+      for (const x of D.BOT.lista) { x.air = true; x.y = 3; x.vy = 9; x.onRamp = null; }
+      document.getElementById('btnBanana').click();
+      return new Promise(res => setTimeout(() => { const toast = window.__toasts.join('|'), c = D.BOT.lista.find(x => toast.includes(x.nome));
+        res({ toast, colpito: c ? c.nome : null, fermo: c ? c.stopUntil - performance.now() : 0, inAria: c ? c.air : null }); }, 600)); }""")
+    check(t0['colpito'] and t0['fermo'] <= 0, "banana lanciata a un avversario in aria: non lo ferma (R-241)", json.dumps(t0))
+    pg.wait_for_timeout(1500)
     # banana del pilota all'avversario davanti
     t = pg.evaluate("""() => { const D = window.__dbg; const b = D.BOT.lista[0]; D.P.z = b.z + 25; D.P.x = b.x; D.bonus = 200; window.__toasts.length = 0;
+      for (const x of D.BOT.lista) { x.air = false; x.y = 0; x.vy = 0; x.inv = 0; x.crash = 0; }
       for (const [id, r] of D.remotes) if (!D.BOT.guida(id)) r.model.group.visible = false;   // davanti c'è solo l'avversario
       document.getElementById('btnBanana').click();
       // la banana va all'avversario più vicino davanti: si controlla che quello si fermi

@@ -36,15 +36,15 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 <!-- matrice -->
 | File | Modulo (PN.…) | Righe | Dipende da (cosa usa) |
 |---|---|---|---|
-| `moduli/audio.js` | audio | 62 | base (store); lingua (tr) |
+| `moduli/audio.js` | audio | 63 | base (store); lingua (tr) |
 | `moduli/avversari.js` | avversari | 141 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (JERSEYS, makeRider, bodyTurn, switchOf, lookBot) |
 | `moduli/base.js` | base | 38 | nessuno |
-| `moduli/bot.js` | bot | 413 | fisica (); base (TAU, clamp, mulberry32); lingua (tr); protocollo (COSTI, FERMO, NOMI_BOT); tracciato (dati); pista (center, hgt); oggetti (hazards, showThrow, addHazard, removeHazard); avversari (botUpdate, remotes, playThrow) |
+| `moduli/bot.js` | bot | 419 | fisica (); base (TAU, clamp, mulberry32); lingua (tr); protocollo (COSTI, FERMO, NOMI_BOT); tracciato (dati); pista (center, hgt); oggetti (hazards, showThrow, addHazard, removeHazard); avversari (botUpdate, remotes, playThrow) |
 | `moduli/citta.js` | citta | 881 | pista (center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_MAKE); base (TAU, lin, mulberry32); lingua (tr, fmtLen); geometria (merge, lumpy, vcMat, GEO, gateGeo) |
 | `moduli/comandi.js` | comandi | 105 | base (clamp); audio (initAudio, muted) |
 | `moduli/effetti.js` | effetti | 132 | base (isPhone, lin, rand, reduceMotion) |
-| `moduli/fisica.js` | fisica | 71 | base (TAU, clamp) |
-| `moduli/generazione.js` | generazione | 283 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); tracciato (riga, coperto, passo); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
+| `moduli/fisica.js` | fisica | 75 | base (TAU, clamp) |
+| `moduli/generazione.js` | generazione | 322 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/lingua.js` | lingua | 37 | base (store) |
 | `moduli/oggetti.js` | oggetti | 176 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
@@ -54,9 +54,9 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/rider.js` | rider | 532 | base (TAU, lin, store, mulberry32) |
 | `moduli/schermate.js` | schermate | 302 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (tr, ord, fmtLen); protocollo (COSTI) |
 | `moduli/sfondi.js` | sfondi | 522 | base (TAU, lin, mulberry32); geometria (lumpy) |
-| `moduli/tracciato.js` | tracciato | 96 | base (TAU, clamp, mulberry32) |
+| `moduli/tracciato.js` | tracciato | 98 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 180 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr) |
-| `game.js` | — | 1012 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); profilo (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); oggetti (); avversari (); bot () |
+| `game.js` | — | 1013 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); profilo (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); oggetti (); avversari (); bot () |
 | `diagnosi.js` | — | 162 | nessuno |
 | `i18n.js` | — | 369 | nessuno |
 | `shared/protocollo.js` | protocollo | 94 | nessuno |
