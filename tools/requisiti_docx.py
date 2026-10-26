@@ -29,7 +29,7 @@ for st in doc.styles:
     if st.name.lower().startswith('heading 1'):
         st.font.size = Pt(15)
 
-STATE = {'Controllato': '9ED9B3', 'Confermata 25/10': '9ED9B3', 'Superata 25/10': 'ECECEC', 'Sostituito': 'ECECEC', 'Fatto': 'D7F0DF', 'In corso': 'FFF1C7', 'Da fare': 'FDE2D6', 'Da confermare': 'E6EDF5', '✓': 'D7F0DF', '✓ dopo correzione': 'FFF1C7'}
+STATE = {'Controllato': '9ED9B3', 'Confermata 25/10': '9ED9B3', 'Superata 25/10': 'ECECEC', 'Sostituito': 'ECECEC', 'Fatto': 'D7F0DF', 'In corso': 'FFF1C7', 'Da fare': 'FDE2D6', 'Da confermare': 'E6EDF5', '✓': 'D7F0DF', '✓ dopo correzione': 'FFF1C7', 'Sì': 'D7F0DF', 'Da approvare': 'FFF1C7'}
 
 def shade(cell, hex_color):
     tcPr = cell._tc.get_or_add_tcPr()
@@ -48,7 +48,7 @@ def borders(table):
 
 import os
 BP = os.path.basename(src).lower().startswith('business')
-WIDTHS = {5: [1.9, 4.3, 3.2, 3.2, 4.8], 4: [2.3, 3.4, 7.2, 4.5], 3: [4.3, 5.4, 7.7], 2: [4.9, 12.5]} if BP else {5: [1.6, 7.4, 2.0, 2.0, 4.4], 4: [1.4, 10.6, 2.2, 3.2], 3: [1.6, 12.0, 3.8]}
+WIDTHS = {5: [1.9, 4.3, 3.2, 3.2, 4.8], 4: [2.3, 3.4, 7.2, 4.5], 3: [4.3, 5.4, 7.7], 2: [4.9, 12.5]} if BP else {5: [1.6, 7.4, 2.0, 2.0, 4.4], 4: [1.4, 10.6, 2.2, 3.2], 3: [1.6, 12.0, 3.8], 6: [0.9, 5.6, 4.4, 2.2, 2.0, 2.3]}
 for t in doc.tables:
     borders(t)
     n = len(t.columns)
@@ -59,6 +59,8 @@ for t in doc.tables:
         w = [1.7, 4.2, 4.3, 4.3, 3.9]   # le strade delle città
     if w and n == 5 and len(t.rows) > 1 and t.rows[1].cells[0].text.strip().startswith('A-'):
         w = [1.4, 4.8, 2.0, 1.8, 7.4]   # struttura del software: spiegazioni lunghe nell'ultima colonna
+    if w and n == 4 and t.rows and t.rows[0].cells[0].text.strip() == 'N.':
+        w = [0.9, 11.6, 2.2, 2.7]   # prossimi passi di Luigi: numero, cosa, tempo, ID
     if w and n == 3 and t.rows and t.rows[0].cells[1].text.strip() == 'Esito':
         w = [3.4, 2.6, 11.4]   # la verifica: ID, esito, come è stato verificato
     if w:
