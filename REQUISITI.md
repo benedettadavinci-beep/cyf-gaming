@@ -1,11 +1,11 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.17.0 · aggiornato al 26 ottobre 2026, ore 21 · in testa i prossimi passi, dopo tutto quello che è stato fatto"
+subtitle: "Versione 0.17.0 · aggiornato al 26 ottobre 2026, ore 21 · in testa i prossimi passi, dopo tutto quello che è stato fatto · online su Google Drive"
 ---
 
 # Prossimi passi
 
-Aggiornati il 26/10/2026 alle 21 (versione online: 0.17.0). È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
+Aggiornati il 26/10/2026 alle 21 (versione online: 0.17.0). Questo Word è anche su Google Drive, cartella "CYF gaming", e si aggiorna da solo. È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
 
 ## Cosa puoi fare tu, Luigi
 
@@ -14,10 +14,9 @@ Aggiornati il 26/10/2026 alle 21 (versione online: 0.17.0). È la parte da legge
 | 1 | Approvare i lavori per il turno di notte (tabella di Claude qui sotto, colonna "Notte" = "Da approvare"): basta scrivere "ok notte" oppure i numeri delle righe | 1 min | R-506 |
 | 2 | Dal telefono, provare la **pista del giorno** (pulsante azzurro nel menu) e le novità dalla 0.10 alla 0.17, meglio con qualche amico; poi scrivere i requisiti che vanno bene ("R-233 controllato") | 15-30 min | D-01, D-09, D-10 |
 | 3 | Decidere le scelte aperte di Claude (sezione 7). Le più urgenti: S-39 (fantasmi, serve per la 0.18), S-41 (regole del giorno e della notte) e S-42 (struttura del software). Basta "S-xx va bene" oppure cosa cambiare | 10 min | D-04 |
-| 4 | Dire dove vuoi trovare il Word aggiornato in automatico anche a PC spento (R-507): oggi è su GitHub (`docs/`) e in chat; sul Desktop arriva solo con il PC collegato | 1 min | R-507 |
-| 5 | Creare la chiave Cloudflare per il sito di prova `cyf-gaming-prova`, per provare le novità dal telefono prima che le vedano tutti | 10 min | A-09 |
-| 6 | Comprare e collegare il dominio (es. cyfgaming.it, ~10-15 €/anno) | 10 min | D-03 |
-| 7 | Leggere al mattino il rapporto del turno di notte e verso le 18 il confronto con le altre app (arriva la notifica sul telefono) | 5 min al giorno | R-503, R-508 |
+| 4 | Creare la chiave Cloudflare per il sito di prova `cyf-gaming-prova`, per provare le novità dal telefono prima che le vedano tutti | 10 min | A-09 |
+| 5 | Comprare e collegare il dominio (es. cyfgaming.it, ~10-15 €/anno) | 10 min | D-03 |
+| 6 | Leggere al mattino il rapporto del turno di notte e verso le 18 il confronto con le altre app (arriva la notifica sul telefono) | 5 min al giorno | R-503, R-508 |
 
 ## Cosa fa Claude, in ordine
 
@@ -166,7 +165,7 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 | R-504 | Migliorare la descrizione del documento Word e delle tabelle | 24/10/2026 | Fatto | Introduzione, legenda e colonne riscritte; colonna "Come funziona oggi" |
 | R-505 | Business plan con aspetti economici e strategia aziendale, in un file separato | 24/10/2026 | Fatto | CYF-Gaming-business-plan.docx nella cartella sul Desktop |
 | R-506 | Nessuna prova di giorno se Luigi non lo chiede chiaramente: le prove si fanno di notte, dopo le 23, sfruttando al massimo la notte; gli errori che il sistema vede vanno corretti (P-02) | 25/10/2026, aggiornato 26/10 | Fatto | Dal 26/10 sera. Di giorno Claude non lancia prove (né `npm test` né altre): scrive requisiti e codice su un ramo `giorno/<nome>`, dove il cancello di GitHub non parte (`branches-ignore` in `.github/workflows/cancello.yml`). Il turno di notte (R-503) unisce i rami, prova, corregge e pubblica: le novità vanno online la mattina dopo. Se Luigi scrive "pubblica adesso", si fa il cancello e si pubblica subito (S-41). Fino al 26/10 di giorno girava il cancello rapido |
-| R-507 | Nel Word, all'inizio i prossimi passi e dopo tutto quello che è stato fatto; il Word si aggiorna da solo quando qualcosa viene fatto | 26/10/2026 | Fatto | Sezione "Prossimi passi" in testa: cosa può fare Luigi e cosa fa Claude, in ordine, con "Notte" per i lavori del turno di notte; poi le regole di lavoro, le sezioni 1-13 e lo storico. A ogni cosa fatta Claude (o il turno di notte) rigenera il Word con `tools/requisiti_docx.py` e lo mette in `docs/CYF-Gaming-requisiti.docx` su GitHub; Claude lo manda anche in chat. Sul Desktop arriva solo con il PC collegato e il permesso sulla cartella: da decidere con Luigi se usare Google Drive, che si sincronizza da solo sul PC |
+| R-507 | Nel Word, all'inizio i prossimi passi e dopo tutto quello che è stato fatto; il Word si aggiorna da solo quando qualcosa viene fatto, ed è online nella cartella Google Drive scelta da Luigi | 26/10/2026 | Fatto | Sezione "Prossimi passi" in testa: cosa può fare Luigi e cosa fa Claude, in ordine, con "Notte" per i lavori del turno di notte; poi le regole di lavoro, le sezioni 1-13 e lo storico. A ogni cosa fatta Claude (o il turno di notte) rigenera il Word con `tools/requisiti_docx.py` in `docs/CYF-Gaming-requisiti.docx` su GitHub. **Online su Google Drive** dal 26/10 alle 20:44, nella cartella "CYF gaming" indicata da Luigi (account luigi.imperatore.eng): il file `CYF-Gaming-requisiti.docx` lo scrive il PC di casa nella cartella sincronizzata `G:\Il mio Drive\CYF gaming`, con l'attività pianificata "Word requisiti CYF su Drive" alle 7:13, 13:13 e 19:13 (copia solo se il Word su GitHub è più nuovo). Il turno di notte gira nel cloud e non può scrivere su Drive: con il PC spento la copia aspetta il primo giro a PC acceso; intanto l'ultima versione è sempre su GitHub in `docs/`. Quando il PC è collegato a una chat, Claude copia il Word anche subito |
 | R-508 | Ogni giorno verso le 18 un confronto tra questo software e le altre app, e cosa manca per migliorarlo | 26/10/2026 | Fatto | Attività pianificata "Confronto concorrenti CYF Gaming" alle 17:59 ora italiana, con notifica sul telefono: ogni giorno 3-4 app diverse (corse nel browser, snowboard, giochi sociali e "del giorno", corse per telefono), dati pubblici e notizie degli ultimi 30 giorni, misure del sito; al massimo 5 proposte ordinate per giocatori che tornano diviso lavoro, con le fonti. Non tocca il codice e non fa prove: le proposte nuove sono "Da confermare". Primo rapporto il 27/10 |
 | R-509 | All'inizio di ogni attività dire il tempo che serve e a quanti token si è | 26/10/2026 | Fatto | Prima frase di ogni lavoro: tempo stimato e token. Claude vede i token che restano nella sessione, non il conto esatto di quelli usati: dà i token rimasti e una stima del consumo dell'attività |
 | R-510 | Il software deve essere costruito per crescere senza rallentamenti quando arriveranno nuove funzioni | 26/10/2026 | In corso | Struttura scelta da Claude (S-42), piano del 26/10 nella sezione 11: A-19…A-22 più A-11, A-13…A-17, un passo alla volta tra una funzione e l'altra (vedi Prossimi passi), ognuno provato di notte. Già fatto: moduli e matrice delle dipendenze (A-10, A-11 in parte, A-12, A-18), cancello delle prove (A-01…A-05) |
