@@ -24,7 +24,7 @@ OVERFLOW_JS = """() => {
 
 problems = []
 import os
-THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/build/three.min.js')), 'rb').read()
+THREE = open(os.environ.get('THREE_JS', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'vendor', 'three.min.js')), 'rb').read()
 def local(ctx):
     ctx.route('**/cdnjs.cloudflare.com/**three.min.js', lambda r: r.fulfill(body=THREE, content_type='application/javascript'))
     ctx.route('**/fonts.g*/**', lambda r: r.abort())

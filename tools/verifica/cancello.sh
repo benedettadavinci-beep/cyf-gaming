@@ -13,12 +13,9 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 export BASE="${BASE:-http://127.0.0.1:8787}"
 
-# copia locale di three r128: il browser di prova non raggiunge il CDN
+# three r128: dalla 0.19.0 è nel sito stesso (public/vendor, A-16); le prove lo usano da lì
 if [ -z "${THREE_JS:-}" ] || [ ! -f "$THREE_JS" ]; then
-  export THREE_JS="$HOME/three/package/build/three.min.js"
-  if [ ! -f "$THREE_JS" ]; then
-    mkdir -p "$HOME/three" && (cd "$HOME/three" && npm pack three@0.128.0 >/dev/null 2>&1 && tar xzf three-0.128.0.tgz)
-  fi
+  export THREE_JS="$ROOT/public/vendor/three.min.js"
 fi
 
 SERVER_PID=""

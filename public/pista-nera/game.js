@@ -173,19 +173,11 @@
     colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); }
   };
 
-  // Altezza della superficie della rampa (sopra la sua base) nel punto z della pista. Ricalca il modello: profilo
-  // quadratico da (-0,6; 0) a (4; 1,1) più lo spessore del bordo arrotondato (0,25 sulla neve, 0,2 in città),
-  // scalato ×2 per il trampolino gigante. La rampa inizia RAMP_FOOT·k metri prima del suo centro (il rider ci sale 0,9 m prima, quando ci arriva
-  // la punta della tavola) e stacca a 2·k dopo.
-  const RAMP_FOOT = 2.85;
-  function rampTop(r, z) {
-    const k = r.big ? 2 : 1, bev = isCity() ? 0.2 : 0.25;
-    const xo = 2 - (z - r.z) / k;                      // coordinata lungo il profilo del modello
-    if (xo < -0.6) return Math.max(0, xo + 0.6 + bev) * k;   // bordo arrotondato all'ingresso
-    const c = 4 - Math.min(xo, 4);
-    const u = (4.8 - Math.sqrt(Math.max(0, 23.04 - 0.8 * c))) / 0.4;   // parametro della curva quadratica
-    return (1.1 * (1 - u) + bev) * k;
-  }
+  // le regole del movimento (velocità, salti, rampe, punti delle acrobazie) sono in moduli/fisica.js, uguali per il
+  // rider e per gli avversari del computer (A-19)
+  const F = PN.fisica;
+  const RAMP_FOOT = F.RAMP_FOOT;
+  const rampTop = (r, z) => F.rampTop(r, z, isCity());
   function clearWorld() {
     GEN.svuota();
     if (finishObj) { world.remove(finishObj); finishObj = null; }
@@ -246,7 +238,7 @@
     // salto premuto mentre si sale sulla rampa: si stacca dalla rampa da dov'è il rider (R-219). Prima il rider restava
     // "sulla rampa" anche in aria e l'atterraggio non scattava mai: sprofondava sotto terra all'infinito
     P.onRamp = null;
-    P.air = true; P.vy = 6.4; P.ramp = false; squash = 0.6; startAir();
+    P.air = true; P.vy = F.SALTO; P.ramp = false; squash = 0.6; startAir();
     spray(P.x, 0, P.z, 12, 2.5);
   }
 
@@ -254,7 +246,7 @@
   function crash(reason, stop = 0) {
     if (invuln > 0 || P.crash > 0 || (mode === 'solo' && lives <= 0)) return;
     if (mode === 'solo') { lives--; renderLives(); }
-    P.crash = 0.85; invuln = Math.max(2.3, stop + 1.5); P.stop = stop; P.stopFor = stop; P.stopUntil = performance.now() + stop * 1000; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
+    P.crash = F.CADUTA; invuln = F.invuln(stop); P.stop = stop; P.stopFor = stop; P.stopUntil = performance.now() + stop * 1000; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
     combo = 0; shake = reduceMotion ? 0 : 0.45;
     spray(P.x, 0.2, P.z, 60, 4, 5);
     thump(1.4);
@@ -262,38 +254,28 @@
     trailPts.push({ x: P.x, y: hgt(P.x, P.z), z: P.z, a: P.ang, on: false });
     if (mode === 'solo' && lives <= 0) { overTimer = 1.0; overReason = reason; }
   }
-  function startAir() { P.flip = 0; P.grab = 0; P.grabT = 0; P.idleAir = 0; P.airT = 0; }
-  const nearest = (v, step) => Math.round(v / step) * step;
+  function startAir() { P.flip = 0; P.grab = 0; P.grabT = 0; P.idleAir = 0; P.airT = 0; P.spin0 = P.spin; }
+  const nearest = F.nearest;
   function land() {
     const impact = Math.min(1, Math.abs(P.vy) / 14);
     P.y = 0; P.vy = 0; P.air = false; squash = 0.5 + impact * 0.5;
-    const errSpin = Math.abs(P.spin - nearest(P.spin, Math.PI));
-    const errFlip = Math.abs(P.flip - nearest(P.flip, TAU));
-    const halfTurns = Math.round(Math.abs(P.spin) / Math.PI);
-    const flips = Math.round(Math.abs(P.flip) / TAU), back = P.flip > 0;
-    const grabbed = P.grabT > 0.3;
+    // atterraggio e punti delle acrobazie: regole in moduli/fisica.js (uguali per gli avversari del computer).
+    // Si conta solo la rotazione fatta in aria (spin0): prima, atterrando "al contrario" senza ruotare, si prendevano i punti di un 180°
+    const A = F.atterraggio({ spin: P.spin, spin0: P.spin0 || 0, flip: P.flip, grabT: P.grabT, ramp: P.ramp });
     spray(P.x, 0, P.z, 22, 3.2, 3);
     thump(0.5 + impact);
     P.grab = 0;
-    // atterraggio: oltre ~57° di rotazione o ~63° di salto mortale si cade; poco storto = solo rallentamento
-    if (errSpin > 1.0 || errFlip > 1.1) { P.spin = 0; P.flip = 0; crash(tr('crashLanding')); return; }
-    const sloppy = errSpin > 0.45 || errFlip > 0.5;
+    if (A.cade) { P.spin = 0; P.flip = 0; crash(tr('crashLanding')); return; }
+    const sloppy = A.sloppy, names = A.nomi, pts = A.pts;
     if (sloppy) P.speed *= 0.75;
-    const names = [];
-    let pts = 0;
-    if (flips >= 1) { names.push((flips > 1 ? flips + 'x ' : '') + (back ? 'Backflip' : 'Frontflip')); pts += 150 * flips; }
-    if (halfTurns >= 1) { names.push(halfTurns * 180 + '°'); pts += 60 * halfTurns; bestSpin = Math.max(bestSpin, halfTurns * 180); }
-    if (grabbed) { names.push('Grab'); pts += 30 + Math.min(60, Math.round(P.grabT * 40)); }
+    if (A.mezziGiri >= 1) bestSpin = Math.max(bestSpin, A.mezziGiri * 180);
     if (names.length) {
       tricksN += names.length;
-      if (P.ramp) pts *= 2;
-      if (names.length > 1) pts = Math.round(pts * 1.5);
-      if (sloppy) pts = Math.round(pts / 2);
       bonus += pts;
       say(names.join(' + ') + '  +' + pts, sloppy ? '#8a6d3b' : '#ff5a1f');
       if (!sloppy) { sparkle(P.x, hgt(P.x, P.z) + 0.6, P.z, names.length > 1 ? 70 : 40, true); tone('triangle', 880, 1320, 0.3, 0.1); }
     } else if (sloppy) say(tr('sloppyLanding'), '#8a6d3b');
-    P.spin = halfTurns % 2 ? Math.PI : 0;
+    P.spin = F.switchDopo(P.spin);
     P.flip = 0;
   }
 
@@ -306,7 +288,7 @@
     const braking = mode === 'finished';
     if (braking) steer = clamp((center(P.z - 10) - P.x) * 0.15, -0.5, 0.5);
     const d = distM();
-    const vmax = 18 + Math.min(26, d * 0.00975);   // +30%: si arriva prima alla velocità massima
+    const vmax = F.vmax(d);
     if (invuln > 0) invuln -= dt;
     if (shake > 0) shake = Math.max(0, shake - 1.2 * dt);
     squash = Math.max(0, squash - 2.5 * dt);
@@ -320,16 +302,16 @@
       P.crash -= dt;
       P.speed = Math.max(2, P.speed - 14 * dt);
     } else if (!P.air) {
-      P.ang += steer * 2.4 * dt;
+      P.ang += steer * F.STERZO * dt;
       if (!steer) P.ang -= P.ang * Math.min(1, 1.5 * dt);
-      P.ang = clamp(P.ang, -1.25, 1.25);
+      P.ang = clamp(P.ang, -F.ANGOLO, F.ANGOLO);
       const ax = P.x + Math.sin(P.ang) * 2, az = P.z - Math.cos(P.ang) * 2;
       const drop = hgt(P.x, P.z) - hgt(ax, az);
-      let target = (auto ? 15 : vmax) * Math.pow(Math.cos(P.ang), 1.6) * (1 + clamp(drop * 0.35, -0.2, 0.2));
+      let target = F.obiettivo(auto ? F.AUTO : vmax, P.ang, drop);
       // freccia giù: posizione raccolta, più veloce; freccia su: peso in avanti, frena
       const tuck = !auto && !braking && inFast() && !inSlow(), brake = !auto && !braking && inSlow();
-      if (tuck) target *= 1.12;
-      if (brake) target *= 0.5;
+      if (tuck) target *= F.RACCOLTA;
+      if (brake) target *= F.FRENATA;
       if (braking) target = 0;
       P.speed += (target - P.speed) * (target > P.speed ? (tuck ? 0.85 : 0.65) : (braking ? 0.9 : (brake ? 2.0 : 1.3))) * dt;
       if (Math.abs(P.ang) > 0.6 && Math.random() < 0.8) spray(P.x, 0, P.z, 2, 1.6, 2.4, Math.cos(P.ang) * Math.sign(P.ang) * 3);
@@ -344,7 +326,7 @@
       P.grab += ((wantGrab ? 1 : 0) - P.grab) * Math.min(1, 9 * dt);
       if (P.grab > 0.8) P.grabT += dt;
       if (!auto && (Math.abs(steer) || flipIn || P.grab > 0.8)) sparkle(P.x, hgt(P.x, P.z) + P.y + 0.4, P.z, 1, false);
-      P.vy -= 20 * dt;
+      P.vy -= F.GRAVITA * dt;
       P.y += P.vy * dt;
       // atterraggio assistito: poco prima di toccare terra il rider si raddrizza da solo
       const tg = (P.vy + Math.sqrt(Math.max(0, P.vy * P.vy + 40 * Math.max(0, P.y)))) / 20;
@@ -393,8 +375,8 @@
       if (Math.abs(P.x - r.x) > 1.7 * k) { P.onRamp = null; P.air = true; P.vy = 0; }
       else if (P.z <= r.z - 2 * k) {
         // trampolino gigante: stacco da 2,2 m e spinta 13,5 m/s → circa 6,8 m d'altezza e 1,5 s in aria (normale: 3 m e 1 s)
-        P.onRamp = null; P.air = true; P.vy = r.big ? 13.5 : 8.6; P.spin = P.spin % TAU; P.ramp = true; startAir();
-        P.speed = Math.min(P.speed * 1.06, 46);
+        P.onRamp = null; P.air = true; P.vy = r.big ? F.TRAMPOLINO : F.RAMPA; P.spin = P.spin % TAU; P.ramp = true; startAir();
+        P.speed = F.stacco(P.speed);
         say(tr(r.big ? (isPhone ? 'bigRampPhone' : 'bigRampKeys') : (isPhone ? 'rampPhone' : 'rampKeys')), r.big ? '#ff5a1f' : '#2f7fd0');
       }
     }
@@ -875,7 +857,7 @@
   const AVV = PN.avversari({ world, pista: PISTA, net, stato });
   const { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive } = AVV;
   // avversari guidati dal software (R-234…R-239): in allenamento li guida questo dispositivo, in gara il pilota scelto dal server
-  const BOT = PN.bot({ pista: PISTA, rampTop, RAMP_FOOT, net, stato, oggetti: OGG, avversari: AVV, say, crash });
+  const BOT = PN.bot({ pista: PISTA, rampTop, net, stato, oggetti: OGG, avversari: AVV, say, crash });
 
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();

@@ -8,7 +8,7 @@ import os, sys, time
 from playwright.sync_api import sync_playwright
 
 BASE = os.environ.get('BASE', 'http://127.0.0.1:8787')
-THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/build/three.min.js')), 'rb').read()
+THREE = open(os.environ.get('THREE_JS', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'vendor', 'three.min.js')), 'rb').read()
 SCENE = ['neve', 'napoli', 'roma', 'milano', 'parigi', 'londra', 'francoforte', 'madrid', 'lisbona', 'zagabria', 'berlino', 'zurigo', 'newyork']
 problems = []
 def check(cond, label, extra=''):

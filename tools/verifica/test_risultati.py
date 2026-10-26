@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 BASE = os.environ.get('BASE', 'http://127.0.0.1:8787')
 OUT = os.environ.get('OUT', '/tmp/cyf-verifica/foto-risultati'); os.makedirs(OUT, exist_ok=True)
-THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/build/three.min.js')), 'rb').read()   # copia locale di three r128: npm pack three@0.128.0
+THREE = open(os.environ.get('THREE_JS', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'vendor', 'three.min.js')), 'rb').read()   # three r128 del sito (public/vendor, A-16)
 LANGS = {'it': 'it-IT', 'en': 'en-GB', 'fr': 'fr-FR', 'es': 'es-ES'}
 problems = []
 

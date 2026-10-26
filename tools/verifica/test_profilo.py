@@ -3,7 +3,7 @@ il telefono A apre "Modifica il personaggio", sceglie maglia, pantaloni, capelli
 (stesso giocatore); A cambia i capelli e B li ritrova alla riapertura; un codice sbagliato dà "Codice non trovato"."""
 import os, sys, json
 from playwright.sync_api import sync_playwright
-THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/build/three.min.js')), 'rb').read()
+THREE = open(os.environ.get('THREE_JS', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'vendor', 'three.min.js')), 'rb').read()
 B=os.environ.get('BASE', 'http://127.0.0.1:8787') + '/pista-nera/'
 def ctx(br, w=390, h=800):
     c = br.new_context(locale='it-IT', viewport={'width': w, 'height': h}, has_touch=True, is_mobile=True)

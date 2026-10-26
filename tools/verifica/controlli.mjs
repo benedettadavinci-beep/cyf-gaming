@@ -76,7 +76,7 @@ ok(!!ver, 'versione in public/config.js', ver);
 ok(new RegExp('^\\| ' + (ver || 'x').replace(/\./g, '\\.') + ' \\|', 'm').test(req), 'la versione ' + ver + ' è nello storico di REQUISITI.md');
 
 console.log('C5 · attesa della sfida (R-119)');
-const wk = read('src/worker.js'), wr = read('wrangler.jsonc');
+const wk = read('src/comune.mjs'), wr = read('wrangler.jsonc');   // dalla 0.19.0 le costanti del server stanno in comune.mjs (A-20)
 ok(/const ATTESA_SFIDA_MS = 25000;/.test(wk), 'nella sfida si aspettano 25 s dopo "Parti" (R-119)');
 ok(!/ATTESA_SFIDA_MS/.test(wr), 'online nessuna variabile accorcia l\'attesa (ATTESA_SFIDA_MS solo nelle prove locali)');
 

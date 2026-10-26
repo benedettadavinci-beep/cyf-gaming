@@ -1,7 +1,7 @@
 import os
 import json
 from playwright.sync_api import sync_playwright
-THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/build/three.min.js')), 'rb').read()   # copia locale di three r128: npm pack three@0.128.0
+THREE = open(os.environ.get('THREE_JS', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'vendor', 'three.min.js')), 'rb').read()   # three r128 del sito (public/vendor, A-16)
 REPO = os.environ.get('CYF_REPO', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GAME = open(os.path.join(REPO, 'public', 'pista-nera', 'game.js'), encoding='utf-8').read().replace("  applyLang(lang);\n", "  applyLang(lang);\n  window.__dbg = { get P() { return P; }, stick, keys, get t() { return t; }, get mode() { return mode; }, god() { invuln = 1e9; lives = 99; } };\n")
 with sync_playwright() as p:

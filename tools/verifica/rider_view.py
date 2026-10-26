@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright
 OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/cyf-verifica/rider'
 SCENA = sys.argv[2] if len(sys.argv) > 2 else 'neve'
 os.makedirs(OUT, exist_ok=True)
-THREE = open(os.environ.get('THREE_JS', os.path.expanduser('~/three/package/build/three.min.js')), 'rb').read()   # copia locale di three r128: npm pack three@0.128.0
+THREE = open(os.environ.get('THREE_JS', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'vendor', 'three.min.js')), 'rb').read()   # three r128 del sito (public/vendor, A-16)
 REPO = os.environ.get('CYF_REPO', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 GAME = open(os.path.join(REPO, 'public', 'pista-nera', 'game.js'), encoding='utf-8').read()
 hook = "  applyLang(lang);\n"

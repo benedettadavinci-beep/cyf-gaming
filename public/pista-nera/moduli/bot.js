@@ -1,13 +1,15 @@
 // modulo: bot
-// dipende da: base, protocollo, tracciato, lingua, pista, oggetti, avversari
+// dipende da: base, protocollo, tracciato, lingua, fisica, pista, oggetti, avversari
 // Avversari guidati dal software (R-234…R-239, S-39): giocatori come gli altri, che però guida il gioco. Stessa fisica del
 // rider (velocità massima, curve, salti, rampe, cadute), stessi ostacoli (li conoscono dal tracciato, anche lontano dal
 // giocatore), acrobazie con i punti, banane, bombe e bananoni in gara. Livelli misti: forte, medio, lento.
 // In gara li guida un solo dispositivo, il "pilota" scelto dal server (net.pilota): manda le loro posizioni come quelle di
 // un giocatore; gli altri li vedono come avversari normali. In allenamento li guida il proprio dispositivo.
-// Si crea con PN.bot({ pista, rampTop, RAMP_FOOT, net, stato, oggetti, avversari, say, crash }) dal gioco.
+// Le regole del movimento sono quelle di moduli/fisica.js, le stesse del rider (A-19).
+// Si crea con PN.bot({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) dal gioco.
 window.PN = window.PN || {};
-PN.bot = ({ pista, rampTop, RAMP_FOOT, net, stato, oggetti, avversari, say, crash }) => {
+PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
+  const F = PN.fisica, RAMP_FOOT = F.RAMP_FOOT;
   const { TAU, clamp, mulberry32 } = PN.base;
   const { tr } = PN.lingua;
   const { COSTI, FERMO, NOMI_BOT } = PN.protocollo;
@@ -46,7 +48,7 @@ PN.bot = ({ pista, rampTop, RAMP_FOOT, net, stato, oggetti, avversari, say, cras
     const ev = [];
     if (amb.fermi) { b.speed = 0; return ev; }
     const d = Math.max(0, -b.z);
-    const vmax = 18 + Math.min(26, d * 0.00975);
+    const vmax = F.vmax(d);
     if (b.inv > 0) b.inv -= dt;
     if (b.stopUntil > amb.ora) { b.speed = 0; if (b.crash > 0) b.crash -= dt; }   // fermo dopo una banana o una bomba
     else if (b.crash > 0) { b.crash -= dt; b.speed = Math.max(2, b.speed - 14 * dt); }
@@ -54,11 +56,11 @@ PN.bot = ({ pista, rampTop, RAMP_FOOT, net, stato, oggetti, avversari, say, cras
       let steer;
       if (b.arrivato) steer = clamp((center(b.z - 10) - b.x) * 0.15, -0.5, 0.5);
       else { pianifica(b, dt, amb); steer = guida(b); }
-      b.ang += steer * 2.4 * dt;
-      b.ang = clamp(b.ang, -1.25, 1.25);
+      b.ang += steer * F.STERZO * dt;
+      b.ang = clamp(b.ang, -F.ANGOLO, F.ANGOLO);
       const ax = b.x + Math.sin(b.ang) * 2, az = b.z - Math.cos(b.ang) * 2;
       const drop = hgt(b.x, b.z) - hgt(ax, az);
-      let target = vmax * b.L.v * Math.pow(Math.cos(b.ang), 1.6) * (1 + clamp(drop * 0.35, -0.2, 0.2));
+      let target = F.obiettivo(vmax * b.L.v, b.ang, drop);
       // allenamento: niente traguardo, gli avversari restano nei paraggi (R-239): dietro accelerano, davanti rallentano
       if (amb.vicino) target *= clamp(1 + (b.z - amb.vicino.z) * 0.0016, 0.75, 1.2);
       if (b.frenaT > 0) { b.frenaT -= dt; target *= 0.5; }
@@ -90,8 +92,8 @@ PN.bot = ({ pista, rampTop, RAMP_FOOT, net, stato, oggetti, avversari, say, cras
       b.y = rampTop(r, b.z) + hgt(r.x, r.z) - hgt(b.x, b.z);
       if (Math.abs(b.x - r.x) > 1.7 * k) { b.onRamp = null; b.air = true; b.vy = 0; inizioAria(b); }
       else if (b.z <= r.z - 2 * k) {
-        b.onRamp = null; b.air = true; b.vy = r.big ? 13.5 : 8.6; b.spin = b.spin % TAU; b.ramp = true; inizioAria(b);
-        b.speed = Math.min(b.speed * 1.06, 46);
+        b.onRamp = null; b.air = true; b.vy = r.big ? F.TRAMPOLINO : F.RAMPA; b.spin = b.spin % TAU; b.ramp = true; inizioAria(b);
+        b.speed = F.stacco(b.speed);
         scegliTrucco(b);
       }
     }
@@ -197,7 +199,7 @@ PN.bot = ({ pista, rampTop, RAMP_FOOT, net, stato, oggetti, avversari, say, cras
     return clamp((want - b.ang) * 3.5, -1, 1);
   }
   function inizioAria(b) { b.flip = 0; b.grab = 0; b.grabT = 0; b.airT = 0; b.spin0 = b.spin; b.trucco = null; }
-  function salta(b) { b.onRamp = null; b.air = true; b.vy = 6.4; b.ramp = false; inizioAria(b); }
+  function salta(b) { b.onRamp = null; b.air = true; b.vy = F.SALTO; b.ramp = false; inizioAria(b); }
   // acrobazia scelta allo stacco dalla rampa, secondo il tempo in aria e il livello
   function scegliTrucco(b) {
     const T = (b.vy + Math.sqrt(b.vy * b.vy + 40 * Math.max(0, b.y))) / 20;
@@ -224,7 +226,7 @@ PN.bot = ({ pista, rampTop, RAMP_FOOT, net, stato, oggetti, avversari, say, cras
       b.grab += ((wantGrab ? 1 : 0) - b.grab) * Math.min(1, 9 * dt);
       if (b.grab > 0.8) b.grabT += dt;
     }
-    b.vy -= 20 * dt;
+    b.vy -= F.GRAVITA * dt;
     b.y += b.vy * dt;
     // atterraggio assistito, come per il giocatore: poco prima di toccare terra si raddrizza (non chi ha deciso di sbagliare)
     const tg = (b.vy + Math.sqrt(Math.max(0, b.vy * b.vy + 40 * Math.max(0, b.y)))) / 20;
@@ -233,34 +235,22 @@ PN.bot = ({ pista, rampTop, RAMP_FOOT, net, stato, oggetti, avversari, say, cras
       b.flip += clamp(nearest(b.flip, TAU) - b.flip, -9 * dt, 9 * dt);
     }
   }
-  const nearest = (v, step) => Math.round(v / step) * step;
-  // atterraggio con i punti, come quello del giocatore (land() nel gioco)
+  const nearest = F.nearest;
+  // atterraggio con i punti: stesse regole del giocatore (moduli/fisica.js)
   function atterra(b) {
     b.y = 0; b.vy = 0; b.air = false;
-    const errSpin = Math.abs(b.spin - nearest(b.spin, Math.PI)), errFlip = Math.abs(b.flip - nearest(b.flip, TAU));
-    const flips = Math.round(Math.abs(b.flip) / TAU), half = Math.round(Math.abs(b.spin - b.spin0) / Math.PI), grabbed = b.grabT > 0.3;
+    const A = F.atterraggio({ spin: b.spin, spin0: b.spin0, flip: b.flip, grabT: b.grabT, ramp: b.ramp });
     b.grab = 0; b.trucco = null;
-    if (errSpin > 1.0 || errFlip > 1.1) { b.spin = 0; b.flip = 0; cade(b, 0); return; }
-    const sloppy = errSpin > 0.45 || errFlip > 0.5;
-    if (sloppy) b.speed *= 0.75;
-    let pts = 0, n = 0;
-    if (flips >= 1) { n++; pts += 150 * flips; }
-    if (half >= 1) { n++; pts += 60 * half; }
-    if (grabbed) { n++; pts += 30 + Math.min(60, Math.round(b.grabT * 40)); }
-    if (n) {
-      b.tk += n;
-      if (b.ramp) pts *= 2;
-      if (n > 1) pts = Math.round(pts * 1.5);
-      if (sloppy) pts = Math.round(pts / 2);
-      b.bonus += pts;
-    }
-    b.spin = Math.round(b.spin / Math.PI) % 2 ? Math.PI : 0;   // dopo un numero dispari di mezzi giri si scende "al contrario"
+    if (A.cade) { b.spin = 0; b.flip = 0; cade(b, 0); return; }
+    if (A.sloppy) b.speed *= 0.75;
+    if (A.nomi.length) { b.tk += A.nomi.length; b.bonus += A.pts; }
+    b.spin = F.switchDopo(b.spin);
     b.flip = 0;
   }
   // caduta (ostacolo, atterraggio storto) o colpo (stop: secondi da fermo, R-223, R-224, R-231)
   function cade(b, stop) {
     if (b.inv > 0 || b.crash > 0) return false;
-    b.crash = 0.85; b.inv = Math.max(2.3, stop + 1.5); b.stopUntil = stop ? performance.now() + stop * 1000 : 0;
+    b.crash = F.CADUTA; b.inv = F.invuln(stop); b.stopUntil = stop ? performance.now() + stop * 1000 : 0;
     b.speed *= 0.3; b.air = false; b.y = 0; b.vy = 0; b.spin = 0; b.flip = 0; b.grab = 0; b.onRamp = null; b.combo = 0; b.trucco = null; b.salto = null;
     return true;
   }
