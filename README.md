@@ -42,6 +42,8 @@ Prove automatiche: `npm test` (giro rapido, ~75 s) e `npm run test:tutto` (~30 m
 
 Diagnosi: nel gioco `?debug=1`, 5 tocchi sul numero di versione nel menu o F2 aprono il pannello di debug; gli errori dei browser arrivano su `/api/errors`.
 
+Misure (R-232): `/api/stats` (contatori per giorno: gare, giocatori, visite, tempo di caricamento, punti fatti per gara, oggetti usati) e `/api/ritorni` (quanti tornano dopo 1, 7 e 30 giorni).
+
 Per provare una sfida apri due finestre del browser, crea la stanza in una ed entra con il codice nell'altra.
 
 ## Prossimi passi

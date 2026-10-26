@@ -64,6 +64,8 @@ with sync_playwright() as p:
     check(any('errore di prova' in x['msg'] for x in e), 'un errore JavaScript finisce nel registro della diagnosi', str(e)[:120])
     snap = pg.evaluate('window.CYFDiag.snapshot()')
     check(snap['ver'] == ver[1:] and any('[rete]' in l or '[gioco]' in l for l in snap['log']), 'la diagnosi contiene versione e registro degli eventi')
+    mis = [l for l in snap['log'] if '[misure]' in l]
+    check(len(mis) == 1, 'tempo di caricamento misurato una volta alla prima immagine (R-232; in locale non si invia)', mis[0] if mis else 'manca')
     pg.evaluate("localStorage.removeItem('cyf.debug')")
     br.close()
 

@@ -388,6 +388,66 @@ console.log('T10 · personaggio: capelli, pantaloni, casco, tavola (R-225, R-229
   const big = await post({ id, data: { name: 'x'.repeat(3000) } }); ok(big.status === 413, 'profilo troppo grande rifiutato (413)', String(big.status));
 }
 
+console.log('T11 · misure (R-232): punti fatti per gara, oggetti usati, visite, tempo di caricamento e ritorni');
+{
+  const today = new Date().toISOString().slice(0, 10);
+  const giorno = async () => ((await api('/api/stats')).body || []).find(r => r.day === today) || {};
+  const prima = await giorno();
+  // gara breve a due: A lancia una banana e lascia una bomba (200 punti spesi) e arriva con 1.400 punti → 1.600 fatti; B ne fa 10
+  const code = rnd();
+  const A = new Client(code, 'ma' + code, 'Misura'); await A.connect(); await A.waitType('welcome');
+  const B = new Client(code, 'mb' + code, 'Bersaglio'); await B.connect(); await B.waitType('welcome');
+  await B.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
+  A.send({ t: 'start' }); await B.waitType('gathering', 3000);
+  A.send({ t: 'pronto' }); B.send({ t: 'pronto' });
+  const go = await A.waitType('go', 3000);
+  await sleep(Math.max(0, (go ? go.startAt - go.now : 5000) + 300));
+  A.send({ t: 'pos', x: 0, z: -20, top: 20, tk: 1, p: 1600 }); await sleep(200);
+  A.send({ t: 'throw', target: B.id, hid: 'm1' }); await B.wait(m => m.t === 'throw' && m.hid === 'm1', 2000);
+  await sleep(1000);
+  A.send({ t: 'drop', kind: 'bomb', x: 1, z: -12, hid: 'm2' }); await B.wait(m => m.t === 'drop' && m.hid === 'm2', 2000);
+  A.send({ t: 'finish', top: 20, tk: 1, p: 1400 }); B.send({ t: 'finish', top: 10, tk: 0, p: 10 });
+  const res = await A.waitType('results', 4000);
+  ok(!!res, 'la gara di prova finisce');
+  await sleep(600);
+  const dopo = await giorno();
+  const d = k => (dopo[k] || 0) - (prima[k] || 0);
+  ok(d('pts_n') === 2 && d('pts_1500') === 1 && d('pts_lt50') === 1 && d('pts_sum') === 1610,
+    'punti fatti in gara = rimasti + spesi, contati in fasce (1.600 → fascia del bananone, 10 → sotto la banana)',
+    JSON.stringify({ n: d('pts_n'), f1500: d('pts_1500'), lt50: d('pts_lt50'), somma: d('pts_sum') }));
+  ok(d('use_banana') === 1 && d('use_bomb') === 1, 'oggetti usati contati per tipo', JSON.stringify({ banana: d('use_banana'), bomba: d('use_bomb') }));
+  A.close(); B.close();
+
+  // visite e tempo di caricamento
+  const vis = (b) => fetch(BASE + '/api/visita', { method: 'POST', body: typeof b === 'string' ? b : JSON.stringify(b) }).then(r => r.status);
+  const s0 = await giorno();
+  const vid = 'v' + code;
+  ok(await vis({ id: vid, ms: 2500, tel: 1 }) === 200, 'POST /api/visita accettato');
+  await vis({ id: vid, ms: 7000, tel: 0 });
+  await vis({ id: vid, ms: -5 });
+  const s1 = await giorno();
+  const e = k => (s1[k] || 0) - (s0[k] || 0);
+  ok(e('visitors') === 1, 'lo stesso giocatore conta una visita sola al giorno', String(e('visitors')));
+  ok(e('load_tel_lt3') === 1 && e('load_pc_6_10') === 1 && e('load_n') === 2 && e('load_ms_sum') === 9500, 'tempo di caricamento in fasce, telefono o PC; un tempo non valido non si conta',
+    JSON.stringify({ tel3: e('load_tel_lt3'), pc6: e('load_pc_6_10'), n: e('load_n'), somma: e('load_ms_sum') }));
+  ok(await vis('{non json') === 400 && await vis({ ms: 100 }) === 400 && await vis('x'.repeat(400)) === 413, 'visita senza id o non valida rifiutata (400/413)');
+  ok((await fetch(BASE + '/api/visita')).status === 405, '/api/visita accetta solo POST');
+
+  // ritorni: risposta del server e calcolo provato con dati inventati
+  const rt = await api('/api/ritorni');
+  const oggiV = rt.body && rt.body.visite.giorni.find(g => g.giorno === today);
+  ok(rt.status === 200 && oggiV && oggiV.nuovi >= 1 && oggiV.d1 === null && rt.body.corse && Array.isArray(rt.body.corse.giorni),
+    '/api/ritorni: visite e corse per giorno di prima visita; il ritorno di domani non c\'è ancora (null)', rt.body && JSON.stringify(oggiV));
+  const { ritorni } = await import('../../src/ritorni.mjs');
+  const finto = ritorni([
+    { id: 'a', day: '2026-10-01' }, { id: 'a', day: '2026-10-02' }, { id: 'a', day: '2026-10-08' },
+    { id: 'b', day: '2026-10-01' }, { id: 'c', day: '2026-10-02' }, { id: 'c', day: '2026-10-03' }, { id: 'd', day: '2026-10-20' }
+  ], '2026-10-21');
+  const g1 = finto.giorni.find(g => g.giorno === '2026-10-01');
+  ok(g1.nuovi === 2 && g1.d1 === 1 && g1.d7 === 1 && g1.d30 === null && finto.totale.d1.perc === 50 && finto.totale.d7.perc === 33.3,
+    'ritorni calcolati giusti: D1 50%, D7 33,3%, D30 non ancora maturo', JSON.stringify(finto.totale));
+}
+
 if (process.env.VELOCE === '1') console.log('T8 saltata (VELOCE=1: giro rapido del cancello; il giro completo la fa ogni notte)');
 else {
 console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, chi esce è "non arrivato", contatori');

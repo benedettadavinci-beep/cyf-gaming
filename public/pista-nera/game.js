@@ -976,4 +976,6 @@
   if (verLabel) { verLabel.textContent = 'v' + ((window.CYF && window.CYF.version) || '?'); diag.tapToOpen(verLabel); }
   diag.log('gioco', 'pronto · ' + theme + ' · ' + lang);
   requestAnimationFrame(frame);
+  // R-232: visita e tempo di caricamento, misurati quando la prima immagine del gioco è sullo schermo
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (diag.visita) diag.visita(myId, isPhone); }));
 })();

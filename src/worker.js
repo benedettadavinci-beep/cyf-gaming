@@ -10,6 +10,8 @@ import { DurableObject } from 'cloudflare:workers';
 // il contratto dei messaggi condiviso con il gioco (A-12): tipi, campi obbligatori, città, durate, costi, versione
 import '../public/shared/protocollo.js';
 const PROTO = globalThis.CYF_PROTOCOLLO;
+// quanti giocatori tornano dopo 1, 7 e 30 giorni (R-232)
+import { ritorni } from './ritorni.mjs';
 
 const MAX_PLAYERS = PROTO.MAX_PLAYERS;
 const AVG_SPEED_MS = 40;                     // velocità media di un giocatore medio: serve a trasformare minuti in metri
@@ -30,6 +32,10 @@ const DROP_KINDS = PROTO.DROP_KINDS;
 // scenari: ogni città ha la sua pista, quindi in una gara tutti corrono nella stessa città (R-118, R-312)
 const cleanScena = PROTO.cleanScena;
 const PLACE_POINTS = [100, 70, 50];          // punti per 1°, 2°, 3°; chi arriva dopo ne prende 30
+// misure (R-232): fasce dei punti fatti in una gara, allineate ai costi (sotto la banana, banana, bomba, bananone)
+// e fasce del tempo di caricamento della pagina del gioco (3 s è la soglia dello studio di Google sui siti da telefono)
+const fasciaPunti = g => (g < PROTO.COSTI.banana ? 'pts_lt50' : g < PROTO.COSTI.bomb ? 'pts_50_149' : g < PROTO.COSTI.bananone ? 'pts_150_1499' : 'pts_1500');
+const fasciaCarico = ms => (ms < 3000 ? 'lt3' : ms < 6000 ? '3_6' : ms < 10000 ? '6_10' : 'gt10');
 
 const json = (data, init = {}) =>
   new Response(JSON.stringify(data), {
@@ -122,6 +128,24 @@ export default {
 
     // /api/stats → contatori aggregati degli ultimi 14 giorni
     if (url.pathname === '/api/stats') return json(await board(env).stats(14));
+
+    // /api/visita (R-232): POST { id, ms, tel } una volta per pagina aperta del gioco, anche in allenamento:
+    // conta il giocatore una volta al giorno e il tempo di caricamento (ms) in fasce, telefono o PC. Niente dati personali.
+    if (url.pathname === '/api/visita') {
+      if (request.method !== 'POST') return json({ error: 'Serve POST' }, { status: 405 });
+      const body = await request.text();
+      if (body.length > 300) return json({ error: 'Troppo grande' }, { status: 413 });
+      let b; try { b = JSON.parse(body); } catch (x) { return json({ error: 'JSON non valido' }, { status: 400 }); }
+      const id = cleanId(b && b.id);
+      if (!id) return json({ error: 'id mancante' }, { status: 400 });
+      const ms = typeof b.ms === 'number' && Number.isFinite(b.ms) && b.ms > 0 && b.ms < 600000 ? Math.round(b.ms) : 0;
+      await board(env).visita(id, ms, b.tel ? 1 : 0);
+      return json({ ok: true });
+    }
+
+    // /api/ritorni (R-232): quanti giocatori tornano dopo 1, 7 e 30 giorni, per giorno di prima visita.
+    // "visite" = chi apre il gioco (dalla 0.16.1), "corse" = chi entra in una gara (dal 24/10)
+    if (url.pathname === '/api/ritorni') return json(await board(env).ritorni());
 
     // /api/errors → POST: un telefono segnala un errore del gioco (anonimo); GET: errori degli ultimi giorni, raggruppati
     if (url.pathname === '/api/errors') {
@@ -258,6 +282,8 @@ export class RaceRoom extends DurableObject {
     st.raceScena = this.roomScena();
     st.results = [];
     st.drops = 0;
+    st.spesa = {};      // punti spesi da ogni corridore in banane, bombe e bananoni (R-232)
+    st.usati = {};      // oggetti usati in questa gara, per tipo (R-232)
     this.stats = new Map();
     for (const s of this.sockets()) { const a = s.deserializeAttachment(); if (a && a.id) { a.ready = false; s.serializeAttachment(a); } }
     await this.save();
@@ -295,6 +321,25 @@ export class RaceRoom extends DurableObject {
     await this.save();
     await this.schedule();
     this.broadcast({ t: 'go', now, startAt: st.startAt, loaded: st.loaded }, except);
+  }
+
+  // misure (R-232): punti spesi e oggetti usati; si mandano al Leaderboard tutti insieme a fine gara
+  contaOggetto(id, kind) {
+    const st = this.state;
+    st.spesa = st.spesa || {}; st.usati = st.usati || {};
+    st.spesa[id] = (st.spesa[id] || 0) + (PROTO.COSTI[kind] || 0);
+    st.usati[kind] = (st.usati[kind] || 0) + 1;
+  }
+  // a fine gara: per ogni corridore i punti fatti in gara (rimasti + spesi) in fasce, la somma e gli oggetti usati
+  misureGara() {
+    const st = this.state, m = {};
+    const add = (k, n = 1) => { m[k] = (m[k] || 0) + n; };
+    for (const r of st.results) {
+      const fatti = (r.p || 0) + ((st.spesa || {})[r.id] || 0);
+      add(fasciaPunti(fatti)); add('pts_sum', fatti); add('pts_n');
+    }
+    for (const [k, n] of Object.entries(st.usati || {})) add('use_' + k, n);
+    return m;
   }
 
   readStats(id, m) {
@@ -443,6 +488,7 @@ export class RaceRoom extends DurableObject {
       if (st.drops > 400) return;
       const hid = String(m.hid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
       if (!hid) return;
+      this.contaOggetto(me.id, m.kind);
       this.broadcast({ t: 'drop', id: me.id, name: me.name, kind: m.kind, x: num(m.x, -1e5, 1e5), z: num(m.z, -1e5, 1e5), hid }, ws);
       return;
     }
@@ -456,6 +502,7 @@ export class RaceRoom extends DurableObject {
       const hid = String(m.hid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
       if (!hid) return;
       const kind = PROTO.THROW_KINDS.includes(m.kind) ? m.kind : 'banana';
+      this.contaOggetto(me.id, kind);
       this.broadcast({ t: 'throw', id: me.id, name: me.name, target, hid, kind }, ws);
       return;
     }
@@ -553,6 +600,7 @@ export class RaceRoom extends DurableObject {
     st.phase = 'results';
     st.timeoutAt = 0;
     board(this.env).bump('races_finished').catch(() => {});
+    board(this.env).bumpMany(this.misureGara()).catch(() => {});
     this.fixHost(except);
     this.updateAuto(except);
     await this.save();
@@ -608,6 +656,8 @@ export class Leaderboard extends DurableObject {
     // contatori aggregati per giorno (niente cookie, niente dati personali)
     sql.exec('CREATE TABLE IF NOT EXISTS stats (day TEXT NOT NULL, metric TEXT NOT NULL, value INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, metric))');
     sql.exec('CREATE TABLE IF NOT EXISTS seen (day TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (day, id))');
+    // chi apre la pagina del gioco, anche solo per allenarsi: una riga per giocatore e giorno (R-232)
+    sql.exec('CREATE TABLE IF NOT EXISTS visits (day TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (day, id))');
     sql.exec('CREATE TABLE IF NOT EXISTS voice_reports (at INTEGER NOT NULL, room TEXT NOT NULL, reporter TEXT NOT NULL, reported TEXT NOT NULL)');
     // errori arrivati dai browser dei giocatori: uno per giorno, versione, messaggio e punto del codice, con il conteggio
     // profili con il codice personale (R-226): il codice è la chiave, id è il giocatore che lo usa
@@ -653,6 +703,33 @@ export class Leaderboard extends DurableObject {
       sql.exec('INSERT OR IGNORE INTO seen (day, id) VALUES (?, ?)', d, id);
       await this.bump('players');
     }
+  }
+  // più contatori in una chiamata sola (fine gara)
+  async bumpMany(m) {
+    for (const [k, n] of Object.entries(m || {})) if (n > 0) await this.bump(k, n);
+  }
+  // R-232: una visita al giorno per giocatore e il tempo di caricamento in fasce (telefono o PC)
+  async visita(id, ms, tel) {
+    const d = this.day(), sql = this.ctx.storage.sql;
+    const had = sql.exec('SELECT 1 AS x FROM visits WHERE day = ? AND id = ?', d, id).toArray().length;
+    if (!had) {
+      sql.exec('INSERT OR IGNORE INTO visits (day, id) VALUES (?, ?)', d, id);
+      await this.bump('visitors');
+    }
+    if (ms) {
+      await this.bump('load_' + (tel ? 'tel' : 'pc') + '_' + fasciaCarico(ms));
+      await this.bump('load_ms_sum', ms);
+      await this.bump('load_n');
+    }
+  }
+  // R-232: ritorni dopo 1, 7 e 30 giorni, su chi apre il gioco e su chi corre (ultimi 120 giorni)
+  async ritorni() {
+    const sql = this.ctx.storage.sql, oggi = this.day();
+    const da = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10);
+    return {
+      visite: ritorni(sql.exec('SELECT day, id FROM visits WHERE day >= ?', da).toArray(), oggi),
+      corse: ritorni(sql.exec('SELECT day, id FROM seen WHERE day >= ?', da).toArray(), oggi)
+    };
   }
   async reportVoice(room, reporter, reported) {
     this.ctx.storage.sql.exec('INSERT INTO voice_reports (at, room, reporter, reported) VALUES (?, ?, ?, ?)', Date.now(), String(room).slice(0, 8), cleanId(reporter), cleanId(reported));
