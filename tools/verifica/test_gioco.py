@@ -66,7 +66,9 @@ with sync_playwright() as p:
             gateCols: C ? C.gate : null, rampCols: C ? C.ramp : null, crash: C ? [D.tr(C.tallCrash), D.tr(C.lowCrash), D.tr(C.markerCrash)] : [D.tr('crashTree'), D.tr('crashRock'), D.tr('crashPole')],
             fog: [D.scene.fog.near, D.scene.fog.far], part: D.PART, flakes: D.flakes.visible, groundTex: !!D.groundMat.map, rough: D.groundMat.roughness,
             fa: C ? [C.fa, D.tr('food_' + C.fa)] : null, fb: C ? [C.fb, D.tr('food_' + C.fb)] : null,
-            style: C ? [C.style, C.style2 || ''] : null, bldH: C ? C.bldH : null, rails: null
+            style: C ? [C.style, C.style2 || ''] : null, bldH: C ? C.bldH : null, rails: null,
+            // R-313 (0.19.0): con il 30% di rocce in meno nei primi 220 m ce ne può essere nessuna: si contano sul primo km
+            rocce1km: (() => { const T = PN.tracciato.dati(seed, { center: D.center }); T.avanza(-1000); return T.oggetti.filter(o => o.type === 'rock').length; })()
           };
         }""", [key, SEED])
         if city == 'Neve':
@@ -81,7 +83,7 @@ with sync_playwright() as p:
         # R-307: Roma ha i ruderi dei fori al posto dei palazzi; Napoli ha i palazzi solo a sinistra (a destra il mare)
         n_bldg = info['byType'].get('bldg', 0)
         bldg_ok = (info['byType'].get('side', 0) > 10 and n_bldg == 0) if city == 'Roma' else n_bldg > (5 if city == 'Napoli' else 10)
-        check(bldg_ok and info['byType'].get('tree', 0) > 0 and info['byType'].get('rock', 0) > 0 and info['byType'].get('marker', 0) > 10, f'{city}: lati come la strada vera (R-307), ostacoli alti e bassi, segnaletica', json.dumps(info['byType']))
+        check(bldg_ok and info['byType'].get('tree', 0) + info['byType'].get('rock', 0) > 0 and info['rocce1km'] > 0 and info['byType'].get('marker', 0) > 10, f'{city}: lati come la strada vera (R-307), ostacoli alti e bassi, segnaletica', json.dumps(info['byType']))
         if city in ('Napoli', 'Roma', 'Parigi', 'Lisbona', 'Berlino', 'Zurigo'):
             check(info['byType'].get('sidetree', 0) > 3, f'{city}: file di alberi ai lati della strada (R-307)', json.dumps(info['byType']))
         g = info['geoOk']
