@@ -1,19 +1,19 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versione 0.19.0 · aggiornato al 26 ottobre 2026, ore 23 · in testa i prossimi passi · velocità reali (max 80 km/h), CYF sul trampolino gigante, in aria non si viene colpiti · online su Google Drive"
+subtitle: "Versione 0.19.1 · aggiornato dal turno di notte del 26-27 ottobre 2026 · in testa i prossimi passi · velocità reali (max 80 km/h), CYF sul trampolino gigante, in aria non si viene colpiti · online su Google Drive"
 ---
 
 # Prossimi passi
 
-Aggiornati il 26/10/2026 alle 21 (versione online: 0.17.0). Questo Word è anche su Google Drive, cartella "CYF gaming", e si aggiorna da solo. È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
+Aggiornati dal turno di notte del 26-27/10/2026 (versione online: 0.19.1). Questo Word è anche su Google Drive, cartella "CYF gaming", e si aggiorna da solo. È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
 
 ## Cosa puoi fare tu, Luigi
 
 | N. | Cosa | Tempo | ID |
 |---|---|---|---|
 | 1 | Approvare i lavori per il turno di notte (tabella di Claude qui sotto, colonna "Notte" = "Da approvare"): basta scrivere "ok notte" oppure i numeri delle righe | 1 min | R-506 |
-| 2 | Dal telefono, provare la **pista del giorno** (pulsante azzurro nel menu) e le novità dalla 0.10 alla 0.17, meglio con qualche amico; poi scrivere i requisiti che vanno bene ("R-233 controllato") | 15-30 min | D-01, D-09, D-10 |
-| 3 | Decidere le scelte aperte di Claude (sezione 7). Le più urgenti: S-39 (fantasmi, serve per la 0.18), S-43 (regole del giorno e della notte) e S-42 (struttura del software). Basta "S-xx va bene" oppure cosa cambiare | 10 min | D-04 |
+| 2 | Dal telefono, provare la **pista del giorno** (pulsante azzurro nel menu), gli **avversari del computer** e le **velocità nuove** (novità dalla 0.10 alla 0.19), meglio con qualche amico; poi scrivere i requisiti che vanno bene ("R-233 controllato") | 15-30 min | D-01, D-09, D-10 |
+| 3 | Decidere le scelte aperte di Claude (sezione 7). Le più urgenti: S-39 (avversari del computer), S-41 (velocità reali), S-42 (struttura del software) e S-43 (regole del giorno e della notte). Basta "S-xx va bene" oppure cosa cambiare | 10 min | D-04 |
 | 4 | Creare la chiave Cloudflare per il sito di prova `cyf-gaming-prova`, per provare le novità dal telefono prima che le vedano tutti | 10 min | A-09 |
 | 5 | Comprare e collegare il dominio (es. cyfgaming.it, ~10-15 €/anno) | 10 min | D-03 |
 | 6 | Leggere al mattino il rapporto del turno di notte e verso le 18 il confronto con le altre app (arriva la notifica sul telefono) | 5 min al giorno | R-503, R-508 |
@@ -24,16 +24,16 @@ Aggiornati il 26/10/2026 alle 21 (versione online: 0.17.0). Questo Word è anche
 
 | N. | Cosa | Perché | ID | Versione | Notte |
 |---|---|---|---|---|---|
-| 1 | Fantasmi: le discese migliori corrono in pista come avversari trasparenti | Si gioca in gara anche quando non c'è nessuno collegato | R-234 | 0.18 | No (serve S-39) |
-| 2 | Nella sala online, dopo 30 s da soli si corre contro i fantasmi | Niente più attese a vuoto | R-235 | 0.18 | No |
-| 3 | Server diviso per argomento, prima che `src/worker.js` superi le 1.000 righe | Ogni novità del server tocca un file piccolo | A-20 | 0.18.x | Da approvare |
-| 4 | Link "batti il mio tempo" con il fantasma e immagine del risultato | Chi gioca porta altri giocatori | R-236, D-05 | 0.19 | No |
-| 5 | Prestazioni misurate ogni notte, con soglie (fps, peso della pagina, caricamento) | Si vede subito se una novità rallenta il gioco | A-14 | — | Da approvare |
-| 6 | Pagina più leggera: file del gioco uniti e compressi, città scaricate solo quando servono, Three.js dal sito stesso | Il caricamento non cresce con le città nuove | A-19, A-16 | 0.20 | Da approvare |
-| 7 | Prove divise per modulo: il cancello prova solo i moduli toccati, la notte tutto | Il cancello resta veloce anche con molti moduli | A-22 | — | Da approvare |
-| 8 | Fisica separata dalla grafica, poi controllo contro chi bara sul server | Serve anche ai fantasmi e alle classifiche | A-11 | 0.21 | No |
-| 9 | Dati del server divisi per argomento | Un solo punto di passaggio rallenterebbe con molti giocatori | A-21 | quando le misure lo chiedono | No |
-| 10 | Parte comune C-Y-F per il secondo gioco, controllo dei tipi, interruttori per le novità | Il secondo gioco costa una frazione del primo | A-13, A-15, A-17 | dopo | No |
+| 1 | Finire gli **sfondi dipinti delle 12 città** (ramo `sfondi-citta`, lavoro del giorno): il cancello è rosso perché sulla macchina lenta delle prove a Zagabria l'allenamento non parte (0 m percorsi); il falso allarme del controllo dei nomi su `Worker`/`OffscreenCanvas` è stato corretto nella 0.19.1 | Sfondi come cartoline chiesti da Luigi | R-405 | 0.20 | No (lavoro del giorno) |
+| 2 | Link "batti il mio tempo" con il fantasma della discesa e immagine del risultato | Chi gioca porta altri giocatori | R-236, D-05 | 0.21 | No |
+| 3 | Prestazioni misurate ogni notte, con soglie (fps, peso della pagina, caricamento) | Si vede subito se una novità rallenta il gioco | A-14 | — | Da approvare |
+| 4 | Pagina più leggera: file del gioco uniti e compressi, città scaricate solo quando servono | Il caricamento non cresce con le città nuove | A-19 | 0.22 | Da approvare |
+| 5 | Prove divise per modulo: il cancello prova solo i moduli toccati, la notte tutto | Il cancello resta veloce anche con molti moduli | A-22 | — | Da approvare |
+| 6 | Fisica sul server: controllo contro chi bara (la fisica è già in un modulo solo, A-23) | Serve ai fantasmi e alle classifiche | A-11, F-04 | 0.23 | No |
+| 7 | Dati del server divisi per argomento | Un solo punto di passaggio rallenterebbe con molti giocatori | A-21 | quando le misure lo chiedono | No |
+| 8 | Parte comune C-Y-F per il secondo gioco, controllo dei tipi, interruttori per le novità | Il secondo gioco costa una frazione del primo | A-13, A-15, A-17 | dopo | No |
+
+Fatti e tolti da questa tabella il 26-27/10: avversari del computer al posto dei fantasmi (R-234, R-235, 0.18.0), server diviso per argomento (A-20, 0.18.1), Three.js dal sito stesso (A-16, 0.18.1), velocità reali e ostacoli −30% (R-242, R-313, 0.19.0).
 
 ## Regole di lavoro (decise da Luigi)
 
@@ -554,3 +554,4 @@ Richiesta del 26/10/2026 ("come possiamo migliorare il software anche vedendo i 
 | 0.18.0 | 26/10/2026 | Avversari guidati dal software, uguali ai giocatori veri (R-234, S-39): guidano, evitano gli ostacoli, saltano, fanno acrobazie, cadono, usano banane, bombe e bananoni e si possono colpire; livelli misti; 🤖 solo nelle classifiche. Ci sono in allenamento (R-239), nella pista del giorno (R-238), nella sfida se chi organizza li aggiunge (R-237) e nella sala online quando si è da soli per 15 s (R-235). Ostacoli della pista calcolati da un modulo solo (`tracciato.js`), lo stesso per la pista che si vede e per gli avversari. Protocollo di rete versione 6 |
 | 0.18.1 | 26/10/2026 | Struttura, niente cambia nel gioco (A-23, A-20, A-16, A-24): fisica in `moduli/fisica.js` usata dal rider e dagli avversari (traccia del rider identica prima e dopo: 160 controlli su 160); Three.js dal sito stesso (`public/vendor`); server diviso in `worker.js` (indirizzi), `stanza.mjs`, `classifica.mjs`, `comune.mjs`. Corretto un baco: atterrando "al contrario" senza ruotare si prendevano i punti di un 180° |
 | 0.19.0 | 26/10/2026 | Velocità come nella realtà: massimo 80 km/h solo in posizione raccolta e dopo ~2,4 km, media intorno ai 50 km/h; gare da 4,2 / 8,4 / 12,6 km (5 / 10 / 15 minuti); classifica generale da zero; telecamera e suoni riproporzionati; avversari ricalibrati (R-242, S-41). Alberi, rocce e porte −30% (R-313). Scritta CYF sul trampolino gigante (R-240). Nuova regola: in aria banana e bananone lanciati non colpiscono, "Schivata in aria!" (R-241) |
+| 0.19.1 | 27/10/2026 | Turno di notte: uniti i rami del 26/10 (prossimi passi in testa al Word, R-507…R-510; sistemata la numerazione doppia A-19…A-21 → A-23/A-24 e S-41 → S-43). Giro completo delle prove: 13 suite tutte verdi. Correzioni: il controllo dei nomi (`tools/verifica/nomi.mjs`) ora conosce i nomi del browser `Worker`, `OffscreenCanvas`, `createImageBitmap` (fermava per sbaglio il ramo degli sfondi dipinti, R-405); la versione in `package.json` era rimasta a 0.17.0 ed è di nuovo allineata a `config.js`. Nessuna modifica al gioco |
