@@ -75,7 +75,8 @@
   const PISTA = PN.pista({ scene, world, ANISO, TEX });
   const { TRACKS, center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_TEX, GROUND_MAKE, groundMat, ground, updateGround, ranges } = PISTA;
 
-  const { builtSky, skylineFor } = PN.sfondi({ scene, ANISO, telefono: isPhone });
+  const SFONDI = PN.sfondi({ scene, ANISO, telefono: isPhone, renderer });
+  const { builtSky, skylineFor } = SFONDI;
   const { merge, lumpy, vcMat, GEO, gateGeo } = PN.geometria;
   const CITTA = PN.citta({ world, ANISO, pista: PISTA });
   const { CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, textTexture, finishLine, rampCity, propGeos } = CITTA;
@@ -1002,7 +1003,7 @@
     modo: mode, scena: theme, seed: lastSeed, vel: P.speed, dist: distM(), gara: raceLen,
     rete: net.ws ? ['apertura', 'aperta', 'chiusura', 'chiusa'][net.ws.readyState] : 'no', stanza: net.code || '-', fase: net.phase,
     ping: net.ping, msg: net.msgs, giocatori: net.players.length, avversari: remotes.size, lingua: lang, tel: isPhone ? 1 : 0, gl: glName,
-    sfondo: builtSky[theme] ? (builtSky[theme].userData.pronto ? 'pronto' : 'in arrivo') : '-'   // cartolina della città (R-405)
+    sfondo: builtSky[theme] ? (builtSky[theme].userData.pronto ? 'pronto' : 'in arrivo') : '-', pittore: SFONDI.pittore()   // cartolina della città (R-405, A-22)
   });
   const verLabel = $('verLabel');
   if (verLabel) { verLabel.textContent = 'v' + ((window.CYF && window.CYF.version) || '?'); diag.tapToOpen(verLabel); }

@@ -25,7 +25,10 @@ PN.panorami = (() => {
   const mix = (a, b, t) => {
     const key = a + b + Math.round(t * 400);
     let v = misti.get(key);
-    if (v === undefined) { const A = rgb(a), B = rgb(b), q = Math.round(t * 400) / 400; v = hex(A.map((x, i) => x + (B[i] - x) * q)); misti.set(key, v); }
+    if (v === undefined) {
+      if (misti.size > 40000) { misti.clear(); cache.clear(); }   // mai troppo grande: una Map da milioni di voci rallenta tutto
+      const A = rgb(a), B = rgb(b), q = Math.round(t * 400) / 400; v = hex(A.map((x, i) => x + (B[i] - x) * q)); misti.set(key, v);
+    }
     return v;
   };
   const rgba = (h, a) => { const c = rgb(h); return `rgba(${c[0]},${c[1]},${c[2]},${Math.round(a * 1000) / 1000})`; };
@@ -59,6 +62,11 @@ PN.panorami = (() => {
     return c;
   }
   function copia(P) { const c = nuovaTela(P.W, P.H); c.getContext('2d').drawImage(P.c, 0, 0); return c; }
+  // una tela di passaggio si svuota appena usata: ognuna occupa ~11 MB e, lasciata al garbage collector, nel worker
+  // si accumulano (con la grafica software la quarta città arrivava dopo 35 s invece di 3)
+  const butta = c => { c.width = 0; c.height = 0; };
+  // riflette nell'acqua quello che c'è già sulla tela
+  function rifletti(P, ...args) { const c = copia(P); riflesso(P, c, ...args); butta(c); }
   function poli(P, pts, fill) {
     const g = P.g;
     g.beginPath();
@@ -432,6 +440,7 @@ PN.panorami = (() => {
       rett(Q, s - H * 0.004, base + H * 0.92, H * 0.008, H * 0.08, luce(c, -0.15));
     });
     P.g.drawImage(L, 0, 0);
+    butta(L);
   }
   // cupola su tamburo con le colonnine e la lanterna
   function cupola(P, s, base, r, colT, colC, d, alta = 1.15) {
@@ -490,6 +499,7 @@ PN.panorami = (() => {
       g.restore();
     });
     P.g.drawImage(L, 0, 0);
+    butta(L);
   }
   // Big Ben (Elizabeth Tower): fusto con le lesene, quadranti, la loggia delle campane e la guglia in ghisa
   function bigben(P, s, base, H) {
@@ -609,6 +619,7 @@ PN.panorami = (() => {
       g.globalCompositeOperation = 'source-atop'; g.fillStyle = gr; g.fillRect(Q.x(s), Q.y(base + H * 1.7), Q.m(W), Q.m(H * 1.7)); g.globalCompositeOperation = 'source-over';
     });
     P.g.drawImage(L, 0, 0);
+    butta(L);
   }
   // Römer di Francoforte: le tre case a gradoni con il balcone e l'orologio
   function romer(P, s, base, w) {
@@ -701,6 +712,7 @@ PN.panorami = (() => {
       g.globalCompositeOperation = 'source-atop'; g.fillStyle = gr; g.fillRect(Q.x(s - w / 2), Q.y(base + H * 1.05), Q.m(w), Q.m(H * 1.05)); g.globalCompositeOperation = 'source-over';
     });
     P.g.drawImage(L, 0, 0);
+    butta(L);
   }
   // San Marco a Zagabria: il tetto a scacchi con i due stemmi
   function sanMarco(P, s, base, w, d) {
@@ -877,7 +889,7 @@ PN.panorami = (() => {
       vesuvio(P, 70, -7, 96);
       quartieri(P, { stile: st, da: -200, a: 300, h0: -6, h1: -8, foschia: 1.1 });   // Portici e Torre del Greco sotto il vulcano
       acqua(P, -8, -150, '#4a8cc6', '#1f63a3');
-      riflesso(P, copia(P), -8, 110, 0.22, -1100, 1100, 3);
+      rifletti(P, -8, 110, 0.22, -1100, 1100, 3);
       // a sinistra la collina di Posillipo e del Vomero con le case, Castel Sant'Elmo in cima; sotto, il lungomare
       const coll = crinale(P, { da: -1100, a: -230, base: -46, alt: 120, colore: P.aria('#76905f', 0.2), passo: 6, fase: 1, velo: 0.2, bosco: true, forma: s => Math.pow(cl((-230 - s) / 520, 0, 1), 0.8) });
       rett(P, -760, coll.alt(-725) - 4, 70, 14, P.aria('#cdb48c', 0.2)); rett(P, -772, coll.alt(-725) - 6, 94, 4, P.aria('#bba27a', 0.2));
@@ -949,7 +961,7 @@ PN.panorami = (() => {
       parlamento(P, -330, -10, -66, 26, 0.04);
       bigben(P, 0, -70, 196);
       rett(P, -1100, -70, 2200, 4, P.aria('#bdb09a', 0.06));   // l'argine
-      riflesso(P, copia(P), -66, 140, 0.24, -1100, 1100, 2.5);
+      rifletti(P, -66, 140, 0.24, -1100, 1100, 2.5);
       // il Westminster Bridge: arcate basse verdi verso la riva sud
       const ponte = P.aria('#5f7f62', 0.05);
       rett(P, 14, -66, 320, 7, ponte); rett(P, 14, -59, 320, 2, P.aria('#d9cfb8', 0.05));
@@ -997,10 +1009,11 @@ PN.panorami = (() => {
       rett(P, -700, coll.alt(-680) - 5, 50, 12, P.aria('#d6c8a8', 0.2)); for (let i = 0; i < 6; i++) rett(P, -700 + i * 9, coll.alt(-680) + 7, 3, 3, P.aria('#d6c8a8', 0.2));   // il castello di São Jorge
       quartieri(P, { stile: st, da: -1100, a: -190, h0: 56, h1: -38, scala: () => 0.28, fitte: 1.4, sotto: s => coll.alt(s) - 5 });
       quartieri(P, { stile: st, da: -1100, a: -180, h0: -42, h1: -84, libero: (s, h) => s > -180 + (h + 42) * 4 });
-      riflesso(P, copia(P), -8, 120, 0.22, -180, 1100, 2.5);
+      rifletti(P, -8, 120, 0.22, -180, 1100, 2.5);
       const L = strato(P, Q => belem(Q, 0, -104, 132));
       P.g.drawImage(L, 0, 0);
       riflesso(P, L, -104, 132, 0.3, -120, 120, 1.5);
+      butta(L);
       onde(P, -10, -150, '#1f5a82', -1100, 1100, 0.8);
       for (let i = 0; i < 8; i++) { const h = P.rr(-120, -20); barca(P, P.rr(-120, 900), h, P.rr(6, 10) * scala(h), P.rnd() < 0.7); }
     } },
@@ -1044,7 +1057,7 @@ PN.panorami = (() => {
       grossmunster(P, 0, -66, 196);
       rett(P, -1100, -70, 2200, 4, P.aria('#b9b0a0', 0.05));   // il muro del lungofiume
       acqua(P, -70, -116, '#6a9ab8', '#4a84a8');   // la Limmat
-      riflesso(P, copia(P), -70, 46, 0.3, -1100, 1100, 1.5);
+      rifletti(P, -70, 46, 0.3, -1100, 1100, 1.5);
       onde(P, -70, -116, '#2c6488', -1100, 1100, 0.9);
       rett(P, -1100, -120, 2200, 4, P.aria('#b9b0a0', 0.03));
       quartieri(P, { stile: st, da: -1100, a: 1100, h0: -120, h1: -150, libero: (s, h, sc) => Math.abs(s) < 170 * sc + 60 });   // la riva di qua (la Schipfe)
@@ -1059,10 +1072,11 @@ PN.panorami = (() => {
       quartieri(P, { stile: STILI.newyork, da: -1100, a: 1100, h0: -12, h1: -18, foschia: 0.9 });
       acqua(P, -18, -150, '#6c8ca2', '#3e6178');
       ponteSospeso(P, 520, 1000, -18, 90, '#b9b3a3', 0.3);   // il ponte di Brooklyn
-      riflesso(P, copia(P), -18, 150, 0.2, -1100, 1100, 2.5);
+      rifletti(P, -18, 150, 0.2, -1100, 1100, 2.5);
       const L = strato(P, Q => liberty(Q, 0, -108, 236));
       P.g.drawImage(L, 0, 0);
       riflesso(P, L, -108, 40, 0.25, -300, 300, 1.5);
+      butta(L);
       onde(P, -20, -150, '#2c4a60', -1100, 1100, 0.8);
       for (let i = 0; i < 7; i++) { const h = P.rr(-120, -40); barca(P, P.rr(250, 800) * (P.rnd() < 0.5 ? 1 : -1), h, P.rr(10, 18) * scala(h), false); }
     } }
@@ -1074,6 +1088,7 @@ PN.panorami = (() => {
     const Rc = RICETTE[nome];
     if (!Rc) return null;
     const c = { orizzonte: cielo.orizzonte || Rc.nebbia, nebbia: cielo.nebbia || Rc.nebbia };
+    misti.clear(); cache.clear();   // i colori tenuti da parte servono solo alla città che si sta dipingendo
     const P = tela(W, c, Rc.seme, Rc);
     Rc.dipingi(P);
     sfuma(P, 26, -4, c.orizzonte, c.orizzonte, 0, 0.16);   // un velo di foschia all'orizzonte
