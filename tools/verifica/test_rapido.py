@@ -35,15 +35,16 @@ with sync_playwright() as p:
         # clic via JS: con la grafica software Playwright aspetterebbe a lungo che la pagina sia ferma
         pg.evaluate("""sc => { const s = document.getElementById('selScena'); s.value = sc; s.dispatchEvent(new Event('change'));
                                document.getElementById('btnSolo').click(); }""", sc)
-        try: pg.wait_for_function('window.CYFDiag.state().dist > 0.5', timeout=20000)
+        if sc != 'neve':   # R-405: la cartolina della città arriva (dipinta dal worker, A-22); con la grafica software il
+            # worker e il disegno si contendono il processore: prima si aspetta la cartolina, poi si guarda il rider
+            try: pg.wait_for_function("window.CYFDiag.state().sfondo === 'pronto'", timeout=30000)
+            except Exception: pass
+            check(pg.evaluate('window.CYFDiag.state().sfondo') == 'pronto' and not errs, f'{sc}: sfondo della città dipinto', '; '.join(errs)[:200])
+        try: pg.wait_for_function('window.CYFDiag.state().dist > 0.5', timeout=30000)
         except Exception: pass
         st = pg.evaluate('window.CYFDiag.state()')
         check(not errs and st['scena'] == sc and st['modo'] == 'solo' and st['dist'] > 0.5,
               f'{sc}: nessun errore, allenamento partito, {st["dist"]:.1f} m percorsi', '; '.join(errs)[:200])
-        if sc != 'neve':   # R-405: la cartolina della città arriva (dipinta dal worker, A-22)
-            try: pg.wait_for_function("window.CYFDiag.state().sfondo === 'pronto'", timeout=20000)
-            except Exception: pass
-            check(pg.evaluate('window.CYFDiag.state().sfondo') == 'pronto' and not errs, f'{sc}: sfondo della città dipinto', '; '.join(errs)[:200])
         pg.evaluate("document.getElementById('btnMenu').click()")
         check(pg.evaluate('window.CYFDiag.state().modo') == 'menu', f'{sc}: ritorno al menu') if sc == SCENE[-1] else None
     pg.close()
