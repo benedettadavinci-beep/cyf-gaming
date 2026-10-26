@@ -534,6 +534,11 @@
     connect(c);
   }
   $('btnJoin').addEventListener('click', joinFromMenu);
+  // pista del giorno (R-233): una stanza da soli con la città e la pista di oggi; si parte subito
+  $('btnDaily').addEventListener('click', () => {
+    if (!needName()) return;
+    connect('G' + Array.from({ length: 7 }, () => ALPH[Math.floor(Math.random() * ALPH.length)]).join(''), false, true);
+  });
   // modalità online: il server indica una sala pubblica; si aspetta lì che arrivino altri giocatori
   $('btnOnline').addEventListener('click', async () => {
     if (!needName()) return;
@@ -548,22 +553,27 @@
     b.disabled = false;
   });
 
-  function connect(code, pub) {
+  function connect(code, pub, daily) {
     initAudio();
     net.close();
     net.want = true; net.code = code; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map();
     net.pub = !!pub || /^ONLINE\d+$/.test(code); net.autoAt = 0; net.awards = null;
-    history.replaceState(null, '', location.pathname + (net.pub ? '' : '?sfida=' + code));
+    net.daily = !!daily; net.giorno = null;
+    history.replaceState(null, '', location.pathname + (net.pub || net.daily ? '' : '?sfida=' + code));
     mode = 'lobby';
-    renderLobby();
-    show('lobby');
+    if (net.daily) {
+      // niente stanza d'attesa: si vede la pista e si parte appena è caricata
+      const G = SCHERMATE.giorno;
+      show(null);
+      setBanner(G ? tr('dailyGather', { n: G.n, city: SCHERMATE.cityName(G.scena) }) : '…');
+    } else { renderLobby(); show('lobby'); }
     open();
   }
   function open() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     let ws;
     diag.log('rete', 'collegamento a ' + net.code + (net.retries ? ' (tentativo ' + (net.retries + 1) + ')' : ''));
-    try { ws = new WebSocket(proto + '://' + location.host + '/api/room/' + net.code); }
+    try { ws = new WebSocket(proto + '://' + location.host + (net.daily ? '/api/giorno/' : '/api/room/') + net.code); }
     catch (e) { diag.log('rete', 'WebSocket non creato: ' + e.message); setBanner(tr('errServer')); return; }
     net.ws = ws;
     ws.onopen = () => {
@@ -589,7 +599,7 @@
       if (ev.code === 1008) {
         // sala pubblica piena: se ne cerca un'altra
         if (net.pub) { net.want = false; $('btnOnline').click(); return; }
-        net.want = false; toMenu(); menuError(tr('errFull')); return;
+        net.want = false; toMenu(); menuError(tr(net.daily ? 'dailyErr' : 'errFull')); return;
       }
       if (ev.code === 4000) { net.want = false; toMenu(); menuError(tr('errOtherTab')); return; }
       if (ev.code === 4001) { net.want = false; toMenu(); menuError(tr('errAggiorna')); return; }   // versione del protocollo diversa
@@ -597,7 +607,8 @@
         net.retries++;
         setBanner(tr('reconnecting'));
         setTimeout(() => { if (net.want) open(); }, 1000 * net.retries);
-      } else { setBanner(tr('cantConnect', { code: net.code })); }
+      } else if (net.daily) { net.want = false; toMenu(); menuError(tr('dailyErr')); }
+      else { setBanner(tr('cantConnect', { code: net.code })); }
     };
   }
 
@@ -610,6 +621,14 @@
       net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || []; net.ready = m.ready || [];
       net.pub = !!m.pub; net.minutes = m.minutes || 5; net.awards = m.awards || null; net.scena = m.scena || 'neve';
       raceLen = m.length || raceLen;
+      net.daily = !!m.daily;
+      if (net.daily && (m.phase === 'lobby' || m.phase === 'results')) {
+        // pista del giorno: appena dentro si parte. Se il collegamento è caduto durante la gara, la stanza è nuova:
+        // quella gara è persa e si torna al menu
+        if (racing()) { net.want = false; toMenu(); menuError(tr('dailyInterrupted')); return; }
+        if (mode === 'lobby') net.send({ t: 'start' });
+        return;
+      }
       if ((m.phase === 'countdown' || m.phase === 'racing') && amIn(net.racers) && !racing()) beginRace(true);
       renderLobby();
     } else if (m.t === 'lobby') {
@@ -629,6 +648,7 @@
       net.phase = 'countdown'; net.seed = m.seed; net.startAt = m.startAt; net.racers = m.racers; net.round = m.round; net.results = []; net.finished = new Map(); net.scena = m.scena || 'neve';
       net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || []; net.ready = m.ready || [];
       raceLen = m.length || raceLen;
+      net.giorno = m.giorno || null;
       if (amIn(net.racers)) beginRace(false);
       else renderLobby();
     } else if (m.t === 'racers') {
@@ -655,6 +675,7 @@
       }
     } else if (m.t === 'results') {
       net.results = m.results; net.phase = 'results'; net.awards = m.awards || null;
+      if (net.daily) net.giorno = m.giorno || (net.giorno && { n: net.giorno.n, scena: net.scena });
       const mine = m.results.find(r => r.id === myId);
       if (mine && mine.total != null) { myTotal = mine.total; renderMyPts(); }
       endRaceView();
@@ -699,6 +720,7 @@
 
   function toMenu() {
     net.close();
+    net.daily = false; net.giorno = null;
     history.replaceState(null, '', location.pathname);
     mode = 'menu';
     me.setColor(PALETTE[0], myJersey());
@@ -763,7 +785,7 @@
       // Sala online: il conto alla rovescia parte quando tutti hanno caricato la gara, al massimo dopo 25 s.
       const s = Math.max(0, Math.ceil((net.gatherUntil - serverNow()) / 1000));
       const nReady = (net.ready || []).length;
-      const txt = (net.pub ? tr('gatherWait', { n: net.loaded.length, t: net.racers.length, s }) : tr('gatherFixed', { t: net.racers.length, s })) + (nReady ? ' · ' + tr('readyCount', { r: nReady, t: net.racers.length }) : '');
+      const txt = net.daily ? tr('dailyGather', { n: (net.giorno || {}).n || '', city: SCHERMATE.cityName(net.scena) }) : (net.pub ? tr('gatherWait', { n: net.loaded.length, t: net.racers.length, s }) : tr('gatherFixed', { t: net.racers.length, s })) + (nReady ? ' · ' + tr('readyCount', { r: nReady, t: net.racers.length }) : '');
       if (net.gatherTxt !== txt) { net.gatherTxt = txt; setBanner(txt); banner.classList.add('wait'); }
       cnt.hidden = true;
       showPronto(true);
@@ -819,7 +841,8 @@
     renderMyPts();
   }
 
-  const VOCALI = PN.vocali({ net, audio: AUDIO, say, isOnline: () => !!(net.ws && net.ws.readyState === 1) && (mode === 'lobby' || mode === 'results' || racing()), isTraining: () => mode === 'solo' || mode === 'pause', serverNow });
+  // nella pista del giorno si corre da soli: il microfono è grigio come in allenamento (S-40)
+  const VOCALI = PN.vocali({ net, audio: AUDIO, say, isOnline: () => !net.daily && !!(net.ws && net.ws.readyState === 1) && (mode === 'lobby' || mode === 'results' || racing()), isTraining: () => mode === 'solo' || mode === 'pause' || !!net.daily, serverNow });
   const { voice, fmtWait, updateVoiceBtn, voiceButton, stopVoice, playVoice, mutedIds } = VOCALI;
   // ---------- donazioni ----------
   const DONATE_URL = (window.CYF && window.CYF.donateUrl) || '';
@@ -939,6 +962,7 @@
     renderMyPts();
     if (mode === 'lobby') renderLobby();
     if (mode === 'results') renderResults();
+    SCHERMATE.renderDaily();   // pulsante della pista del giorno nella lingua nuova
     updateVoiceBtn();
     PROFILO.render();
   }

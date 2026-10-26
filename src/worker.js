@@ -2,6 +2,8 @@
 // Ogni sfida è una "stanza" (Durable Object RaceRoom) identificata da un codice.
 // - Stanze private (codice di 5 caratteri): chi la crea sceglie la durata (5, 10 o 15 minuti) e preme Parti.
 // - Stanze pubbliche (ONLINE1, ONLINE2…): modalità online; la gara parte da sola quando ci sono almeno 2 giocatori.
+// - Pista del giorno (/api/giorno/<codice>, R-233): una stanza da 1 giocatore, con la città e il seed del giorno;
+//   il tempo lo misura il server e il migliore di ognuno va nella classifica del giorno.
 // I giocatori si collegano via WebSocket; il server tiene il conto alla rovescia, dà a tutti lo stesso
 // tracciato (seed), inoltra posizioni, banane e bombe, misura i tempi con il PROPRIO orologio e assegna i punti.
 // Classifica dei tempi e punti collezionati stanno nel Durable Object Leaderboard (SQLite).
@@ -12,6 +14,8 @@ import '../public/shared/protocollo.js';
 const PROTO = globalThis.CYF_PROTOCOLLO;
 // quanti giocatori tornano dopo 1, 7 e 30 giorni (R-232)
 import { ritorni } from './ritorni.mjs';
+// pista del giorno (R-233): giorno italiano, numero, città e seed uguali per tutti
+import { pistaDelGiorno, giornoDi } from './giorno.mjs';
 
 const MAX_PLAYERS = PROTO.MAX_PLAYERS;
 const AVG_SPEED_MS = 40;                     // velocità media di un giocatore medio: serve a trasformare minuti in metri
@@ -75,6 +79,20 @@ export default {
       if (request.headers.get('Upgrade') !== 'websocket') return json({ error: 'Serve una connessione WebSocket' }, { status: 426 });
       const stub = env.RACE.get(env.RACE.idFromName(code));
       return stub.fetch(request);
+    }
+
+    // /api/giorno/<codice> → WebSocket verso una stanza della pista del giorno (R-233): nomi separati dalle sfide
+    if (url.pathname.startsWith('/api/giorno/')) {
+      const code = (url.pathname.split('/')[3] || '').toUpperCase();
+      if (!CODE_RE.test(code)) return json({ error: 'Codice non valido' }, { status: 400 });
+      if (request.headers.get('Upgrade') !== 'websocket') return json({ error: 'Serve una connessione WebSocket' }, { status: 426 });
+      return env.RACE.get(env.RACE.idFromName('giorno:' + code)).fetch(request);
+    }
+    // /api/giorno?id=… → la pista di oggi (numero, città), la classifica del giorno e, con id, il migliore del giocatore
+    if (url.pathname === '/api/giorno') {
+      const g = pistaDelGiorno();
+      const b = await board(env).giorno(g.giorno, 20, cleanId(url.searchParams.get('id')));
+      return json({ n: g.n, giorno: g.giorno, scena: g.scena, minuti: g.minuti, ...b });
     }
 
     // /api/quick → la stanza pubblica in cui entrare (modalità online)
@@ -201,8 +219,10 @@ export class RaceRoom extends DurableObject {
   }
 
   async fetch(request) {
-    const code = (new URL(request.url).pathname.split('/')[3] || '').toUpperCase();
+    const parts = new URL(request.url).pathname.split('/');
+    const code = (parts[3] || '').toUpperCase();
     await this.load(code);
+    if (parts[2] === 'giorno' && !this.state.daily) { this.state.daily = true; await this.save(); }
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
@@ -236,6 +256,7 @@ export class RaceRoom extends DurableObject {
   // nelle sale pubbliche è quella di chi aspetta da più tempo
   roomScena(except) {
     const st = this.state;
+    if (st.daily) return pistaDelGiorno().scena;   // pista del giorno: la città di oggi (R-233)
     const host = this.players(except).find(p => p.id === st.hostId);
     if (st.pub || !st.scena) return cleanScena(host && host.sc);
     return cleanScena(st.scena);
@@ -271,15 +292,17 @@ export class RaceRoom extends DurableObject {
     st.phase = 'countdown';
     st.round += 1;
     st.seed = (Math.random() * 2 ** 31) | 0;
+    // pista del giorno: seed, città e durata del giorno italiano in cui si parte (S-40)
+    if (st.daily) { const g = pistaDelGiorno(now); st.giorno = g; st.seed = g.seed; st.minutes = g.minuti; st.scena = g.scena; }
     // attesa: il conto alla rovescia di 5 s parte solo quando tutti hanno caricato la gara (o dopo 40 s)
     st.startAt = 0;
-    st.gatherUntil = now + (st.pub ? GATHER_MAX_MS : this.attesaSfida());
+    st.gatherUntil = now + (st.pub || st.daily ? GATHER_MAX_MS : this.attesaSfida());
     st.loaded = [];
     st.ready = [];   // chi ha premuto "Sono pronto" durante l'attesa (R-222)
     st.autoAt = 0;
     st.timeoutAt = 0;
     st.racers = list.map(p => ({ id: p.id, name: p.name, color: p.color, j: p.j || '', h: p.h || '', p: p.p || '', e: p.e || '', s: p.s || '' }));
-    st.raceScena = this.roomScena();
+    st.raceScena = st.daily ? st.giorno.scena : this.roomScena();
     st.results = [];
     st.drops = 0;
     st.spesa = {};      // punti spesi da ogni corridore in banane, bombe e bananoni (R-232)
@@ -290,7 +313,7 @@ export class RaceRoom extends DurableObject {
     await this.schedule();
     board(this.env).bump('races_started').catch(() => {});
     board(this.env).bump('racers', list.length).catch(() => {});
-    this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: 0, gatherUntil: st.gatherUntil, loaded: [], racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round, scena: st.raceScena });
+    this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: 0, gatherUntil: st.gatherUntil, loaded: [], racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round, scena: st.raceScena, giorno: st.daily ? { n: st.giorno.n, giorno: st.giorno.giorno } : null });
     this.broadcast(this.lobbyMsg());
   }
 
@@ -309,7 +332,7 @@ export class RaceRoom extends DurableObject {
     const here = st.racers.filter(r => online.has(r.id));
     // tutti hanno alzato la mano: si parte subito, nella sfida e nelle sale online (R-222)
     if (here.length && here.every(r => (st.ready || []).includes(r.id))) { await this.go(except); return; }
-    if (!st.pub) return;
+    if (!st.pub && !st.daily) return;
     const missing = here.filter(r => !st.loaded.includes(r.id));
     if (missing.length === 0) await this.go(except);
   }
@@ -365,7 +388,7 @@ export class RaceRoom extends DurableObject {
       // pagina vecchia ancora aperta: versione del protocollo diversa → "aggiorna la pagina" invece di errori strani
       if (m.v !== PROTO.VERSIONE) { this.send(ws, { t: 'aggiorna', v: PROTO.VERSIONE }); ws.close(4001, 'Aggiorna la pagina'); return; }
       const others = this.players(ws);
-      if (others.length >= MAX_PLAYERS) { this.send(ws, { t: 'full' }); ws.close(1008, 'Stanza piena'); return; }
+      if (others.length >= (st.daily ? 1 : MAX_PLAYERS)) { this.send(ws, { t: 'full' }); ws.close(1008, 'Stanza piena'); return; }
       const id = cleanId(m.id);
       if (!id) return;
       // stesso giocatore riconnesso da un'altra scheda: chiude la vecchia connessione
@@ -393,7 +416,7 @@ export class RaceRoom extends DurableObject {
       await this.schedule();
       board(this.env).touch(id).catch(() => {});
       this.send(ws, {
-        t: 'welcome', you: id, code: st.code, now, max: MAX_PLAYERS, length: lengthFor(st.minutes), minutes: st.minutes, pub: st.pub,
+        t: 'welcome', you: id, code: st.code, now, max: st.daily ? 1 : MAX_PLAYERS, length: lengthFor(st.minutes), minutes: st.minutes, pub: st.pub, daily: !!st.daily,
         phase: st.phase, seed: st.seed, startAt: st.startAt, gatherUntil: st.gatherUntil || 0, loaded: st.loaded || [], ready: st.ready || [], racers: st.racers, scena: cleanScena(st.raceScena), results: st.results, awards: st.awards || null,
         voiceNext: ((st.voiceAt || {})[id] || 0) + VOICE_COOLDOWN_MS
       });
@@ -414,7 +437,7 @@ export class RaceRoom extends DurableObject {
     }
 
     if (m.t === 'settings') {
-      if (st.pub || me.id !== st.hostId || (st.phase !== 'lobby' && st.phase !== 'results')) return;
+      if (st.pub || st.daily || me.id !== st.hostId || (st.phase !== 'lobby' && st.phase !== 'results')) return;
       if (DURATIONS.includes(m.minutes)) st.minutes = m.minutes;
       await this.save();
       this.broadcast(this.lobbyMsg());
@@ -454,7 +477,7 @@ export class RaceRoom extends DurableObject {
     if (m.t === 'scena') {
       me.sc = cleanScena(m.scena);
       ws.serializeAttachment(me);
-      if (!st.pub && me.id === st.hostId && (st.phase === 'lobby' || st.phase === 'results')) st.scena = me.sc;
+      if (!st.pub && !st.daily && me.id === st.hostId && (st.phase === 'lobby' || st.phase === 'results')) st.scena = me.sc;
       await this.save();
       this.broadcast(this.lobbyMsg());
       return;
@@ -481,7 +504,7 @@ export class RaceRoom extends DurableObject {
 
     // banane e bombe: il server controlla solo che chi le lascia sia in gara e non esageri
     if (m.t === 'drop') {
-      if (st.phase !== 'racing' || !st.racers.some(r => r.id === me.id) || !DROP_KINDS.includes(m.kind)) return;
+      if (st.daily || st.phase !== 'racing' || !st.racers.some(r => r.id === me.id) || !DROP_KINDS.includes(m.kind)) return;
       if (now - (this.lastDrop.get(me.id) || 0) < 900) return;
       this.lastDrop.set(me.id, now);
       st.drops = (st.drops || 0) + 1;
@@ -494,7 +517,7 @@ export class RaceRoom extends DurableObject {
     }
     // banana o bananone lanciati al giocatore davanti (R-224, R-231): il server li inoltra a tutti, il bersaglio si ferma 2 s (banana) o 4 s (bananone)
     if (m.t === 'throw') {
-      if (st.phase !== 'racing' || !st.racers.some(r => r.id === me.id)) return;
+      if (st.daily || st.phase !== 'racing' || !st.racers.some(r => r.id === me.id)) return;
       const target = cleanId(m.target);
       if (!target || target === me.id || !st.racers.some(r => r.id === target)) return;
       if (now - (this.lastDrop.get(me.id) || 0) < 900) return;
@@ -515,6 +538,7 @@ export class RaceRoom extends DurableObject {
     }
 
     if (m.t === 'voice') {
+      if (st.daily) return;   // da soli non c'è nessuno da sentire (S-40)
       if ((st.voiceBlock || {})[me.id]) { this.send(ws, { t: 'voiceBlocked' }); return; }
       const data = typeof m.data === 'string' ? m.data : '';
       const mime = VOICE_MIME.includes(m.mime) ? m.mime : null;
@@ -558,6 +582,8 @@ export class RaceRoom extends DurableObject {
       this.broadcast({ t: 'finished', id: me.id, ms: valid ? ms : null });
       if (valid) {
         try { await board(this.env).submit(me.name, ms, lengthFor(st.minutes)); } catch (e) {}
+        // pista del giorno: il migliore di ognuno nella classifica del giorno in cui è partito (R-233, S-40)
+        if (st.daily && st.giorno) { try { st.esitoGiorno = await board(this.env).submitGiorno(st.giorno.giorno, me.id, me.name, ms); } catch (e) {} }
       }
       await this.maybeEnd();
       return;
@@ -584,7 +610,7 @@ export class RaceRoom extends DurableObject {
     let place = 0;
     for (const r of st.results) {
       const pos = r.ms != null ? place++ : -1;
-      r.earned = (pos < 0 ? 0 : (PLACE_POINTS[pos] ?? 30)) + (r.p || 0);
+      r.earned = (pos < 0 || st.daily ? 0 : (PLACE_POINTS[pos] ?? 30)) + (r.p || 0);   // pista del giorno: da soli, niente punti del piazzamento (S-40)
       r.won = pos === 0;
     }
     const best = (key) => st.results.reduce((a, r) => (r[key] > (a ? a[key] : 0) ? r : a), null);
@@ -605,7 +631,12 @@ export class RaceRoom extends DurableObject {
     this.updateAuto(except);
     await this.save();
     await this.schedule();
-    this.broadcast({ t: 'results', results: st.results, awards: st.awards, round: st.round, minutes: st.minutes }, except);
+    let giorno = null;
+    if (st.daily && st.giorno) {
+      try { giorno = { n: st.giorno.n, giorno: st.giorno.giorno, scena: st.giorno.scena, ...(st.esitoGiorno || {}), ...(await board(this.env).giorno(st.giorno.giorno, 10, (st.racers[0] || {}).id)) }; } catch (e) {}
+      st.esitoGiorno = null;
+    }
+    this.broadcast({ t: 'results', results: st.results, awards: st.awards, round: st.round, minutes: st.minutes, giorno }, except);
     this.broadcast(this.lobbyMsg(except), except);
   }
 
@@ -640,6 +671,12 @@ export class RaceRoom extends DurableObject {
     this.broadcast(this.lobbyMsg(ws), ws);
     await this.maybeEnd(ws);
     if (this.state.phase === 'countdown') await this.maybeGo(ws);   // chi esce durante l'attesa non blocca gli altri
+    // pista del giorno: quando il giocatore se ne va la stanza non serve più (non resta niente salvato)
+    if (this.state.daily && this.players(ws).length === 0) {
+      await this.ctx.storage.deleteAlarm();
+      await this.ctx.storage.deleteAll();
+      this.state = null;
+    }
   }
   async webSocketError(ws) { await this.webSocketClose(ws, 1011); }
 }
@@ -658,6 +695,8 @@ export class Leaderboard extends DurableObject {
     sql.exec('CREATE TABLE IF NOT EXISTS seen (day TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (day, id))');
     // chi apre la pagina del gioco, anche solo per allenarsi: una riga per giocatore e giorno (R-232)
     sql.exec('CREATE TABLE IF NOT EXISTS visits (day TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (day, id))');
+    // pista del giorno (R-233): il tempo migliore di ogni giocatore per ogni giorno italiano
+    sql.exec('CREATE TABLE IF NOT EXISTS giorno (day TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, ms INTEGER NOT NULL, tries INTEGER NOT NULL DEFAULT 1, at INTEGER NOT NULL, PRIMARY KEY (day, id))');
     sql.exec('CREATE TABLE IF NOT EXISTS voice_reports (at INTEGER NOT NULL, room TEXT NOT NULL, reporter TEXT NOT NULL, reported TEXT NOT NULL)');
     // errori arrivati dai browser dei giocatori: uno per giorno, versione, messaggio e punto del codice, con il conteggio
     // profili con il codice personale (R-226): il codice è la chiave, id è il giocatore che lo usa
@@ -741,6 +780,36 @@ export class Leaderboard extends DurableObject {
     const out = {};
     for (const r of rows) (out[r.day] = out[r.day] || { day: r.day })[r.metric] = r.value;
     return Object.values(out).sort((a, b) => (a.day < b.day ? 1 : -1));
+  }
+  // R-233: salva il tempo del giorno (resta il migliore) e restituisce posizione, quanti in classifica e il migliore
+  async submitGiorno(day, id, name, ms) {
+    const sql = this.ctx.storage.sql;
+    id = cleanId(id);
+    if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+    sql.exec(
+      'INSERT INTO giorno (day, id, name, ms, tries, at) VALUES (?, ?, ?, ?, 1, ?) ' +
+      'ON CONFLICT(day, id) DO UPDATE SET name = excluded.name, tries = tries + 1, at = CASE WHEN excluded.ms < ms THEN excluded.at ELSE at END, ms = MIN(ms, excluded.ms)',
+      day, id, cleanName(name), Math.round(ms), Date.now()
+    );
+    const old = new Date(Date.parse(day + 'T00:00:00Z') - 400 * 86400000).toISOString().slice(0, 10);
+    sql.exec('DELETE FROM giorno WHERE day < ?', old);
+    return { ...this.posGiorno(day, id), record: Math.round(ms) };
+  }
+  posGiorno(day, id) {
+    const sql = this.ctx.storage.sql;
+    const row = sql.exec('SELECT ms FROM giorno WHERE day = ? AND id = ?', day, id).toArray()[0];
+    const of = sql.exec('SELECT COUNT(*) AS c FROM giorno WHERE day = ?', day).toArray()[0].c;
+    if (!row) return { best: null, rank: null, of };
+    const rank = sql.exec('SELECT COUNT(*) AS c FROM giorno WHERE day = ? AND ms < ?', day, row.ms).toArray()[0].c + 1;
+    return { best: row.ms, rank, of };
+  }
+  // classifica del giorno (a pari tempo vince chi l'ha fatto prima) e, con id, la posizione del giocatore
+  async giorno(day, n = 20, id = '') {
+    const top = this.ctx.storage.sql
+      .exec('SELECT id, name, ms FROM giorno WHERE day = ? ORDER BY ms ASC, at ASC LIMIT ?', day, Math.min(50, n)).toArray()
+      .map(r => ({ name: r.name, ms: r.ms, me: !!id && r.id === id }));
+    const mine = id ? this.posGiorno(day, cleanId(id)) : { of: this.posGiorno(day, '').of };
+    return { top, ...mine };
   }
   async submit(name, ms, len) {
     this.ctx.storage.sql.exec('INSERT INTO runs (name, ms, at, len) VALUES (?, ?, ?, ?)', cleanName(name), Math.round(ms), Date.now(), Math.round(len));

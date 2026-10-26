@@ -45,6 +45,8 @@ window.CYF_I18N = {
     rulesText: 'Atterraggio assistito: poco prima di toccare terra il rider si raddrizza. In gara le cadute non eliminano: fanno solo perdere tempo. Il tempo lo misura il server, uguale per tutti. A fine gara guadagni punti per la posizione più i punti che ti restano: il gioco li ricorda.',
     donateMenu: 'Ti piace il gioco? Sostienilo con una donazione', donateResults: 'Sostieni C-Y-F Gaming con una donazione',
     boardTitle: 'Migliori tempi · gara da 5 minuti',
+    // pista del giorno (R-233)
+    dailyBtn: "Pista del giorno #{n} · {city}", dailyNone: "Nessun tempo oggi: fai tu il primo!", dailyBest: "Migliore di oggi: {name} {t} · {k} in classifica", dailyMine: "Il tuo migliore di oggi: {t} · {p} su {k}", dailyGather: "Pista del giorno #{n} · {city}: si parte appena la pista è pronta", dailyTitle: "Pista del giorno #{n} · {city}", dailyRank: "Oggi sei {p} su {k} · il tuo migliore: {t}", dailyNoTime: "Tempo non valido: riprova", dailyRetry: "Riprova", dailyHint: "Riprova quante volte vuoi: conta il tuo tempo migliore di oggi. A mezzanotte arriva una pista nuova.", dailyBoard: "Classifica di oggi", shareDaily: "🏂 Pista del giorno #{n} · {city} · {t} · {p} su {k}. Batti il mio tempo: {link}", dailyErr: "La pista del giorno non risponde: riprova tra poco.", dailyInterrupted: "Collegamento perso durante la pista del giorno: riprova.",
     lobbyBrand: 'Sfida · Pista Nera', onlineBrand: 'Online · Pista Nera', onlineTitle: 'In attesa di avversari',
     shareCode: 'Codice da condividere', copyLink: 'Copia il link', linkCopied: 'Link copiato', copyManual: 'Seleziona e copia il link qui sotto',
     durationLabel: 'Durata della gara', durationHost: 'la sceglie chi organizza',
@@ -134,6 +136,8 @@ window.CYF_I18N = {
     rulesText: 'Landing assist: just before touching down the rider straightens up. In a race, falls do not knock you out: they only cost time. The server keeps the time, the same for everyone. At the end you earn points for your position plus the points you have left: the game remembers them.',
     donateMenu: 'Like the game? Support it with a donation', donateResults: 'Support C-Y-F Gaming with a donation',
     boardTitle: 'Best times · 5-minute race',
+    // pista del giorno (R-233)
+    dailyBtn: "Daily slope #{n} · {city}", dailyNone: "No times yet today: be the first!", dailyBest: "Today's best: {name} {t} · {k} ranked", dailyMine: "Your best today: {t} · {p} of {k}", dailyGather: "Daily slope #{n} · {city}: starting as soon as the slope is ready", dailyTitle: "Daily slope #{n} · {city}", dailyRank: "Today you are {p} of {k} · your best: {t}", dailyNoTime: "Invalid time: try again", dailyRetry: "Try again", dailyHint: "Try as many times as you like: your best time today counts. A new slope arrives at midnight (Italian time).", dailyBoard: "Today's standings", shareDaily: "🏂 Daily slope #{n} · {city} · {t} · {p} of {k}. Beat my time: {link}", dailyErr: "The daily slope is not responding: try again shortly.", dailyInterrupted: "Connection lost during the daily slope: try again.",
     lobbyBrand: 'Challenge · Pista Nera', onlineBrand: 'Online · Pista Nera', onlineTitle: 'Waiting for opponents',
     shareCode: 'Code to share', copyLink: 'Copy the link', linkCopied: 'Link copied', copyManual: 'Select and copy the link below',
     durationLabel: 'Race length', durationHost: 'chosen by the organiser',
@@ -223,6 +227,8 @@ window.CYF_I18N = {
     rulesText: 'Atterrissage assisté : juste avant de toucher le sol, le rider se redresse. En course, les chutes n\'éliminent pas : elles font seulement perdre du temps. Le serveur mesure le temps, le même pour tous. À la fin tu gagnes des points pour ta place plus les points qui te restent : le jeu s\'en souvient.',
     donateMenu: 'Le jeu te plaît ? Soutiens-le avec un don', donateResults: 'Soutiens C-Y-F Gaming avec un don',
     boardTitle: 'Meilleurs temps · course de 5 minutes',
+    // pista del giorno (R-233)
+    dailyBtn: "Piste du jour n°{n} · {city}", dailyNone: "Aucun temps aujourd'hui : sois le premier !", dailyBest: "Meilleur du jour : {name} {t} · {k} classés", dailyMine: "Ton meilleur du jour : {t} · {p} sur {k}", dailyGather: "Piste du jour n°{n} · {city} : départ dès que la piste est prête", dailyTitle: "Piste du jour n°{n} · {city}", dailyRank: "Aujourd'hui tu es {p} sur {k} · ton meilleur : {t}", dailyNoTime: "Temps non valable : réessaie", dailyRetry: "Réessayer", dailyHint: "Réessaie autant que tu veux : ton meilleur temps du jour compte. Une nouvelle piste arrive à minuit (heure italienne).", dailyBoard: "Classement du jour", shareDaily: "🏂 Piste du jour n°{n} · {city} · {t} · {p} sur {k}. Bats mon temps : {link}", dailyErr: "La piste du jour ne répond pas : réessaie dans un instant.", dailyInterrupted: "Connexion perdue pendant la piste du jour : réessaie.",
     lobbyBrand: 'Défi · Pista Nera', onlineBrand: 'En ligne · Pista Nera', onlineTitle: 'En attente d\'adversaires',
     shareCode: 'Code à partager', copyLink: 'Copier le lien', linkCopied: 'Lien copié', copyManual: 'Sélectionne et copie le lien ci-dessous',
     durationLabel: 'Durée de la course', durationHost: 'choisie par l\'organisateur',
@@ -312,6 +318,8 @@ window.CYF_I18N = {
     rulesText: 'Aterrizaje asistido: justo antes de tocar el suelo el rider se endereza. En carrera las caídas no eliminan: solo hacen perder tiempo. El tiempo lo mide el servidor, igual para todos. Al final ganas puntos por tu posición más los puntos que te quedan: el juego los recuerda.',
     donateMenu: '¿Te gusta el juego? Apóyalo con una donación', donateResults: 'Apoya C-Y-F Gaming con una donación',
     boardTitle: 'Mejores tiempos · carrera de 5 minutos',
+    // pista del giorno (R-233)
+    dailyBtn: "Pista del día n.º {n} · {city}", dailyNone: "Aún no hay tiempos hoy: ¡sé el primero!", dailyBest: "Mejor de hoy: {name} {t} · {k} en la clasificación", dailyMine: "Tu mejor de hoy: {t} · {p} de {k}", dailyGather: "Pista del día n.º {n} · {city}: se sale en cuanto la pista esté lista", dailyTitle: "Pista del día n.º {n} · {city}", dailyRank: "Hoy eres {p} de {k} · tu mejor: {t}", dailyNoTime: "Tiempo no válido: inténtalo de nuevo", dailyRetry: "Reintentar", dailyHint: "Inténtalo las veces que quieras: cuenta tu mejor tiempo de hoy. A medianoche (hora italiana) llega una pista nueva.", dailyBoard: "Clasificación de hoy", shareDaily: "🏂 Pista del día n.º {n} · {city} · {t} · {p} de {k}. Supera mi tiempo: {link}", dailyErr: "La pista del día no responde: inténtalo de nuevo en un momento.", dailyInterrupted: "Conexión perdida durante la pista del día: inténtalo de nuevo.",
     lobbyBrand: 'Desafío · Pista Nera', onlineBrand: 'En línea · Pista Nera', onlineTitle: 'Esperando rivales',
     shareCode: 'Código para compartir', copyLink: 'Copiar el enlace', linkCopied: 'Enlace copiado', copyManual: 'Selecciona y copia el enlace de abajo',
     durationLabel: 'Duración de la carrera', durationHost: 'la elige quien organiza',

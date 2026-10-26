@@ -44,6 +44,8 @@ Diagnosi: nel gioco `?debug=1`, 5 tocchi sul numero di versione nel menu o F2 ap
 
 Misure (R-232): `/api/stats` (contatori per giorno: gare, giocatori, visite, tempo di caricamento, punti fatti per gara, oggetti usati) e `/api/ritorni` (quanti tornano dopo 1, 7 e 30 giorni).
 
+Pista del giorno (R-233): `/api/giorno` (numero, città e classifica di oggi; `?id=` aggiunge la posizione del giocatore), stanza da soli su `/api/giorno/<codice>` (WebSocket). Il calcolo del giorno, della città e del seed è in `src/giorno.mjs`.
+
 Per provare una sfida apri due finestre del browser, crea la stanza in una ed entra con il codice nell'altra.
 
 ## Prossimi passi

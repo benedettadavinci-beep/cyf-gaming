@@ -67,6 +67,28 @@ with sync_playwright() as p:
     mis = [l for l in snap['log'] if '[misure]' in l]
     check(len(mis) == 1, 'tempo di caricamento misurato una volta alla prima immagine (R-232; in locale non si invia)', mis[0] if mis else 'manca')
     pg.evaluate("localStorage.removeItem('cyf.debug')")
+    pg.close()
+
+    print('R3 · pista del giorno (R-233): pulsante nel menu, si parte subito nella città di oggi, niente banane')
+    import json
+    pg = ctx.new_page(); errs = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto(f'{BASE}/pista-nera/?scena=roma', wait_until='domcontentloaded')
+    pg.wait_for_function("document.getElementById('dailyName').textContent.includes('#')", timeout=20000)
+    G = pg.evaluate("fetch('/api/giorno', { cache: 'no-store' }).then(r => r.json())")
+    nome = pg.inner_text('#dailyName'); info = pg.inner_text('#dailyInfo')
+    check(f"#{G['n']}" in nome and info.strip() != '', 'nel menu il pulsante mostra numero e città di oggi, e sotto il migliore del giorno', nome + ' · ' + info)
+    pg.evaluate("document.querySelector('[data-lang=en]').click()")
+    check(pg.inner_text('#dailyName').find('Daily slope') >= 0, 'cambiando lingua il pulsante si traduce', pg.inner_text('#dailyName'))
+    pg.evaluate("document.querySelector('[data-lang=it]').click()")
+    pg.evaluate("document.getElementById('inName').value = 'Prova giorno'; document.getElementById('btnDaily').click()")
+    try: pg.wait_for_function("['countdown', 'race'].includes(window.CYFDiag.state().modo) && window.CYFDiag.state().fase !== 'lobby'", timeout=30000)
+    except Exception: pass
+    st = pg.evaluate('window.CYFDiag.state()')
+    check(st['modo'] in ('countdown', 'race') and st['scena'] == G['scena'] and st['stanza'].startswith('G') and st['gara'] == 12000,
+          'si parte subito, senza stanza d\'attesa, nella città di oggi con la gara da 5 minuti', json.dumps({k: st[k] for k in ('modo', 'scena', 'stanza', 'gara')}))
+    check(pg.evaluate("document.getElementById('items').hidden") and pg.evaluate("document.getElementById('lobby').hidden"), 'niente banane e bombe, e niente stanza della sfida')
+    check(not errs and '?sfida=' not in pg.url, 'nessun errore e nessun link di sfida nell\'indirizzo', '; '.join(errs)[:200])
     br.close()
 
 print(f'\nTempo: {time.time() - t0:.0f} s')

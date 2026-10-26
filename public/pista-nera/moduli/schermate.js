@@ -30,7 +30,7 @@ PN.schermate = ({ diag, stato: S }) => {
     $('hLives').hidden = race;
     $('sPts').hidden = !race;
     $('live').hidden = !race;
-    $('items').hidden = !race;
+    $('items').hidden = !race || !!S.net.daily;   // pista del giorno: da soli, niente banane e bombe (S-40)
   }
 
   const toasts = $('toasts');
@@ -131,8 +131,13 @@ PN.schermate = ({ diag, stato: S }) => {
     const i = S.net.results.findIndex(r => r.id === S.myId);
     const mine = i >= 0 ? S.net.results[i] : null;
     const link = location.origin + location.pathname;
-    // sulla neve non c'è una città: "arrivato 1° a Neve" non ha senso
-    const txt = tr(S.theme === 'neve' ? 'shareResultSnow' : 'shareResult', {
+    const G = S.net.daily && S.net.giorno;
+    // pista del giorno: numero, città, tempo migliore e posizione del giorno (R-233)
+    const txt = G ? tr('shareDaily', {
+      n: G.n, city: tr(CITY_LABEL[G.scena] || 'snow'),
+      t: G.best != null ? fmtTime(G.best) : (mine && mine.ms != null ? fmtTime(mine.ms) : '—'),
+      p: G.rank ? ord(G.rank) : '…', k: G.of || 1, link
+    }) : tr(S.theme === 'neve' ? 'shareResultSnow' : 'shareResult', {
       p: mine && mine.ms != null ? ord(i + 1) : '…',
       city: tr(CITY_LABEL[S.theme] || 'snow'),
       t: mine && mine.ms != null ? fmtTime(mine.ms) : '—',
@@ -143,12 +148,14 @@ PN.schermate = ({ diag, stato: S }) => {
     window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
   });
   function renderResults() {
-    $('resRound').textContent = (S.net.pub ? tr('onlineBrand') : tr('challenge') + ' ' + (S.net.code || '')) + ' · ' + tr('raceN', { n: S.net.round || 1 }) + ' · ' + (S.net.minutes || 5) + ' min';
+    const G = S.net.daily && S.net.giorno;
+    $('resRound').textContent = G ? tr('dailyTitle', { n: G.n, city: tr(CITY_LABEL[G.scena] || 'snow') }) + ' · ' + (S.net.minutes || 5) + ' min'
+      : (S.net.pub ? tr('onlineBrand') : tr('challenge') + ' ' + (S.net.code || '')) + ' · ' + tr('raceN', { n: S.net.round || 1 }) + ' · ' + (S.net.minutes || 5) + ' min';
     const ul = $('resList');
     ul.innerHTML = '';
     S.net.results.forEach((r, i) => {
       const li = document.createElement('li');
-      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = r.ms != null ? (i === 0 ? '🏆' : ord(i + 1)) : '–';
+      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = r.ms != null ? (G ? '🏁' : i === 0 ? '🏆' : ord(i + 1)) : '–';
       const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(r.color || 0) % PALETTE.length];
       const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = r.name + (r.id === S.myId ? tr('you') : '');
       const tm = document.createElement('span'); tm.className = r.ms != null ? 'time' : 'time dnf'; tm.textContent = r.ms != null ? fmtTime(r.ms) : tr('dnf');
@@ -177,12 +184,33 @@ PN.schermate = ({ diag, stato: S }) => {
     $('resMine').hidden = !mine || mine.earned == null;
     if (mine && mine.earned != null) $('resMine').innerHTML = tr('earnedLine', { e: '<span>' + fmt(mine.earned) + '</span>', t: fmt(mine.total ?? S.myTotal) });
     const isHost = !S.net.pub && S.net.hostId === S.myId;
-    $('btnRematch').hidden = !isHost;
+    $('btnRematch').hidden = !isHost && !S.net.daily;   // pista del giorno: Riprova c'è sempre (si è da soli)
+    $('btnRematch').textContent = tr(S.net.daily ? 'dailyRetry' : 'rematch');
+    renderDayResults(G);
     renderResultsStatus();
+  }
+  // pista del giorno: posizione di oggi e classifica del giorno (R-233)
+  function renderDayResults(G) {
+    $('resDay').hidden = !G;
+    if (!G) return;
+    $('resDayRank').textContent = G.rank ? tr('dailyRank', { p: ord(G.rank), k: G.of, t: fmtTime(G.best) }) : tr('dailyNoTime');
+    fillDayBoard($('resDayBoard'), G.top || []);
+  }
+  function fillDayBoard(ol, rows) {
+    ol.innerHTML = '';
+    for (const r of rows.slice(0, 10)) {
+      const li = document.createElement('li');
+      li.textContent = r.name;
+      if (r.me) li.className = 'me';
+      const s = document.createElement('span'); s.textContent = fmtTime(r.ms);
+      li.append(s);
+      ol.append(li);
+    }
   }
   function renderResultsStatus() {
     let txt;
-    if (S.net.pub) {
+    if (S.net.daily) txt = tr('dailyHint');
+    else if (S.net.pub) {
       const left = S.net.autoAt ? Math.max(0, Math.ceil((S.net.autoAt - S.serverNow()) / 1000)) : 0;
       txt = S.net.players.length < 2 ? tr('pubWaiting') : (left ? tr('nextRaceIn', { s: left }) : tr('pubStarting', { n: S.net.players.length }));
     } else {
@@ -222,7 +250,29 @@ PN.schermate = ({ diag, stato: S }) => {
     for (let i = 0; i < 3; i++) { const s = document.createElement('span'); s.className = 'life' + (i >= S.lives ? ' lost' : ''); box.appendChild(s); }
   }
 
+  // ---------- pista del giorno nel menu (R-233): numero, città, il migliore di oggi e il proprio ----------
+  let giorno = null;
+  function renderDaily() {
+    const b = $('btnDaily');
+    if (!giorno) { b.hidden = true; return; }
+    b.hidden = false;
+    $('dailyName').textContent = '🏁 ' + tr('dailyBtn', { n: giorno.n, city: tr(CITY_LABEL[giorno.scena] || 'snow') });
+    const top = (giorno.top || [])[0];
+    let info = top ? tr('dailyBest', { name: top.name, t: fmtTime(top.ms), k: giorno.of }) : tr('dailyNone');
+    if (giorno.rank) info = tr('dailyMine', { t: fmtTime(giorno.best), p: ord(giorno.rank), k: giorno.of });
+    $('dailyInfo').textContent = info;
+  }
+  async function loadDaily() {
+    try {
+      const res = await fetch('/api/giorno?id=' + encodeURIComponent(S.myId), { cache: 'no-store' });
+      if (!res.ok) throw new Error();
+      giorno = await res.json();
+    } catch (e) { giorno = null; }
+    renderDaily();
+  }
+
   async function loadBoard() {
+    loadDaily();
     try {
       const res = await fetch('/api/leaderboard?min=5', { cache: 'no-store' });
       if (!res.ok) throw new Error();
@@ -240,5 +290,5 @@ PN.schermate = ({ diag, stato: S }) => {
     } catch (e) { $('boardBox').hidden = true; }
   }
 
-  return { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard };
+  return { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard, renderDaily, cityName: sc => tr(CITY_LABEL[sc] || 'snow'), get giorno() { return giorno; } };
 };

@@ -14,7 +14,7 @@ class Client {
   constructor(code, id, name, j = '') { this.code = code; this.id = id; this.name = name; this.j = j; this.msgs = []; this.closed = null; this.waiters = []; }
   connect() {
     return new Promise((res, rej) => {
-      this.ws = new WebSocket(WS + '/api/room/' + this.code);
+      this.ws = new WebSocket(WS + (this.path || '/api/room/') + this.code);
       this.ws.onopen = () => { this.send({ t: 'hello', v: this.v === undefined ? PROTO.VERSIONE : this.v, id: this.id, name: this.name, j: this.j, sc: this.sc }); res(); };
       this.ws.onmessage = ev => {
         if (ev.data === 'pong') return;
@@ -448,6 +448,61 @@ console.log('T11 · misure (R-232): punti fatti per gara, oggetti usati, visite,
     'ritorni calcolati giusti: D1 50%, D7 33,3%, D30 non ancora maturo', JSON.stringify(finto.totale));
 }
 
+console.log('T12 · pista del giorno (R-233): giorno italiano, città e seed uguali per tutti, stanza da soli, classifica del giorno');
+{
+  const G = await import('../../src/giorno.mjs');
+  const gd = iso => G.giornoDi(Date.parse(iso));
+  ok(gd('2026-10-25T22:59:00Z') === '2026-10-25' && gd('2026-10-25T23:00:00Z') === '2026-10-26' && gd('2026-07-01T21:59:00Z') === '2026-07-01' && gd('2026-07-01T22:00:00Z') === '2026-07-02',
+    'il giorno cambia a mezzanotte italiana, con e senza ora legale');
+  const giorni = Array.from({ length: 13 }, (_, i) => new Date(Date.parse('2026-10-26T12:00:00Z') + i * 86400000).toISOString().slice(0, 10));
+  ok(G.numeroDi('2026-10-26') === 1 && G.scenaDi('2026-10-26') === 'napoli' && new Set(giorni.map(G.scenaDi)).size === 13 && G.scenaDi('2026-11-08') === 'napoli',
+    '#1 il 26/10 a Napoli; 13 giorni di fila tutti con una città diversa, poi si ricomincia');
+  ok(G.seedDi('2026-10-26') === G.seedDi('2026-10-26') && G.seedDi('2026-10-26') !== G.seedDi('2026-10-27') && G.seedDi('2026-10-26') < 2 ** 31, 'seed uguale per tutti nello stesso giorno, diverso il giorno dopo');
+  const oggi = G.pistaDelGiorno();
+  const a = await api('/api/giorno');
+  ok(a.status === 200 && a.body.n === oggi.n && a.body.scena === oggi.scena && a.body.minuti === 5 && Array.isArray(a.body.top) && typeof a.body.of === 'number',
+    '/api/giorno: numero, città, durata e classifica di oggi', JSON.stringify({ n: a.body && a.body.n, scena: a.body && a.body.scena, of: a.body && a.body.of }));
+
+  const code = 'G' + rnd().slice(0, 5) + 'Q';
+  const D = new Client(code, 'gd' + code, 'Giornata'); D.path = '/api/giorno/';
+  await D.connect(); const w = await D.waitType('welcome');
+  ok(w && w.daily === true && w.max === 1, 'la stanza del giorno è da soli', w && JSON.stringify({ daily: w.daily, max: w.max }));
+  const lb = await D.waitType('lobby', 2000);
+  ok(lb && lb.scena === oggi.scena, 'nella stanza del giorno si vede già la città di oggi', lb && lb.scena);
+  const X = new Client(code, 'gx' + code, 'Intruso'); X.path = '/api/giorno/';
+  await X.connect(); const fx = await X.wait(m => m.t === 'full' || m.t === '__closed', 3000);
+  ok(fx && (fx.t === 'full' || fx.code === 1008), 'un secondo giocatore non entra nella stanza del giorno di un altro', fx && fx.t);
+  const N = new Client(code, 'gn' + code, 'Amico'); await N.connect(); const wn = await N.waitType('welcome');
+  ok(wn && !wn.daily, 'lo stesso codice nelle sfide è un\'altra stanza (non è la pista del giorno)'); N.close();
+
+  D.send({ t: 'settings', minutes: 15 }); D.send({ t: 'scena', scena: 'roma' });
+  const t0 = Date.now(); D.send({ t: 'start' });
+  const g = await D.waitType('gathering', 3000);
+  ok(g && g.seed === oggi.seed && g.scena === oggi.scena && g.minutes === 5 && g.giorno && g.giorno.n === oggi.n,
+    'la gara del giorno ha seed, città e 5 minuti di oggi (durata e città chieste dal giocatore ignorate)', g && JSON.stringify({ seed: g.seed === oggi.seed, scena: g.scena, min: g.minutes }));
+  const go = await D.waitType('go', 5000);
+  ok(go && Date.now() - t0 < 4000, 'si parte appena la pista è caricata, senza i 25 s della sfida', go && String(Date.now() - t0) + ' ms');
+  const Y = new Client(code, 'gy' + code, 'Altro'); Y.path = '/api/giorno/';
+  const code2 = 'G' + rnd().slice(0, 5) + 'W'; Y.code = code2;
+  await Y.connect(); await Y.waitType('welcome'); Y.send({ t: 'start' }); const g2 = await Y.waitType('gathering', 3000);
+  ok(g2 && g2.seed === g.seed && g2.scena === g.scena, 'un altro giocatore, in un\'altra stanza, corre la stessa pista'); Y.close();
+  await sleep(Math.max(0, go.startAt - go.now + 200));
+  D.send({ t: 'pos', x: 0, z: -20, top: 12, tk: 1, p: 70 });
+  D.send({ t: 'finish', top: 12, tk: 1, p: 70 });
+  const res = await D.waitType('results', 4000);
+  const r0 = res && res.results[0];
+  ok(res && r0 && r0.ms === null && r0.earned === 70, 'arrivo troppo veloce non valido; da soli niente punti del primo posto, solo quelli fatti in gara', r0 && JSON.stringify({ ms: r0.ms, earned: r0.earned }));
+  ok(res && res.giorno && res.giorno.n === oggi.n && res.giorno.scena === oggi.scena && res.giorno.rank === null && Array.isArray(res.giorno.top),
+    'i risultati portano la pista del giorno e la sua classifica (senza tempo valido niente posizione)', res && JSON.stringify(res.giorno).slice(0, 160));
+  D.send({ t: 'start' }); const g3 = await D.wait(m => m.t === 'gathering' && m.round === 2, 3000);
+  ok(g3 && g3.seed === oggi.seed, 'Riprova: stessa pista del giorno'); 
+  D.close(); await sleep(500);
+  const D2 = new Client(code, 'gd' + code, 'Giornata'); D2.path = '/api/giorno/';
+  await D2.connect(); await D2.waitType('welcome'); const lb2 = await D2.waitType('lobby', 2000);
+  ok(lb2 && lb2.round === 0 && lb2.phase === 'lobby', 'chi esce lascia la stanza del giorno vuota e pulita (niente resta salvato)', lb2 && JSON.stringify({ round: lb2.round, phase: lb2.phase }));
+  D2.close();
+}
+
 if (process.env.VELOCE === '1') console.log('T8 saltata (VELOCE=1: giro rapido del cancello; il giro completo la fa ogni notte)');
 else {
 console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, chi esce è "non arrivato", contatori');
@@ -459,14 +514,30 @@ console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, 
   await A.connect(); await A.waitType('welcome'); await B.connect(); await B.waitType('welcome');
   await B.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
   A.send({ t: 'start' }); const cd = await A.waitType('countdown');
+  // nello stesso tempo una pista del giorno valida (R-233)
+  const vcode = 'G' + code.slice(0, 5) + 'V';
+  const V = new Client(vcode, 'gv' + code, 'Del giorno' + code.slice(0, 3)); V.path = '/api/giorno/';
+  await V.connect(); await V.waitType('welcome'); V.send({ t: 'start' }); const vgo = await V.waitType('go', 5000);
+  const vStart = Date.now() + (vgo ? vgo.startAt - vgo.now : 5000);
   const minMs = Math.floor(12000 / 52 * 1000);
   console.log('   aspetto', Math.round((cd.startAt + minMs - Date.now()) / 1000), 's per un arrivo valido…');
-  const pinger = setInterval(() => { A.send({ t: 'pos', x: 0, z: -100, top: 41, tk: 3, p: 210 }); B.send({ t: 'pos', x: 0, z: -90, top: 38, tk: 7, p: 50 }); }, 5000);
+  const pinger = setInterval(() => { A.send({ t: 'pos', x: 0, z: -100, top: 41, tk: 3, p: 210 }); B.send({ t: 'pos', x: 0, z: -90, top: 38, tk: 7, p: 50 }); V.send({ t: 'pos', x: 0, z: -80, top: 30, tk: 2, p: 90 }); }, 5000);
   await sleep(cd.startAt + minMs + 1500 - Date.now());
   A.send({ t: 'finish', top: 41, tk: 3, p: 210 });
   const fA = await A.waitType('finished', 3000);
   ok(fA && typeof fA.ms === 'number' && fA.ms >= minMs, 'arrivo valido con tempo misurato dal server', fA && String(fA.ms));
   clearInterval(pinger);
+  await sleep(Math.max(0, vStart + minMs + 1500 - Date.now()));
+  V.send({ t: 'finish', top: 30, tk: 2, p: 90 });
+  const vf = await V.waitType('finished', 3000), vr = await V.waitType('results', 4000);
+  ok(vf && typeof vf.ms === 'number' && vf.ms >= minMs, 'pista del giorno: arrivo valido con tempo misurato dal server', vf && String(vf.ms));
+  const vg = vr && vr.giorno;
+  ok(vg && vg.record === vf.ms && vg.best <= vf.ms && vg.rank >= 1 && vg.of >= vg.rank && vg.top.some(r => r.me && r.ms === vg.best),
+    'pista del giorno: tempo nella classifica del giorno, con posizione e "sei tu" in classifica', vg && JSON.stringify({ rank: vg.rank, of: vg.of, best: vg.best }));
+  ok(vr && vr.results[0].earned === 90, 'pista del giorno: punti = solo quelli fatti in gara (90)', vr && String(vr.results[0].earned));
+  const ag = (await api('/api/giorno?id=' + V.id)).body;
+  ok(ag && ag.rank === vg.rank && ag.best === vg.best && ag.top.some(r => r.name === V.name), '/api/giorno?id=…: posizione e migliore del giocatore', ag && JSON.stringify({ rank: ag.rank, best: ag.best }));
+  V.close();
   B.close();   // l'altro se ne va: la gara finisce e lui risulta non arrivato
   const res = await A.waitType('results', 5000);
   ok(!!res, 'la gara si chiude quando non resta nessuno in pista');
@@ -486,7 +557,8 @@ console.log('T8 · gara valida con attesa reale (≥ 231 s), classifica, punti, 
   const today = new Date().toISOString().slice(0, 10);
   const row0 = stats.find(r => r.day === today) || {}, rowB = (statsBefore || []).find(r => r.day === today) || {};
   const d = k => (row0[k] || 0) - (rowB[k] || 0);
-  ok(d('races_started') === 1 && d('races_finished') === 1 && d('racers') === 2 && d('players') >= 2, '/api/stats: gare avviate/finite, corridori e giocatori unici del giorno', JSON.stringify({ started: d('races_started'), finished: d('races_finished'), racers: d('racers'), players: d('players') }));
+  // in questo blocco corrono due gare: la sfida A-B e, in parallelo, la pista del giorno di V (R-233)
+  ok(d('races_started') === 2 && d('races_finished') === 2 && d('racers') === 3 && d('players') >= 3, '/api/stats: gare avviate/finite, corridori e giocatori unici del giorno', JSON.stringify({ started: d('races_started'), finished: d('races_finished'), racers: d('racers'), players: d('players') }));
   ok((row0.voice_reports || 0) >= 2, '/api/stats conta le segnalazioni dei vocali', String(row0.voice_reports));
   A.close();
 }

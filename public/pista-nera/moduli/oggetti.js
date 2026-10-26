@@ -120,6 +120,7 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
   // al giocatore più vicino davanti se c'è, altrimenti cade sulla pista davanti (nel punto toccato o 30 m più avanti)
   function useItem(kind, target) {
     const { P, mode, myId } = stato;
+    if (net.daily) return;   // pista del giorno: si corre da soli (S-40)
     if (mode !== 'race' || !net.ws) { if (mode === 'solo') say(tr('itemsRaceOnly'), '#13233a'); return; }
     if (stato.bonus < COST[kind]) { say(tr('needPoints', { p: COST[kind] }), '#d8302a'); return; }
     if (performance.now() - (useItem.last || 0) < 950) return;
