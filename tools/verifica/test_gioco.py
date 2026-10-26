@@ -256,7 +256,8 @@ with sync_playwright() as p:
     check(r['bonus'] == 150 and 'Ospite' in r['toast'], 'doppio clic con un avversario davanti: la banana è lanciata a lui (R-224)', json.dumps(r))
     try:
         gp.wait_for_function("window.__dbg.P.stop > 0", timeout=10000)
-        gr = gp.evaluate("() => ({ stop: +window.__dbg.P.stop.toFixed(2), toast: window.__toasts.join('|') })")
+        # durata decisa al colpo (P.stopFor), non il tempo che resta: con il processore carico ne restavano 0,23 s
+        gr = gp.evaluate("() => ({ stop: window.__dbg.P.stopFor, left: +window.__dbg.P.stop.toFixed(2), toast: window.__toasts.join('|') })")
     except Exception as e:
         gr = { 'stop': 0, 'toast': str(e)[:80] }
     check(gr['stop'] > 1 and gr['stop'] <= 2 and 'Banana' in gr['toast'], 'chi la riceve cade e resta fermo 2 s (R-224)', json.dumps(gr))
