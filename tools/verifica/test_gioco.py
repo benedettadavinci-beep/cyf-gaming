@@ -206,11 +206,13 @@ with sync_playwright() as p:
         for (let i = 0; i < d.length; i += 4) { const [r, gg, b] = [d[i], d[i + 1], d[i + 2]]; if (r > 225 && gg > 225 && b > 225) wh++; else if (r < 40 && gg < 60 && b < 80) navy++; else if (r > 230 && gg > 70 && gg < 110 && b < 50) orange++; }
         return { wh, navy, orange }; };
       // ali bianche: prima occupavano tutta la larghezza del fianco; ora fuori dallo stemma c'è solo la maglia
-      return { opts: opts.length, saved: D.store.get('cyf.jersey'), side: zone(0.02, 0.55, 36, 80), side2: zone(0.5, 0.55, 100, 80), back: zone(0.75, 0.57, 130, 110), chest: zone(0.283, 0.62, 60, 48),
+      return { opts: opts.length, saved: D.store.get('cyf.jersey'), side2: zone(0.5, 0.55, 100, 80), backBadge: zone(0.75, 0.766, 60, 50), chest: zone(0.283, 0.62, 60, 48),
+               scritta: zone(0.84, 0.512, 200, 100),   // dalla 0.25.3 la scritta CYF grande sulla schiena, verso il fianco che vede la telecamera (R-514)
                oldWing: zone(0.17, 0.5, 30, 30), keys: Object.keys(D.JERSEYS).filter(k => !D.JERSEYS[k].color).length, colors: Object.keys(D.JERSEYS).filter(k => D.JERSEYS[k].color).length }; }""")
     check(r['opts'] == 17 and r['keys'] == 8 and r['colors'] == 8 and r['saved'] == 'roma', '8 maglie delle città e 8 colori nel menu + colore assegnato (R-221); la scelta resta salvata', json.dumps(r))
     full = lambda z: z['wh'] > 30 and z['navy'] > 30 and z['orange'] > 30
-    check(full(r['side2']) and full(r['back']) and full(r['chest']) and r['side']['wh'] > 30, 'stemma CYF (scudo bianco, bordo e scritta blu, fascia arancione) sui due fianchi, sulla schiena e sul petto', json.dumps(r))
+    check(full(r['side2']) and full(r['backBadge']) and full(r['chest']), 'stemma CYF (scudo bianco, bordo e scritta blu, fascia arancione) sul fianco, in alto sulla schiena e sul petto (R-216)', json.dumps(r))
+    check(r['scritta']['wh'] > 400 and r['scritta']['navy'] > 400, 'scritta CYF grande sulla schiena, bianca con il bordo blu notte (R-514)', json.dumps(r['scritta']))
     check(r['oldWing']['wh'] == 0, 'niente più ali bianche sul fianco', json.dumps(r['oldWing']))
     pg.evaluate("() => { const D = window.__dbg; const c = D.jacketTexture('#ff5a1f', 'roma').image; window.__badge = c.toDataURL(); }")
     open(f'{OUT}/giacca-texture.png', 'wb').write(base64.b64decode(pg.evaluate('window.__badge').split(',')[1]))
