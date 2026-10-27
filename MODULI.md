@@ -44,7 +44,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/comandi.js` | comandi | 105 | base (clamp); audio (initAudio, muted) |
 | `moduli/effetti.js` | effetti | 132 | base (isPhone, lin, rand, reduceMotion) |
 | `moduli/fisica.js` | fisica | 84 | base (TAU, clamp) |
-| `moduli/generazione.js` | generazione | 387 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
+| `moduli/generazione.js` | generazione | 388 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/granpremio.js` | granpremio | 86 | base (fmtTime); lingua (lang, tr, ord, cityName) |
 | `moduli/lingua.js` | lingua | 41 | base (store) |
