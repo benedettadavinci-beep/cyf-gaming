@@ -1,6 +1,7 @@
 // modulo: base
 // dipende da: nessuno
-// Costanti e funzioni pure di Pista Nera: niente DOM (tranne matchMedia e localStorage), niente scena.
+// Costanti e funzioni pure di Pista Nera: niente DOM (tranne matchMedia e localStorage), niente scena. Si carica anche
+// nel worker che dipinge gli sfondi (moduli/sfondi.js): lì THREE e localStorage non servono e non si toccano.
 // Ogni altro modulo può usarle; questo non usa nessun altro modulo.
 window.PN = window.PN || {};
 PN.base = (() => {
@@ -10,8 +11,10 @@ PN.base = (() => {
   const START_ALT = 2950;
   const HORIZON = '#d6e7f3';
   const PALETTE = ['#ff5a1f', '#2f7fd0', '#1f8a4c', '#e2b007', '#9b4dca', '#e2352b', '#00a3a3', '#f06292'];
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const isPhone = window.matchMedia('(pointer: coarse)').matches;
+  // matchMedia non c'è dentro un worker (gli sfondi si dipingono anche lì, R-405): lì vale "no"
+  const mq = q => (typeof matchMedia === 'function' ? matchMedia(q).matches : false);
+  const reduceMotion = mq('(prefers-reduced-motion: reduce)');
+  const isPhone = mq('(pointer: coarse)');
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const fmt = n => Math.round(n).toLocaleString('it-IT');
