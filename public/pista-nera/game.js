@@ -889,8 +889,15 @@
   const VOCALI = PN.vocali({ net, audio: AUDIO, say, isOnline: () => !net.daily && !!(net.ws && net.ws.readyState === 1) && (mode === 'lobby' || mode === 'results' || racing()), isTraining: () => mode === 'solo' || mode === 'pause' || !!net.daily, serverNow });
   const { voice, fmtWait, updateVoiceBtn, voiceButton, stopVoice, playVoice, mutedIds } = VOCALI;
   // ---------- donazioni ----------
-  const DONATE_URL = (window.CYF && window.CYF.donateUrl) || '';
+  // sul portale (R-244, S-46) niente donazioni e il titolo non è un link: il portale vieta i link verso l'esterno
+  const PORTALE = PN.portale;
+  const DONATE_URL = PORTALE.attivo ? '' : (window.CYF && window.CYF.donateUrl) || '';
   document.querySelectorAll('[data-donate]').forEach(a => { if (DONATE_URL) { a.href = DONATE_URL; a.hidden = false; } });
+  if (PORTALE.attivo) {
+    document.documentElement.classList.add('portale');
+    document.querySelectorAll('a.brand').forEach(a => a.removeAttribute('href'));
+    diag.log('portale', PORTALE.nome);
+  }
 
   const OGG = PN.oggetti({ world, ground, camera, cvs, pista: PISTA, effetti: EFF, audio: AUDIO, net, say, crash, stato });
   const { hazards, addHazard, removeHazard, clearHazards, updateHazards, collideHazards, useItem } = OGG;
@@ -1044,7 +1051,8 @@
     modo: mode, scena: theme, seed: lastSeed, vel: P.speed, dist: distM(), gara: raceLen,
     rete: net.ws ? ['apertura', 'aperta', 'chiusura', 'chiusa'][net.ws.readyState] : 'no', stanza: net.code || '-', fase: net.phase,
     ping: net.ping, msg: net.msgs, giocatori: net.players.length, avversari: remotes.size, lingua: lang, tel: isPhone ? 1 : 0, gl: glName,
-    sfondo: builtSky[theme] ? (builtSky[theme].userData.pronto ? 'pronto' : 'in arrivo') : '-', pittore: SFONDI.pittore()   // cartolina della città (R-405, A-22)
+    sfondo: builtSky[theme] ? (builtSky[theme].userData.pronto ? 'pronto' : 'in arrivo') : '-', pittore: SFONDI.pittore(),   // cartolina della città (R-405, A-22)
+    portale: PORTALE.nome || '-', vocali: VOCALI.abilitati() ? 1 : 0   // modalità portale e vocali accesi (R-244)
   });
   const verLabel = $('verLabel');
   if (verLabel) { verLabel.textContent = 'v' + ((window.CYF && window.CYF.version) || '?'); diag.tapToOpen(verLabel); }

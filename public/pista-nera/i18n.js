@@ -2,6 +2,7 @@
 // Chiave → testo; {n}, {t}, {s}… sono valori inseriti dal gioco. Se manca una traduzione si usa l'italiano.
 window.CYF_I18N = {
   it: {
+    voiceToggle: 'Messaggi vocali attivi (in sfida e online)', copyCode: 'Copia il codice', codeCopied: 'Codice copiato!', portalWhere: 'su {p}',
     voiceBadFormat: 'Il vocale di {n} non si può riprodurre su questo telefono',
     voiceOnlyChallenge: 'I vocali si mandano agli altri giocatori in sfida o online',
     tStick: 'appoggia il dito a destra: ◀ ▶ curva, ▲ accelera, ▼ frena; in aria avvitamento e salto mortale',
@@ -97,6 +98,7 @@ window.CYF_I18N = {
     audioOn: 'Audio: sì', audioOff: 'Audio: no', turnLeft: 'Curva a sinistra', turnRight: 'Curva a destra'
   },
   en: {
+    voiceToggle: 'Voice messages on (in challenges and online)', copyCode: 'Copy the code', codeCopied: 'Code copied!', portalWhere: 'on {p}',
     voiceBadFormat: '{n}’s voice message cannot be played on this phone',
     voiceOnlyChallenge: 'Voice messages go to other players in a challenge or online',
     tStick: 'put your finger on the right: ◀ ▶ turn, ▲ speed up, ▼ brake; in the air spin and flip',
@@ -190,6 +192,7 @@ window.CYF_I18N = {
     audioOn: 'Sound: on', audioOff: 'Sound: off', turnLeft: 'Turn left', turnRight: 'Turn right'
   },
   fr: {
+    voiceToggle: 'Messages vocaux activés (en défi et en ligne)', copyCode: 'Copier le code', codeCopied: 'Code copié !', portalWhere: 'sur {p}',
     voiceBadFormat: 'Le message vocal de {n} ne peut pas être lu sur ce téléphone',
     voiceOnlyChallenge: 'Les messages vocaux s’envoient aux autres joueurs en défi ou en ligne',
     tStick: 'pose le doigt à droite : ◀ ▶ tourner, ▲ accélérer, ▼ freiner ; en l’air vrille et salto',
@@ -283,6 +286,7 @@ window.CYF_I18N = {
     audioOn: 'Son : oui', audioOff: 'Son : non', turnLeft: 'Tourner à gauche', turnRight: 'Tourner à droite'
   },
   es: {
+    voiceToggle: 'Mensajes de voz activados (en desafío y online)', copyCode: 'Copiar el código', codeCopied: '¡Código copiado!', portalWhere: 'en {p}',
     voiceBadFormat: 'El mensaje de voz de {n} no se puede reproducir en este teléfono',
     voiceOnlyChallenge: 'Los mensajes de voz se envían a los demás jugadores en un desafío o en línea',
     tStick: 'apoya el dedo a la derecha: ◀ ▶ girar, ▲ acelerar, ▼ frenar; en el aire giro y mortal',

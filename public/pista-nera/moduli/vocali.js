@@ -1,7 +1,9 @@
 // modulo: vocali
-// dipende da: base, lingua, audio
+// dipende da: base, lingua, audio, portale
 // Messaggi vocali nella sfida: registrazione con Web Audio (funziona su tutti i telefoni), invio in WAV, riproduzione
 // con doppia via (Web Audio, poi elemento audio), pulsante con l'attesa, silenzia e segnala (R-213, R-116).
+// Casella "Messaggi vocali" nel menu (R-244): spenti, il microfono non c'è e i vocali degli altri non si sentono;
+// la scelta resta sul dispositivo (cyf.vocali). Sul portale partono spenti (S-46), altrove accesi.
 // Si crea con PN.vocali({ net, audio, say, isOnline, isTraining, serverNow }) dal gioco:
 //   net.send(m) manda al server; audio è l'istanza di PN.audio (contesto audio e muto); say(testo, colore) mostra un avviso;
 //   isOnline() dice se si è in una stanza collegata; isTraining() se si è in allenamento; serverNow() l'ora del server.
@@ -13,10 +15,21 @@ PN.vocali = ({ net, audio: AUDIO, say, isOnline, isTraining, serverNow }) => {
   // ---------- messaggi vocali (solo in sfida, uno ogni 3 minuti: il limite lo controlla il server) ----------
   const VOICE_MAX_S = 8;
   const voice = { stream: null, nodes: null, chunks: [], recording: false, startT: 0, timer: null, next: 0, rate: 0, ownAc: null };
-  const btnVoice = $('btnVoice'), voiceNow = $('voiceNow'), voiceLbl = $('voiceLbl');
+  const btnVoice = $('btnVoice'), voiceNow = $('voiceNow'), voiceLbl = $('voiceLbl'), chkVocali = $('chkVocali');
   const online = isOnline;
+  // vocali accesi? scelta del giocatore; senza scelta, spenti solo sul portale (R-244)
+  const abilitati = () => { const v = store.get('cyf.vocali'); return v === '1' || v === '0' ? v === '1' : !PN.portale.attivo; };
+  if (chkVocali) {
+    chkVocali.checked = abilitati();
+    chkVocali.addEventListener('change', () => {
+      store.set('cyf.vocali', chkVocali.checked ? '1' : '0');
+      if (!chkVocali.checked) { if (voice.recording) stopVoice(true); stopPlaying(); }
+      updateVoiceBtn();
+    });
+  }
   const fmtWait = ms => { const s2 = Math.ceil(ms / 1000); return Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0'); };
   function updateVoiceBtn() {
+    if (!abilitati()) { btnVoice.hidden = true; return; }
     const on = online();
     // si vede sempre mentre si gioca; in allenamento è spento e spiega che i vocali sono per le sfide
     const solo = !on && isTraining();
@@ -63,6 +76,7 @@ PN.vocali = ({ net, audio: AUDIO, say, isOnline, isTraining, serverNow }) => {
     return voice.ownAc;
   }
   async function voiceButton() {
+    if (!abilitati()) return;
     if (!online()) { if (isTraining()) say(tr('voiceOnlyChallenge'), '#13233a'); return; }
     if (voice.recording) { stopVoice(); return; }
     const wait = voice.next - serverNow();
@@ -136,7 +150,7 @@ PN.vocali = ({ net, audio: AUDIO, say, isOnline, isTraining, serverNow }) => {
   const mutedIds = new Set((() => { try { return JSON.parse(store.get('cyf.muted') || '[]'); } catch (e) { return []; } })());
   function playVoice(m) {
     const who = m.name || tr('someone');
-    if (mutedIds.has(m.id)) return;
+    if (!abilitati() || mutedIds.has(m.id)) return;
     voiceFrom = { id: m.id, name: who };
     if (AUDIO.muted) { say(tr('voiceMuted', { n: who }), '#13233a'); return; }
     let bytes;
@@ -175,5 +189,5 @@ PN.vocali = ({ net, audio: AUDIO, say, isOnline, isTraining, serverNow }) => {
     } else viaAudioTag();
   }
 
-  return { voice, fmtWait, updateVoiceBtn, voiceButton, stopVoice, playVoice, mutedIds, get playing() { return voicePlaying; } };
+  return { voice, fmtWait, updateVoiceBtn, voiceButton, stopVoice, playVoice, mutedIds, abilitati, get playing() { return voicePlaying; } };
 };

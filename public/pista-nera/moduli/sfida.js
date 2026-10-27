@@ -1,5 +1,5 @@
 // modulo: sfida
-// dipende da: base, lingua, protocollo, schermate
+// dipende da: base, lingua, protocollo, schermate, portale
 // "Batti il mio tempo" (R-236, S-44) e immagine del risultato (D-05).
 // - Link: …/pista-nera/?batti=<numero della pista del giorno>&t=<tempo in ms>&da=<nome>&c=<città>. Il tempo viaggia nel
 //   link e non è controllato dal server (S-44): serve solo a mostrare il tempo da battere, non cambia nessuna classifica.
@@ -33,6 +33,8 @@ PN.sfida = ({ stato: S, schermate, say, foto, accetta }) => {
   } catch (e) {}
 
   const secondi = ms => (Math.abs(ms) / 1000).toLocaleString(PN.lingua.lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' s';
+  // sul portale (R-244) i testi non portano il link al nostro sito: al suo posto "su CrazyGames"
+  const dove = url => PN.portale.link(url, tr('portalWhere', { p: PN.portale.titolo }));
   const oggi = () => schermate.giorno;   // la pista del giorno di oggi (numero e città), quando è arrivata dal server
   // la sfida vale per la gara in corso? Pista del giorno con lo stesso numero
   const inGioco = () => !!(sfida && S.net.daily && S.net.giorno && S.net.giorno.n === sfida.n);
@@ -95,10 +97,10 @@ PN.sfida = ({ stato: S, schermate, say, foto, accetta }) => {
     if (G) {
       // pista del giorno: si sfida con il migliore di oggi (o con il tempo di questa discesa, per una pista passata)
       const t = G.rivincita ? ms : (G.best != null ? G.best : ms);
-      const link = t != null ? location.origin + location.pathname + '?batti=' + G.n + '&t=' + t + '&da=' + encodeURIComponent(S.nome()) + '&c=' + G.scena : location.origin + location.pathname;
+      const link = dove(t != null ? location.origin + location.pathname + '?batti=' + G.n + '&t=' + t + '&da=' + encodeURIComponent(S.nome()) + '&c=' + G.scena : location.origin + location.pathname);
       return { G, t, city, link, titolo: tr('dailyTitle', { n: G.n, city }), pos: G.rivincita || !G.rank ? '' : tr('imgDayRank', { p: ord(G.rank), k: G.of || 1 }) };
     }
-    const link = location.origin + location.pathname;
+    const link = dove(location.origin + location.pathname);
     const n = S.net.results.length;
     return { G: null, t: ms, city, link, pos: ms != null ? tr('imgRank', { p: ord(i + 1), k: n }) : '', place: ms != null ? ord(i + 1) : '…',
       titolo: (S.net.pub ? tr('onlineBrand') : tr('challenge')) + ' · ' + city + ' · ' + (S.net.minutes || 5) + ' min' };

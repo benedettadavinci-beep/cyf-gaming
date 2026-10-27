@@ -58,5 +58,8 @@ PN.audio = ({ btnSound, isCity, isActive }) => {
     if (audio) audio.master.gain.setTargetAtTime(m ? 0 : 0.9, audio.ac.currentTime, 0.05);
   }
 
+  // iPhone: dopo una telefonata o un cambio di scheda il contesto audio resta "sospeso" e riparte solo dentro un tocco
+  // (lo chiedono anche i portali, R-244): a ogni tocco o tasto, se è sospeso, lo si fa ripartire
+  for (const ev of ['touchend', 'pointerdown', 'keydown']) window.addEventListener(ev, () => { if (audio && audio.ac.state === 'suspended') audio.ac.resume().catch(() => {}); }, { passive: true });
   return { initAudio, tone, thump, chime, beep, soundLevels, setMuted, get audio() { return audio; }, get muted() { return muted; } };
 };

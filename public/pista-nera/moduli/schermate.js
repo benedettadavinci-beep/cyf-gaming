@@ -1,5 +1,5 @@
 // modulo: schermate
-// dipende da: base, lingua, protocollo
+// dipende da: base, lingua, protocollo, portale
 // Tutto quello che il giocatore legge sullo schermo, fuori dalla scena 3D: schermate (menu, stanza, risultati, pausa),
 // avvisi a scomparsa (say), striscione (setBanner), stanza della sfida con link e condivisione, risultati con premi,
 // HUD in alto (tempo, posizione, velocità, distanza, punti, vite) e classifica dei migliori tempi del menu.
@@ -50,6 +50,10 @@ PN.schermate = ({ diag, stato: S }) => {
     $('lobbyCode').textContent = S.net.code || '—';
     const link = location.origin + location.pathname + '?sfida=' + (S.net.code || '');
     $('linkText').textContent = link;
+    // sul portale (R-244) niente link né WhatsApp/Telegram: gli amici entrano con il codice
+    const portale = PN.portale.attivo;
+    $('linkText').hidden = portale; $('shareWa').hidden = portale; $('shareTg').hidden = portale;
+    $('btnCopy').textContent = tr(portale ? 'copyCode' : 'copyLink');
     $('shareWa').href = 'https://wa.me/?text=' + encodeURIComponent(tr('shareMsg', { code: S.net.code || '', link }));
     $('shareTg').href = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(tr('shareMsg2', { code: S.net.code || '' }));
     const ul = $('lobbyPlayers');
@@ -127,9 +131,10 @@ PN.schermate = ({ diag, stato: S }) => {
   $('btnGo').addEventListener('click', () => S.net.send({ t: 'start' }));
   $('btnRematch').addEventListener('click', () => S.net.send({ t: 'start' }));
   $('btnCopy').addEventListener('click', async () => {
-    const link = $('linkText').textContent;
-    try { await navigator.clipboard.writeText(link); $('btnCopy').textContent = tr('linkCopied'); setTimeout(() => ($('btnCopy').textContent = tr('copyLink')), 1800); }
-    catch (e) { const r = document.createRange(); r.selectNodeContents($('linkText')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $('btnCopy').textContent = tr('copyManual'); }
+    const portale = PN.portale.attivo;
+    const link = portale ? (S.net.code || '') : $('linkText').textContent;   // sul portale si copia il codice (R-244)
+    try { await navigator.clipboard.writeText(link); $('btnCopy').textContent = tr(portale ? 'codeCopied' : 'linkCopied'); setTimeout(() => ($('btnCopy').textContent = tr(portale ? 'copyCode' : 'copyLink')), 1800); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($(portale ? 'lobbyCode' : 'linkText')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $('btnCopy').textContent = tr('copyManual'); }
   });
   $('btnLeave').addEventListener('click', () => S.toMenu());
   $('btnResLeave').addEventListener('click', () => S.toMenu());

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- versione della pagina: deve essere uguale a public/config.js (R-011, controllata da tools/verifica/controlli.mjs C4) -->
-<meta name="cyf-versione" content="0.21.0">
+<meta name="cyf-versione" content="0.22.0">
 <title>Pista Nera · C-Y-F Gaming</title>
 <meta name="description" content="Sfida i tuoi amici in una discesa in 3D, in snowboard sulla neve o in skateboard per 12 città: stessa pista, stesso via, vince il tempo migliore.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -178,6 +178,14 @@
   .ghost { font-weight: 700; font-size: 17px; border: 2px solid var(--snow-deep); border-radius: 10px; padding: 10px 14px; background: transparent; color: var(--ink); }
   button:focus-visible, input:focus-visible { outline: 3px solid var(--ice); outline-offset: 2px; }
   .err { font-size: 16px; color: #b3261e; }
+  /* modalità portale (R-244): niente link verso l'esterno; il titolo resta ma non si clicca */
+  .portale .brand { pointer-events: none; }
+  .portale [data-donate] { display: none !important; }
+  /* toccando la pista non devono comparire la lente e il menu del testo (telefono, richiesto dai portali) */
+  .stage { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .stage input, .stage #linkText, .stage #lobbyCode, .stage #profCode { user-select: text; -webkit-user-select: text; }
+  .chk { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 16px; font-weight: 600; color: var(--ink); cursor: pointer; }
+  .chk input { width: 20px; height: 20px; accent-color: var(--flare); }
 
   .code { font-family: var(--display); font-size: 40px; letter-spacing: .12em; color: var(--ink); }
   .players { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -357,6 +365,7 @@
             <kbd data-i18n="tDblTap"></kbd><span data-i18n="kThrow"></span>
           </div>
           <p class="muted" style="margin-top:8px" data-i18n="rulesText"></p>
+          <label class="chk"><input type="checkbox" id="chkVocali"><span data-i18n="voiceToggle"></span></label>
         </details>
         <details id="profBox">
           <summary data-i18n="profTitle"></summary>
@@ -616,6 +625,7 @@
 <script src="/shared/protocollo.js"></script>
 <script src="moduli/base.js"></script>
 <script src="moduli/lingua.js"></script>
+<script src="moduli/portale.js"></script>
 <script src="moduli/geometria.js"></script>
 <script src="moduli/panorami.js"></script>
 <script src="moduli/sfondi.js"></script>
