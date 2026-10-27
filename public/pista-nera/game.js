@@ -8,13 +8,14 @@
   // senza il pulsante della pista del giorno, con il programma nuovo, e il gioco si è fermato con un errore. Succede se
   // la pagina resta in memoria o se si apre proprio mentre il sito si aggiorna. Se la versione scritta nella pagina non è
   // quella di config.js (letto insieme al programma) si ricarica una volta sola; se non basta si va avanti e la diagnosi
-  // lo registra.
+  // lo registra. Anche una pagina SENZA versione è vecchia (scritta prima della 0.20.1): il 27/10 un Samsung Internet ha
+  // riaperto una pagina di prima della 0.20.0 con il programma 0.20.2 e il gioco si è fermato sugli sfondi (mancava panorami.js).
   {
     const pagina = (document.querySelector('meta[name="cyf-versione"]') || {}).content, sito = window.CYF && window.CYF.version;
-    if (pagina && sito && pagina !== sito) {
+    if (sito && pagina !== sito) {
       let gia = null;
       try { gia = sessionStorage.getItem('cyf.ricarica'); } catch (e) {}
-      diag.log('gioco', 'pagina ' + pagina + ' diversa dal sito ' + sito + (gia === sito ? ': già ricaricata, si va avanti' : ': si ricarica'));
+      diag.log('gioco', 'pagina ' + (pagina || 'senza versione') + ' diversa dal sito ' + sito + (gia === sito ? ': già ricaricata, si va avanti' : ': si ricarica'));
       if (gia !== sito) { try { sessionStorage.setItem('cyf.ricarica', sito); } catch (e) {} location.reload(); return; }
     }
   }
