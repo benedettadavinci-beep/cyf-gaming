@@ -2,6 +2,7 @@
 // Chiave → testo; {n}, {t}, {s}… sono valori inseriti dal gioco. Se manca una traduzione si usa l'italiano.
 window.CYF_I18N = {
   it: {
+    gpTitle: 'Gran Premio delle {h} · {city}', gpIn: 'Prossimo tra {t}', gpOpen: 'Si entra ora · si parte tra {t}', gpRunning: 'In corso: entra, si parte dal via (fino a 6 min dopo)', gpDone: 'Stasera: {p} su {k} · il tuo tempo {t}', gpBtn: 'Entra nel Gran Premio', gpBtnLate: 'Entra (in ritardo)', gpBrand: 'Gran Premio · Pista Nera', gpWaiting: 'Il Gran Premio parte alle {h} · tra {s} · {n} in sala', gpBoard: 'Classifica del Gran Premio di stasera · {city}', gpRound: 'Gran Premio · {city}', gpHint: 'Tutte le sale sono partite insieme sulla stessa pista: conta il tuo tempo migliore di stasera.', gpErr: 'Il Gran Premio non è aperto adesso: si entra da 10 minuti prima delle 21.',
     weekTitle: 'Città della settimana #{n} · {city}', weekUntil: 'Fino a domenica {d}', weekPrize: 'Finisci una gara a {city} (sfida, online o pista del giorno): vinci la maglia esclusiva #{n}', weekWon: 'Maglia #{n} vinta ✓', weekGo: 'Corri a {city}', weekToast: '🎽 Maglia della settimana #{n} vinta: {city}!', jerseyWeekGroup: 'Maglie della settimana', jWeek: 'Settimana #{n} · {city}',
     voiceToggle: 'Messaggi vocali attivi (in sfida e online)', copyCode: 'Copia il codice', codeCopied: 'Codice copiato!', portalWhere: 'su {p}',
     voiceBadFormat: 'Il vocale di {n} non si può riprodurre su questo telefono',
@@ -99,6 +100,7 @@ window.CYF_I18N = {
     audioOn: 'Audio: sì', audioOff: 'Audio: no', turnLeft: 'Curva a sinistra', turnRight: 'Curva a destra'
   },
   en: {
+    gpTitle: 'Grand Prix at {h} · {city}', gpIn: 'Next in {t}', gpOpen: 'Doors open · starts in {t}', gpRunning: 'Running now: join, you start from the line (up to 6 min late)', gpDone: 'Tonight: {p} of {k} · your time {t}', gpBtn: 'Join the Grand Prix', gpBtnLate: 'Join (late)', gpBrand: 'Grand Prix · Pista Nera', gpWaiting: 'The Grand Prix starts at {h} · in {s} · {n} in the room', gpBoard: "Tonight's Grand Prix standings · {city}", gpRound: 'Grand Prix · {city}', gpHint: 'All rooms started together on the same slope: your best time tonight counts.', gpErr: 'The Grand Prix is not open now: doors open 10 minutes before 21:00 (Italian time).',
     weekTitle: 'City of the week #{n} · {city}', weekUntil: 'Until Sunday {d}', weekPrize: 'Finish a race in {city} (challenge, online or daily slope): win exclusive jersey #{n}', weekWon: 'Jersey #{n} won ✓', weekGo: 'Ride in {city}', weekToast: '🎽 Jersey of the week #{n} won: {city}!', jerseyWeekGroup: 'Jerseys of the week', jWeek: 'Week #{n} · {city}',
     voiceToggle: 'Voice messages on (in challenges and online)', copyCode: 'Copy the code', codeCopied: 'Code copied!', portalWhere: 'on {p}',
     voiceBadFormat: '{n}’s voice message cannot be played on this phone',
@@ -194,6 +196,7 @@ window.CYF_I18N = {
     audioOn: 'Sound: on', audioOff: 'Sound: off', turnLeft: 'Turn left', turnRight: 'Turn right'
   },
   fr: {
+    gpTitle: 'Grand Prix de {h} · {city}', gpIn: 'Prochain dans {t}', gpOpen: "On entre maintenant · départ dans {t}", gpRunning: "En cours : entre, tu pars de la ligne (jusqu'à 6 min après)", gpDone: 'Ce soir : {p} sur {k} · ton temps {t}', gpBtn: 'Entrer dans le Grand Prix', gpBtnLate: 'Entrer (en retard)', gpBrand: 'Grand Prix · Pista Nera', gpWaiting: 'Le Grand Prix part à {h} · dans {s} · {n} dans la salle', gpBoard: 'Classement du Grand Prix de ce soir · {city}', gpRound: 'Grand Prix · {city}', gpHint: 'Toutes les salles sont parties ensemble sur la même piste : ton meilleur temps de ce soir compte.', gpErr: "Le Grand Prix n'est pas ouvert : on entre 10 minutes avant 21 h (heure italienne).",
     weekTitle: 'Ville de la semaine n°{n} · {city}', weekUntil: "Jusqu'à dimanche {d}", weekPrize: 'Termine une course à {city} (défi, en ligne ou piste du jour) : gagne le maillot exclusif n°{n}', weekWon: 'Maillot n°{n} gagné ✓', weekGo: 'Rouler à {city}', weekToast: '🎽 Maillot de la semaine n°{n} gagné : {city} !', jerseyWeekGroup: 'Maillots de la semaine', jWeek: 'Semaine n°{n} · {city}',
     voiceToggle: 'Messages vocaux activés (en défi et en ligne)', copyCode: 'Copier le code', codeCopied: 'Code copié !', portalWhere: 'sur {p}',
     voiceBadFormat: 'Le message vocal de {n} ne peut pas être lu sur ce téléphone',
@@ -289,6 +292,7 @@ window.CYF_I18N = {
     audioOn: 'Son : oui', audioOff: 'Son : non', turnLeft: 'Tourner à gauche', turnRight: 'Tourner à droite'
   },
   es: {
+    gpTitle: 'Gran Premio de las {h} · {city}', gpIn: 'Próximo en {t}', gpOpen: 'Se entra ahora · sale en {t}', gpRunning: 'En marcha: entra, sales desde la línea (hasta 6 min después)', gpDone: 'Esta noche: {p} de {k} · tu tiempo {t}', gpBtn: 'Entrar en el Gran Premio', gpBtnLate: 'Entrar (tarde)', gpBrand: 'Gran Premio · Pista Nera', gpWaiting: 'El Gran Premio sale a las {h} · en {s} · {n} en la sala', gpBoard: 'Clasificación del Gran Premio de esta noche · {city}', gpRound: 'Gran Premio · {city}', gpHint: 'Todas las salas han salido juntas en la misma pista: cuenta tu mejor tiempo de esta noche.', gpErr: 'El Gran Premio no está abierto ahora: se entra 10 minutos antes de las 21 (hora italiana).',
     weekTitle: 'Ciudad de la semana n.º {n} · {city}', weekUntil: 'Hasta el domingo {d}', weekPrize: 'Termina una carrera en {city} (desafío, online o pista del día): gana la camiseta exclusiva n.º {n}', weekWon: 'Camiseta n.º {n} ganada ✓', weekGo: 'Corre en {city}', weekToast: '🎽 ¡Camiseta de la semana n.º {n} ganada: {city}!', jerseyWeekGroup: 'Camisetas de la semana', jWeek: 'Semana n.º {n} · {city}',
     voiceToggle: 'Mensajes de voz activados (en desafío y online)', copyCode: 'Copiar el código', codeCopied: '¡Código copiado!', portalWhere: 'en {p}',
     voiceBadFormat: 'El mensaje de voz de {n} no se puede reproducir en este teléfono',

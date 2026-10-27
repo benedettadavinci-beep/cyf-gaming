@@ -5,6 +5,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { PROTO, MAX_PLAYERS, DURATIONS, lengthFor, MAX_SPEED_MS, COUNTDOWN_MS, GATHER_MAX_MS, ATTESA_SFIDA_MS, PUBLIC_RE, AUTO_START_MS, VOICE_COOLDOWN_MS, VOICE_MAX_CHARS, VOICE_MIME, DROP_KINDS, cleanScena, PLACE_POINTS, BOT_ATTESA_MS, BOT_SALA, BOT_LIVELLI, BOT_PILOTA_MS, fasciaPunti, board, cleanId, cleanHair, cleanGear, cleanJersey, cleanName, num, BOT_GIORNO } from './comune.mjs';
 import { pistaDelGiorno, pistaNumero } from './giorno.mjs';
 import { premioPerGara } from './settimana.mjs';
+import { granPremio, GP_RE } from './granpremio.mjs';
 import { stimaArrivo } from './avversari.mjs';
 
 export class RaceRoom extends DurableObject {
@@ -30,7 +31,9 @@ export class RaceRoom extends DurableObject {
       if (st.timeoutAt === undefined) st.timeoutAt = 0;
     }
     if (code && !this.state.code) this.state.code = code;
-    this.state.pub = PUBLIC_RE.test(this.state.code);
+    // sale del Gran Premio delle 21 (R-247): pubbliche come ONLINE1…, ma partono all'ora fissa con la stessa pista
+    this.state.gp = GP_RE.test(this.state.code);
+    this.state.pub = PUBLIC_RE.test(this.state.code) || this.state.gp;
     return this.state;
   }
   save() { return this.ctx.storage.put('state', this.state); }
@@ -79,7 +82,7 @@ export class RaceRoom extends DurableObject {
   lobbyMsg(except) {
     const st = this.state;
     return {
-      t: 'lobby', phase: st.phase, hostId: st.pub ? null : st.hostId, round: st.round, pub: st.pub,
+      t: 'lobby', phase: st.phase, hostId: st.pub ? null : st.hostId, round: st.round, pub: st.pub, gp: st.gp ? (this.gpAttivo() ? 1 : 2) : 0,   // 1 = aspetta il via delle 21, 2 = sala GP dopo il Gran Premio
       minutes: st.minutes, length: lengthFor(st.minutes), autoAt: st.autoAt, autoBot: !!st.autoBot, bots: st.nBots || 0, now: Date.now(), scena: this.roomScena(except),
       players: this.players(except).map(p => ({ id: p.id, name: p.name, ready: p.ready, color: p.color, j: p.j || '', h: p.h || '', p: p.p || '', e: p.e || '', s: p.s || '' }))
     };
@@ -89,6 +92,7 @@ export class RaceRoom extends DurableObject {
   roomScena(except) {
     const st = this.state;
     if (st.daily) return this.pistaGiorno().scena;   // pista del giorno: la città di oggi (R-233) o del giorno del link (R-236)
+    if (st.gp && this.gpAttivo()) return granPremio().scena;   // Gran Premio delle 21: la città della settimana (R-247)
     const host = this.players(except).find(p => p.id === st.hostId);
     if (st.pub || !st.scena) return cleanScena(host && host.sc);
     return cleanScena(st.scena);
@@ -102,6 +106,14 @@ export class RaceRoom extends DurableObject {
     if (!ids.includes(this.state.hostId)) this.state.hostId = ids[0] || null;
   }
 
+  // Gran Premio (R-247): in una sala GP la prossima gara è il Gran Premio di stasera finché non è stato corso qui
+  // e si è ancora nella finestra (da 10 minuti prima a 6 minuti dopo il via); poi la sala è una sala online normale
+  gpAttivo(now = Date.now()) {
+    const st = this.state;
+    if (!st.gp) return false;
+    const g = granPremio(now);
+    return g.aperto && st.gpFatto !== g.giorno;
+  }
   // stanze pubbliche: con almeno 2 giocatori in attesa parte il conto alla rovescia automatico; da soli, dopo 15 s
   // si parte con gli avversari guidati dal software (R-235)
   updateAuto(except) {
@@ -110,6 +122,13 @@ export class RaceRoom extends DurableObject {
     const list = this.players(except);
     const now = Date.now();
     if (list.length === 0) { st.autoAt = 0; st.autoBot = false; return; }
+    if (this.gpAttivo(now)) {
+      // Gran Premio: si parte all'ora fissa (subito se il via è già passato), con chi c'è; da soli con gli avversari del software
+      const g = granPremio(now);
+      st.autoAt = g.inCorso ? now + 3000 : g.at;
+      st.autoBot = list.length === 1;
+      return;
+    }
     if (list.length === 1) {
       if (!st.autoBot || !st.autoAt) st.autoAt = now + BOT_ATTESA_MS;
       st.autoBot = true;
@@ -137,6 +156,10 @@ export class RaceRoom extends DurableObject {
     st.seed = (Math.random() * 2 ** 31) | 0;
     // pista del giorno: seed, città e durata del giorno italiano in cui si parte (S-40)
     if (st.daily) { const g = this.pistaGiorno(now); st.giorno = g; st.seed = g.seed; st.minutes = g.minuti; st.scena = g.scena; }
+    // Gran Premio delle 21 (R-247): stessa pista per tutte le sale della sera, città della settimana, 5 minuti; la classifica
+    // della sera ha la chiave gp:<giorno>. Le gare successive nella stessa sala sono gare online normali
+    st.gpChiave = '';
+    if (this.gpAttivo(now)) { const g = granPremio(now); st.gpFatto = g.giorno; st.gpChiave = g.chiave; st.seed = g.seed; st.minutes = g.minuti; st.scena = g.scena; }
     // attesa: il conto alla rovescia di 5 s parte solo quando tutti hanno caricato la gara (o dopo 40 s)
     st.startAt = 0;
     st.gatherUntil = now + (st.pub || st.daily ? GATHER_MAX_MS : this.attesaSfida());
@@ -152,7 +175,7 @@ export class RaceRoom extends DurableObject {
     // chi li guida (S-39): chi organizza se è in gara, altrimenti la prima persona
     st.pilota = bots.length ? (list.some(p => p.id === st.hostId) ? st.hostId : list[0].id) : null;
     this.botUltimo = new Map(); this.botsAt = now;
-    st.raceScena = st.daily ? st.giorno.scena : this.roomScena();
+    st.raceScena = st.daily ? st.giorno.scena : st.gpChiave ? st.scena : this.roomScena();
     st.results = [];
     st.drops = 0;
     st.spesa = {};      // punti spesi da ogni corridore in banane, bombe e bananoni (R-232)
@@ -165,6 +188,7 @@ export class RaceRoom extends DurableObject {
     board(this.env).bump('races_started').catch(() => {});
     if (bots.length) board(this.env).bump('races_bots').catch(() => {});
     if (st.daily && st.batti) board(this.env).bump('batti_gare').catch(() => {});   // gare partite da un link "batti il mio tempo" (R-236)
+    if (st.gpChiave) board(this.env).bumpMany({ gp_sale: 1, gp_persone: list.length }).catch(() => {});   // Gran Premio (R-247)
     board(this.env).bump('racers', list.length).catch(() => {});
     this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: 0, gatherUntil: st.gatherUntil, loaded: [], ready: st.ready, pilota: st.pilota, racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round, scena: st.raceScena, giorno: st.daily ? { n: st.giorno.n, giorno: st.giorno.giorno, ...(st.rivN ? { rivincita: true } : {}) } : null });
     this.broadcast(this.lobbyMsg());
@@ -306,7 +330,7 @@ export class RaceRoom extends DurableObject {
       await this.schedule();
       board(this.env).touch(id).catch(() => {});
       this.send(ws, {
-        t: 'welcome', you: id, code: st.code, now, max: st.daily ? 1 : MAX_PLAYERS, length: lengthFor(st.minutes), minutes: st.minutes, pub: st.pub, daily: !!st.daily,
+        t: 'welcome', you: id, code: st.code, now, max: st.daily ? 1 : MAX_PLAYERS, length: lengthFor(st.minutes), minutes: st.minutes, pub: st.pub, daily: !!st.daily, gp: st.gp ? (this.gpAttivo() ? 1 : 2) : 0,
         pilota: st.pilota || null, bots: [...this.botUltimo.values()],
         phase: st.phase, seed: st.seed, startAt: st.startAt, gatherUntil: st.gatherUntil || 0, loaded: st.loaded || [], ready: st.ready || [], racers: st.racers, scena: cleanScena(st.raceScena), results: st.results, awards: st.awards || null,
         voiceNext: ((st.voiceAt || {})[id] || 0) + VOICE_COOLDOWN_MS
@@ -518,6 +542,8 @@ export class RaceRoom extends DurableObject {
         try { await board(this.env).submit(me.name, ms, lengthFor(st.minutes)); } catch (e) {}
         // pista del giorno: il migliore di ognuno nella classifica del giorno in cui è partito (R-233, S-40)
         if (st.daily && st.giorno) { try { st.esitoGiorno = await board(this.env).submitGiorno(st.giorno.giorno, me.id, me.name, ms); } catch (e) {} }
+        // Gran Premio: il migliore di ognuno nella classifica della sera, tutte le sale insieme (R-247)
+        if (st.gpChiave) { try { await board(this.env).submitGiorno(st.gpChiave, me.id, me.name, ms); } catch (e) {} }
       }
       await this.maybeEnd();
       return;
@@ -588,7 +614,10 @@ export class RaceRoom extends DurableObject {
       try { giorno = { n: st.giorno.n, giorno: st.giorno.giorno, scena: st.giorno.scena, ...(st.esitoGiorno || {}), ...(await board(this.env).giorno(st.giorno.giorno, 10, (st.racers[0] || {}).id)) }; } catch (e) {}
       st.esitoGiorno = null;
     }
-    this.broadcast({ t: 'results', results: st.results, awards: st.awards, round: st.round, minutes: st.minutes, giorno }, except);
+    // Gran Premio (R-247): la classifica della sera (primi 10 di tutte le sale); la propria posizione la chiede il gioco a /api/gp
+    let gp = null;
+    if (st.gpChiave) { try { gp = { giorno: st.gpFatto, scena: st.raceScena, ...(await board(this.env).giorno(st.gpChiave, 10, '')) }; } catch (e) {} }
+    this.broadcast({ t: 'results', results: st.results, awards: st.awards, round: st.round, minutes: st.minutes, giorno, gp }, except);
     this.broadcast(this.lobbyMsg(except), except);
   }
 

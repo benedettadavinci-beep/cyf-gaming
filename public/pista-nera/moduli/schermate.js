@@ -46,7 +46,7 @@ PN.schermate = ({ diag, stato: S }) => {
     const pub = S.net.pub;
     $('lobbyShare').hidden = pub;
     $('lobbyPublic').hidden = !pub;
-    $('lobbyBrand').textContent = pub ? tr('onlineBrand') : tr('lobbyBrand');
+    $('lobbyBrand').textContent = pub ? tr(S.net.gp ? 'gpBrand' : 'onlineBrand') : tr('lobbyBrand');   // sala del Gran Premio (R-247)
     $('lobbyCode').textContent = S.net.code || '—';
     const link = location.origin + location.pathname + '?sfida=' + (S.net.code || '');
     $('linkText').textContent = link;
@@ -104,6 +104,11 @@ PN.schermate = ({ diag, stato: S }) => {
     let status;
     if (!S.net.ws || S.net.ws.readyState !== 1) status = tr('connecting');
     else if (busy && !S.amIn(S.net.racers)) status = tr('raceRunning');
+    else if (S.net.pub && S.net.gp === 1 && S.net.autoAt) {
+      // Gran Premio (R-247): si aspetta il via delle 21, tutti insieme
+      const left = Math.max(0, S.net.autoAt - S.serverNow());
+      status = tr('gpWaiting', { h: oraRoma(S.net.autoAt), s: fmtAttesa(left), n });
+    }
     else if (S.net.pub) {
       const left = S.net.autoAt ? Math.max(0, Math.ceil((S.net.autoAt - S.serverNow()) / 1000)) : 0;
       status = n < 2 ? (S.net.autoBot && left ? tr('pubBots', { s: left }) : tr('pubWaiting')) : (left ? tr('pubStartsIn', { n, s: left }) : tr('pubStarting', { n }));
@@ -112,6 +117,9 @@ PN.schermate = ({ diag, stato: S }) => {
     else status = tr('lobbyCount', { n, r: ready }) + ' ' + (isHost ? tr('pressGo') : tr('waitHost'));
     $('lobbyStatus').textContent = status;
   }
+  // ora italiana "21:00" e attesa "3:12" / "42 s" per il Gran Premio (R-247)
+  const oraRoma = at => { try { return new Date(at).toLocaleTimeString(PN.lingua.lang, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }); } catch (e) { return '21:00'; } };
+  const fmtAttesa = ms => { const s2 = Math.ceil(ms / 1000); return s2 >= 60 ? Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0') : s2 + ' s'; };
   // il conto alla rovescia delle sale pubbliche si aggiorna da solo
   setInterval(() => {
     if (!S.net.pub) return;
@@ -141,7 +149,9 @@ PN.schermate = ({ diag, stato: S }) => {
   // Condividi e 🖼️ Immagine: in moduli/sfida.js (R-236, D-05)
   function renderResults() {
     const G = S.net.daily && S.net.giorno;
+    const GP = S.net.gpRes;   // Gran Premio (R-247): la classifica della sera arriva con i risultati
     $('resRound').textContent = G ? tr('dailyTitle', { n: G.n, city: cityName(G.scena) }) + ' · ' + (S.net.minutes || 5) + ' min'
+      : GP ? tr('gpRound', { city: cityName(GP.scena) }) + ' · ' + (S.net.minutes || 5) + ' min'
       : (S.net.pub ? tr('onlineBrand') : tr('challenge') + ' ' + (S.net.code || '')) + ' · ' + tr('raceN', { n: S.net.round || 1 }) + ' · ' + (S.net.minutes || 5) + ' min';
     const ul = $('resList');
     ul.innerHTML = '';
@@ -182,8 +192,17 @@ PN.schermate = ({ diag, stato: S }) => {
     renderResultsStatus();
     if (S.sfida) S.sfida.risultati();   // "batti il mio tempo": esito della sfida e immagine pronta (R-236)
   }
-  // pista del giorno: posizione di oggi e classifica del giorno (R-233)
+  // pista del giorno: posizione di oggi e classifica del giorno (R-233); Gran Premio: classifica della sera (R-247)
   function renderDayResults(G) {
+    const GP = S.net.gpRes;
+    if (!G && GP && S.granpremio) {
+      $('resDay').hidden = false;
+      const mio = S.granpremio.gp;   // la propria posizione arriva da /api/gp, dopo i risultati
+      $('resDayRank').textContent = mio && mio.rank && mio.giorno === GP.giorno ? tr('gpDone', { p: ord(mio.rank), k: mio.of, t: fmtTime(mio.best) }) : tr('gpHint');
+      $('resDayBoardBox').hidden = !S.granpremio.risultati($('resDayBoard'), $('resDayTitle'), GP);
+      return;
+    }
+    $('resDayTitle').textContent = tr('dailyBoard');
     $('resDay').hidden = !G;
     if (!G) return;
     // pista di un giorno passato rifatta dal link (R-236): niente classifica

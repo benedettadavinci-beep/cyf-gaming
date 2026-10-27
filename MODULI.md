@@ -16,7 +16,7 @@ usano a vicenda. Il cancello dei test la esegue a ogni modifica: così la matric
 ## Come sono fatti i moduli
 
 - **Puri** (`PN.base`, `PN.lingua`, `PN.portale`, `PN.calendario`, `PN.geometria`, `PN.rider`, `PN.tracciato`, `PN.fisica`, `PN.panorami`): un oggetto pronto all'uso, creato quando il file si carica. `base` e `panorami` girano anche dentro un worker (niente `document`, niente THREE): `sfondi` li ricarica lì per dipingere le cartoline senza fermare il gioco (A-22).
-- **Con istanza** (`PN.pista`, `PN.sfondi`, `PN.citta`, `PN.generazione`, `PN.effetti`, `PN.audio`, `PN.vocali`, `PN.profilo`, `PN.personaggio`, `PN.oggetti`, `PN.avversari`, `PN.bot`, `PN.comandi`, `PN.schermate`, `PN.settimana`, `PN.missioni`, `PN.sfida`):
+- **Con istanza** (`PN.pista`, `PN.sfondi`, `PN.citta`, `PN.generazione`, `PN.effetti`, `PN.audio`, `PN.vocali`, `PN.profilo`, `PN.personaggio`, `PN.oggetti`, `PN.avversari`, `PN.bot`, `PN.comandi`, `PN.schermate`, `PN.settimana`, `PN.granpremio`, `PN.missioni`, `PN.sfida`):
   una funzione che il gioco chiama una volta sola passando quello che serve (la scena 3D, il terreno, la rete…) e che
   restituisce l'istanza. Quello che un modulo riceve è scritto nel commento in testa al file.
 - **Lo stato del gioco** (posizione del rider, modalità, punti…) resta in `game.js`. I moduli che devono leggerlo
@@ -46,6 +46,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/fisica.js` | fisica | 84 | base (TAU, clamp) |
 | `moduli/generazione.js` | generazione | 322 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
+| `moduli/granpremio.js` | granpremio | 86 | base (fmtTime); lingua (lang, tr, ord, cityName) |
 | `moduli/lingua.js` | lingua | 41 | base (store) |
 | `moduli/missioni.js` | missioni | 129 | base (store); lingua (lang, tr) |
 | `moduli/oggetti.js` | oggetti | 176 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
@@ -55,15 +56,15 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/portale.js` | portale | 44 | nessuno |
 | `moduli/profilo.js` | profilo | 101 | base (store); lingua (tr) |
 | `moduli/rider.js` | rider | 562 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi) |
-| `moduli/schermate.js` | schermate | 292 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
+| `moduli/schermate.js` | schermate | 311 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
 | `moduli/settimana.js` | settimana | 62 | base (store); lingua (lang, tr, cityName); calendario (); schermate (js, giorno) |
 | `moduli/sfida.js` | sfida | 186 | base (fmtTime); lingua (lang, tr, ord); protocollo (SCENE); portale (link, titolo); schermate (cityName, giorno) |
 | `moduli/sfondi.js` | sfondi | 119 | base (lin); panorami (dipingi) |
 | `moduli/tracciato.js` | tracciato | 98 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 194 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr); portale (attivo) |
-| `game.js` | — | 1069 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana () |
-| `diagnosi.js` | — | 162 | nessuno |
-| `i18n.js` | — | 387 | nessuno |
+| `game.js` | — | 1092 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio () |
+| `diagnosi.js` | — | 177 | nessuno |
+| `i18n.js` | — | 391 | nessuno |
 | `shared/calendario.js` | calendario | 35 | nessuno |
 | `shared/protocollo.js` | protocollo | 94 | nessuno |
 <!-- /matrice -->
@@ -84,6 +85,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | messaggi vocali, silenzia, segnala, casella per spegnerli (R-244) | `moduli/vocali.js` |
 | modalità portale: CrazyGames e Poki, niente link esterni (R-244) | `moduli/portale.js` |
 | missioni con le stelle, 3 obiettivi alla volta (R-243) | `moduli/missioni.js` |
+| Gran Premio delle 21: conto alla rovescia, "Entra", classifica della sera (R-247) | `moduli/granpremio.js` (orario e finestra in `src/granpremio.mjs`, sale GP in `src/stanza.mjs`) |
 | città della settimana, maglie vinte, "Corri a …" (R-245) | `moduli/settimana.js` (settimana → città e premio in `shared/calendario.js`, usato anche dal server; il premio lo assegna `src/stanza.mjs` e lo ricorda `src/classifica.mjs`) |
 | "batti il mio tempo": link, riquadro "ti sfida", distacco in gara, Condividi e immagine del risultato (R-236, D-05) | `moduli/sfida.js` |
 | schermata "Modifica il personaggio" con l'anteprima 3D (R-227) | `moduli/personaggio.js` (i modelli di casco, tavole e pantaloni in `moduli/rider.js`) |

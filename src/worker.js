@@ -14,6 +14,7 @@
 import { MAX_PLAYERS, DURATIONS, lengthFor, CODE_RE, PUBLIC_ROOMS, json, board, cleanId, cleanProfileCode, cleanProfile, cleanFonte } from './comune.mjs';
 import { pistaDelGiorno } from './giorno.mjs';
 import { settimanaCorrente } from './settimana.mjs';
+import { granPremio, SALE_GP } from './granpremio.mjs';
 // le due classi dei Durable Objects devono uscire dal file principale (wrangler.jsonc)
 export { RaceRoom } from './stanza.mjs';
 export { Leaderboard } from './classifica.mjs';
@@ -44,6 +45,29 @@ export default {
       const g = pistaDelGiorno();
       const b = await board(env).giorno(g.giorno, 20, cleanId(url.searchParams.get('id')));
       return json({ n: g.n, giorno: g.giorno, scena: g.scena, minuti: g.minuti, ...b, settimana: settimanaCorrente() });
+    }
+
+    // /api/gp?id=… → il Gran Premio delle 21 (R-247): orario, città, finestra d'ingresso, classifica della sera e la posizione
+    if (url.pathname === '/api/gp') {
+      const g = granPremio();
+      const b = await board(env).giorno(g.chiave, 10, cleanId(url.searchParams.get('id')));
+      return json({ at: g.at, now: Date.now(), giorno: g.giorno, scena: g.scena, minuti: g.minuti, aperto: g.aperto, inCorso: g.inCorso, ...b });
+    }
+
+    // /api/quick?gp=1 → la sala del Gran Premio in cui entrare (R-247): si riempie la prima, poi la seconda…
+    if (url.pathname === '/api/quick' && url.searchParams.get('gp') === '1') {
+      const g = granPremio();
+      if (!g.aperto) return json({ error: 'Il Gran Premio non è aperto', at: g.at }, { status: 409 });
+      let best = null;
+      for (let i = 1; i <= SALE_GP; i++) {
+        const code = 'GP' + String(i).padStart(2, '0');   // GP01…GP08: i codici delle stanze hanno almeno 4 caratteri
+        let info;
+        try { info = await env.RACE.get(env.RACE.idFromName(code)).info(); } catch (e) { continue; }
+        if (info.players >= MAX_PLAYERS) continue;
+        if (!best || info.players > best.players) best = { code, players: info.players };
+        if (best.players >= MAX_PLAYERS - 1) break;
+      }
+      return json(best ? { code: best.code, players: best.players } : { error: 'Tutte le sale sono piene' }, { status: best ? 200 : 503 });
     }
 
     // /api/quick → la stanza pubblica in cui entrare (modalità online)

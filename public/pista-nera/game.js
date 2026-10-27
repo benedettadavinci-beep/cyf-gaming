@@ -188,7 +188,8 @@
     colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); },
     nome: () => inName.value.trim() || 'Rider',
     get sfida() { return SFIDA; },   // "batti il mio tempo" (R-236): le schermate gli passano risultati e menu
-    get settimana() { return SETT; }   // città della settimana (R-245): riquadro nel menu quando arriva /api/giorno
+    get settimana() { return SETT; },   // città della settimana (R-245): riquadro nel menu quando arriva /api/giorno
+    get granpremio() { return GP; }   // Gran Premio delle 21 (R-247): classifica della sera nei risultati
   };
 
   // le regole del movimento (velocità, salti, rampe, punti delle acrobazie) sono in moduli/fisica.js, uguali per il
@@ -574,12 +575,26 @@
     b.disabled = false;
   });
 
-  function connect(code, pub, daily, sfida) {
+  // Gran Premio delle 21 (R-247): il server dice in quale sala GP entrare (si riempie la prima, poi la seconda)
+  async function entraGp() {
+    if (!needName()) return;
+    const b = $('btnGp');
+    b.disabled = true;
+    try {
+      const res = await fetch('/api/quick?gp=1', { cache: 'no-store' });
+      const d = await res.json();
+      if (res.status === 409) { menuError(tr('gpErr')); GP.carica(); return; }
+      if (!res.ok || !d.code) throw new Error();
+      connect(d.code, true, false, null, true);
+    } catch (e) { menuError(tr('errOnline')); b.disabled = false; }
+  }
+  function connect(code, pub, daily, sfida, gp) {
     initAudio();
     net.close();
     net.sfida = daily && sfida ? sfida : null;   // R-236: numero della pista del giorno da correre (?n=) e arrivo da un link (?b=1)
     net.want = true; net.code = code; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map();
-    net.pub = !!pub || /^ONLINE\d+$/.test(code); net.autoAt = 0; net.awards = null;
+    net.pub = !!pub || /^ONLINE\d+$/.test(code) || /^GP\d+$/.test(code); net.autoAt = 0; net.awards = null;
+    net.gp = gp ? 1 : 0; net.gpRes = null;   // sala del Gran Premio (R-247): 1 finché si aspetta il via delle 21
     net.daily = !!daily; net.giorno = null;
     history.replaceState(null, '', location.pathname + (net.pub || net.daily ? '' : '?sfida=' + code));
     mode = 'lobby';
@@ -643,7 +658,7 @@
       net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || []; net.ready = m.ready || [];
       net.pub = !!m.pub; net.minutes = m.minutes || 5; net.awards = m.awards || null; net.scena = m.scena || 'neve';
       raceLen = m.length || raceLen;
-      net.daily = !!m.daily;
+      net.daily = !!m.daily; net.gp = m.gp || 0;
       if (net.daily && (m.phase === 'lobby' || m.phase === 'results')) {
         // pista del giorno: appena dentro si parte. Se il collegamento è caduto durante la gara, la stanza è nuova:
         // quella gara è persa e si torna al menu
@@ -662,7 +677,7 @@
     } else if (m.t === 'lobby') {
       if (m.now) net.offset = m.now - Date.now();
       net.players = m.players; net.hostId = m.hostId; net.phase = m.phase;
-      net.pub = !!m.pub; net.minutes = m.minutes || 5; net.autoAt = m.autoAt || 0;
+      net.pub = !!m.pub; net.minutes = m.minutes || 5; net.autoAt = m.autoAt || 0; net.gp = m.gp || 0;
       net.bots = m.bots || 0; net.autoBot = !!m.autoBot;   // avversari del computer (R-235, R-237)
       if (!racing()) raceLen = m.length || raceLen;
       // in attesa si vede già la città (e la pista) della prossima gara
@@ -677,7 +692,7 @@
       net.phase = 'countdown'; net.seed = m.seed; net.startAt = m.startAt; net.racers = m.racers; net.round = m.round; net.results = []; net.finished = new Map(); net.scena = m.scena || 'neve';
       net.gatherUntil = m.gatherUntil || 0; net.loaded = m.loaded || []; net.ready = m.ready || [];
       raceLen = m.length || raceLen;
-      net.giorno = m.giorno || null;
+      net.giorno = m.giorno || null; net.gpRes = null;
       net.pilota = m.pilota || null;
       if (amIn(net.racers)) beginRace(false);
       else renderLobby();
@@ -713,6 +728,8 @@
     } else if (m.t === 'results') {
       net.results = m.results; net.phase = 'results'; net.awards = m.awards || null;
       if (net.daily) net.giorno = m.giorno || (net.giorno && { n: net.giorno.n, scena: net.scena });
+      net.gpRes = m.gp || null;   // Gran Premio: classifica della sera (R-247); la propria posizione arriva da /api/gp
+      if (m.gp) GP.carica();
       const mine = m.results.find(r => r.id === myId);
       if (mine && mine.total != null) { myTotal = mine.total; renderMyPts(); }
       // missioni (R-243): gara finita, posizione, pista del giorno, senza cadute
@@ -774,6 +791,7 @@
     MISS.salva(); MISS.render(); SFIDA.render();
     loadBoard();
     loadMe();
+    GP.carica();
   }
 
   function beginRace(late) {
@@ -912,6 +930,8 @@
   const SFIDA = PN.sfida({ stato, schermate: SCHERMATE, say, foto: () => { renderer.render(scene, camera); return cvs; }, accetta: sf => accettaSfida(sf) });
   // città della settimana con la maglia esclusiva (R-245): "Corri a …" mette la città nel menu; le maglie vinte vanno nel personaggio
   const SETT = PN.settimana({ schermate: SCHERMATE, say, vaiInCitta: sc => { if (THEMES[sc] && !racing()) { selScena.value = sc; selScena.dispatchEvent(new Event('change')); } }, cambiato: () => PERS.mostra() });
+  // Gran Premio delle 21 (R-247): riquadro con il conto alla rovescia nel menu; a fine gara la propria posizione nei risultati
+  const GP = PN.granpremio({ myId, entra: entraGp, cambiato: () => { if (mode === 'results') renderResults(); } });
 
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
@@ -1024,6 +1044,7 @@
     if (mode === 'results') renderResults();
     SCHERMATE.renderDaily();   // pulsante della pista del giorno nella lingua nuova (e riquadri della sfida e della settimana, R-236, R-245)
     MISS.render();
+    GP.render();
     updateVoiceBtn();
     PROFILO.render();
   }
@@ -1043,6 +1064,7 @@
   reset((Math.random() * 2 ** 31) | 0, null, false);
   hudLabels();
   loadBoard();
+  GP.carica();
   const invite = new URLSearchParams(location.search).get('sfida');
   if (invite) {
     inCode.value = invite.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
