@@ -213,8 +213,9 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     return gruppo;
   }
   // archi CYF sopra la pista (R-514): ogni 23 paline (~506 m) un arco con due torri appena fuori dalle paline (a 21 m dal
-  // centro; si urtano come le paline, tipo 'torre') e uno striscione CYF a 8,2-10 m d'altezza: più in alto del salto più
-  // alto (~7 m), quindi il rider non lo tocca mai. Non usa numeri casuali: la pista resta identica per tutti (R-103, R-309)
+  // centro; si urtano come le paline, tipo 'torre') e uno striscione CYF con il bordo basso ad almeno 9,7 m dal terreno
+  // più alto sotto di lui: il salto più alto porta la tavola a ~6,8 m (trampolino gigante) e la testa a ~8,6 m, quindi il
+  // rider non lo tocca mai. Non usa numeri casuali: la pista resta identica per tutti (R-103, R-309)
   let arcoRis = null;
   function risorseArco() {
     if (arcoRis) return arcoRis;
@@ -234,16 +235,16 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     arcoRis = {
       striscione: new THREE.PlaneGeometry(42, 1.8),
       matStriscione: new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }),
-      torre: new THREE.BoxGeometry(0.6, 10, 0.6),
+      torre: new THREE.BoxGeometry(0.6, 11.6, 0.6),
       matTorre: new THREE.MeshStandardMaterial({ color: lin('#13233a'), roughness: 0.6 })
     };
     return arcoRis;
   }
   function spawnArco(z) {
     const R = risorseArco(), c = center(z);
-    for (const s of [-1, 1]) objs.push({ type: 'torre', x: c + s * 21, z, mesh: addMesh(R.torre, R.matTorre, c + s * 21, z, { y: 5 }) });
+    for (const s of [-1, 1]) objs.push({ type: 'torre', x: c + s * 21, z, mesh: addMesh(R.torre, R.matTorre, c + s * 21, z, { y: 5.8 }) });
     const m = new THREE.Mesh(R.striscione, R.matStriscione);
-    m.position.set(c, Math.max(hgt(c - 21, z), hgt(c + 21, z)) + 9.1, z);
+    m.position.set(c, Math.max(hgt(c - 21, z), hgt(c, z), hgt(c + 21, z)) + 10.6, z);
     world.add(m);
     objs.push({ type: 'arco', x: c, z, mesh: m });
   }

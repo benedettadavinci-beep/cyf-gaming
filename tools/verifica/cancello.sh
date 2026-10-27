@@ -55,6 +55,7 @@ prova "Browser: 13 scenari e diagnosi" python3 tools/verifica/test_rapido.py
 if [ "$MODO" = "tutto" ]; then
   prova "Gioco: città, guida, acrobazie, gara a due" python3 tools/verifica/test_gioco.py
   prova "Piedi sopra le rampe e i trampolini giganti" python3 tools/verifica/test_trampolino.py
+  prova "Scritte CYF visibili: trampolino gigante, archi, giacca (R-240, R-514)" python3 tools/verifica/test_cyf.py
   prova "Lingue su telefono e PC" python3 tools/verifica/test_lingue.py
   prova "Schermata dei risultati" python3 tools/verifica/test_risultati.py
   prova "Comandi touch" python3 tools/verifica/test_comandi.py
