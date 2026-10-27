@@ -151,21 +151,37 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     });
   }
   // scritta CYF sul trampolino gigante (R-240): un foglio che segue la curva vera della salita (la stessa rampTop della
-  // fisica), con i colori dello stemma; si legge arrivando. Texture e materiale uno solo per tutti i trampolini
-  let cyfMat = null;
-  function materialeCYF() {
-    if (cyfMat) return cyfMat;
+  // fisica), con i colori dello stemma; si legge arrivando. Dalla 0.25.2 (baco B-03) anche due cartelli CYF alti ai lati
+  // dello stacco, rivolti verso chi arriva: la salita è inclinata solo ~13°, quindi la scritta per terra si leggeva solo
+  // nell'ultimo secondo e mezzo, mezza coperta dal rider; i cartelli si vedono da lontano, come sui trampolini veri.
+  // Texture, materiali e geometrie dei cartelli: uno solo per tutti i trampolini
+  let cyfTex = null, cyfMat = null, cyfCartello = null;
+  function texturaCYF() {
+    if (cyfTex) return cyfTex;
     const c = document.createElement('canvas'); c.width = 512; c.height = 256;
     const g = c.getContext('2d');
     const box = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
     box(10, 18, 492, 220, 46); g.fillStyle = '#13233a'; g.fill();
     g.lineWidth = 12; g.strokeStyle = '#ffffff'; g.stroke();
-    g.font = '900 170px "Barlow Condensed", "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.lineJoin = 'round'; g.lineWidth = 14; g.strokeStyle = '#ffffff'; g.strokeText('CYF', 256, 134);
-    g.fillStyle = '#ff5a1f'; g.fillText('CYF', 256, 134);
-    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = Math.min(8, ANISO);
-    cyfMat = new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.7, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
+    g.font = '900 200px "Barlow Condensed", "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineJoin = 'round'; g.lineWidth = 16; g.strokeStyle = '#ffffff'; g.strokeText('CYF', 256, 136);
+    g.fillStyle = '#ff5a1f'; g.fillText('CYF', 256, 136);
+    cyfTex = new THREE.CanvasTexture(c); cyfTex.encoding = THREE.sRGBEncoding; cyfTex.anisotropy = Math.min(8, ANISO);
+    return cyfTex;
+  }
+  function materialeCYF() {
+    if (!cyfMat) cyfMat = new THREE.MeshStandardMaterial({ map: texturaCYF(), transparent: true, roughness: 0.7, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
     return cyfMat;
+  }
+  // cartello: pannello 1,8 × 0,9 m che non prende luce (si legge anche controsole, come un'insegna) su un palo bianco
+  function cartelloCYF() {
+    if (!cyfCartello) cyfCartello = {
+      pannello: new THREE.PlaneGeometry(1.8, 0.9),
+      palo: new THREE.CylinderGeometry(0.06, 0.06, 4.6, 8),
+      matPannello: new THREE.MeshBasicMaterial({ map: texturaCYF(), transparent: true, side: THREE.DoubleSide }),
+      matPalo: new THREE.MeshStandardMaterial({ color: lin('#e8edf2'), roughness: 0.5 })
+    };
+    return cyfCartello;
   }
   function scrittaCYF(r) {
     const k = 2, city = isCity(), base = hgt(r.x, r.z), NX = 4, NZ = 14, W = 5.2;
@@ -181,8 +197,20 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     geo.setIndex(idx); geo.computeVertexNormals();
     const m = new THREE.Mesh(geo, materialeCYF()); m.receiveShadow = true;
-    world.add(m);
-    return m;
+    m.userData.proprio = true;   // geometria solo di questo trampolino: si libera quando il trampolino esce di scena
+    const gruppo = new THREE.Group();
+    gruppo.add(m);
+    // i due cartelli: fuori dal corpo della rampa (largo 3,5 m per lato con il bordo), vicino allo stacco, con il pannello
+    // più alto dello stacco (2,7 m), così chi passa a fianco della rampa ci passa sotto
+    const C = cartelloCYF(), zc = r.z - 2 * k + 0.4;
+    for (const lato of [-1, 1]) {
+      const x = r.x + lato * 3.75;
+      const palo = new THREE.Mesh(C.palo, C.matPalo); palo.position.set(x, base + 2.3, zc);
+      const pannello = new THREE.Mesh(C.pannello, C.matPannello); pannello.position.set(x, base + 4.0, zc);
+      gruppo.add(palo, pannello);
+    }
+    world.add(gruppo);
+    return gruppo;
   }
   function costruisci(o) {
     const { x, z } = o;
@@ -253,7 +281,7 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
   }
   function removeObj(o) {
     world.remove(o.mesh);
-    if (o.deco) { world.remove(o.deco); o.deco.geometry.dispose(); }
+    if (o.deco) { world.remove(o.deco); o.deco.traverse(m => { if (m.userData.proprio) m.geometry.dispose(); }); }
     if (o.type === 'bldg' || o.type === 'edge' || o.type === 'side') o.mesh.geometry.dispose();
   }
   function spawnForest(z, ghost) {
