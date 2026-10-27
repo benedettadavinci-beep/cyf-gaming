@@ -16,7 +16,7 @@ const files = ['public/pista-nera/game.js', 'public/pista-nera/diagnosi.js', 'pu
 // globali ammessi: quelli del browser più quelli che il gioco definisce su window
 const GLOBALS = new Set(('window document navigator location history localStorage sessionStorage performance console setTimeout clearTimeout setInterval clearInterval ' +
   'requestAnimationFrame cancelAnimationFrame fetch WebSocket Audio AudioContext webkitAudioContext Blob URL Worker OffscreenCanvas ImageBitmap atob btoa JSON Math Number String Array Object Boolean Date RegExp Map Set WeakMap Promise Error TypeError ' +
-  'Symbol Intl Float32Array Uint8Array Int16Array ArrayBuffer DataView Event CustomEvent MutationObserver Proxy Reflect isFinite isNaN parseInt parseFloat encodeURIComponent decodeURIComponent ' +
+  'File Symbol Intl Float32Array Uint8Array Int16Array ArrayBuffer DataView Event CustomEvent MutationObserver Proxy Reflect isFinite isNaN parseInt parseFloat encodeURIComponent decodeURIComponent ' +
   'alert confirm prompt screen devicePixelRatio innerWidth innerHeight matchMedia getComputedStyle structuredClone queueMicrotask globalThis undefined NaN Infinity arguments module ' +
   'URLSearchParams getSelection ResizeObserver TextEncoder TextDecoder crypto createImageBitmap self postMessage THREE PN CYF CYF_I18N CYFDiag CYF_PROTOCOLLO').split(/\s+/));
 
