@@ -1,11 +1,11 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versioni 0.21.0-0.25.1 (in prova stanotte) · aggiornato al 27 ottobre 2026, ore 22:05 · scritte di giorno: batti il mio tempo e missioni, modalità portale (CrazyGames), città della settimana con la maglia, fonte delle visite, Gran Premio delle 21 · online su Google Drive"
+subtitle: "Versioni 0.21.0-0.25.1 (in prova stanotte) · aggiornato al 27 ottobre 2026, ore 22:10 · turno di notte all'1:30 · scritte di giorno: batti il mio tempo e missioni, modalità portale (CrazyGames), città della settimana con la maglia, fonte delle visite, Gran Premio delle 21 · online su Google Drive"
 ---
 
 # Prossimi passi
 
-Aggiornati il 27/10/2026 alle 22:05 (versione online: 0.20.2; la 0.21.0 con "batti il mio tempo" e le missioni è sul ramo `giorno/batti-missioni`; la 0.22.0 modalità portale, la 0.23.0 città della settimana, la 0.24.0 fonte delle visite e la 0.25.0 Gran Premio delle 21 sono sul ramo `giorno/portale-settimana`, che contiene anche la 0.21.0; la 0.25.1 (correzione di un errore dai telefoni, R-011) è sul ramo `giorno/pagina-vecchia`, che parte da `giorno/portale-settimana`: vanno online domattina, dopo le prove del turno di notte). Questo Word è anche su Google Drive, cartella "CYF gaming", e si aggiorna da solo. È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
+Aggiornati il 27/10/2026 alle 22:10 (versione online: 0.20.2; la 0.21.0 con "batti il mio tempo" e le missioni è sul ramo `giorno/batti-missioni`; la 0.22.0 modalità portale, la 0.23.0 città della settimana, la 0.24.0 fonte delle visite e la 0.25.0 Gran Premio delle 21 sono sul ramo `giorno/portale-settimana`, che contiene anche la 0.21.0; la 0.25.1 (correzione di un errore dai telefoni, R-011) è sul ramo `giorno/pagina-vecchia`, che parte da `giorno/portale-settimana`: vanno online domattina, dopo le prove del turno di notte). Questo Word è anche su Google Drive, cartella "CYF gaming", e si aggiorna da solo. È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
 
 ## Cosa puoi fare tu, Luigi
 
@@ -25,7 +25,7 @@ Aggiornati il 27/10/2026 alle 22:05 (versione online: 0.20.2; la 0.21.0 con "bat
 
 ## Cosa fa Claude, in ordine
 
-**Giorno**: Claude scrive i requisiti e il codice su un ramo `giorno/…`, senza prove. **Notte**: il turno di notte (dalle 23:07) prova tutto, corregge gli errori e pubblica; la novità è online la mattina dopo. Nella colonna "Notte", "Sì" vuol dire che il turno di notte può farlo da solo con il tempo che gli resta; "Da approvare" aspetta l'ok di Luigi; "No" si fa di giorno o aspetta qualcos'altro.
+**Giorno**: Claude scrive i requisiti e il codice su un ramo `giorno/…`, senza prove. **Notte**: il turno di notte (dalle 1:30) prova tutto, corregge gli errori e pubblica; la novità è online la mattina dopo. Nella colonna "Notte", "Sì" vuol dire che il turno di notte può farlo da solo con il tempo che gli resta; "Da approvare" aspetta l'ok di Luigi; "No" si fa di giorno o aspetta qualcos'altro.
 
 | N. | Cosa | Perché | ID | Versione | Notte |
 |---|---|---|---|---|---|
@@ -46,7 +46,7 @@ Scritti il 27/10 pomeriggio e sera su richiesta di Luigi ("procedi con la 2 e la
 
 ## Regole di lavoro (decise da Luigi)
 
-1. **Prove solo di notte (R-506).** Di giorno nessuna prova, nemmeno quella rapida, se Luigi non lo chiede chiaramente ("fai le prove adesso", "pubblica adesso", "fallo ora"). Il turno di notte parte alle 23:07, fa il giro completo, corregge tutti gli errori che le prove e i telefoni dei giocatori mostrano, e pubblica solo se tutto è verde. Il lavoro del giorno sta sui rami `giorno/…`, dove il cancello di GitHub non parte.
+1. **Prove solo di notte (R-506).** Di giorno nessuna prova, nemmeno quella rapida, se Luigi non lo chiede chiaramente ("fai le prove adesso", "pubblica adesso", "fallo ora"). Il turno di notte parte all'1:30 (decisione di Luigi del 27/10; prima 23:07), fa il giro completo, corregge tutti gli errori che le prove e i telefoni dei giocatori mostrano, e pubblica solo se tutto è verde. Il lavoro del giorno sta sui rami `giorno/…`, dove il cancello di GitHub non parte.
 2. **Prima il file dei requisiti, poi il software (R-501),** e il Word si rigenera a ogni cosa fatta, con i prossimi passi in testa (R-507). Il Word è in `docs/CYF-Gaming-requisiti.docx` e l'attività delle 7:13, 13:13 e 19:13 lo copia su Google Drive (se il PC di casa è acceso).
 3. **Ogni giorno verso le 18 il confronto con le altre app** e cosa manca (R-508).
 4. **All'inizio di ogni attività: tempo che serve e token (R-509).**
@@ -175,10 +175,10 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 |---|---|---|---|---|
 | R-501 | File con tutti i requisiti del gioco, aggiornato a ogni richiesta, nella cartella "CYF gaming" | 24/10/2026 | Fatto | Questo documento (REQUISITI.md su GitHub) e il Word `docs/CYF-Gaming-requisiti.docx`; dal 26/10 la cartella è su Google Drive ("CYF gaming"), prima era sul Desktop |
 | R-502 | Nel file dei requisiti, oltre a fatto e da fare, lo stato "Controllato" | 24/10/2026 | Fatto | Vedi la legenda all'inizio |
-| R-503 | Controllo generale automatico ogni sera verso le 22: qualità, bachi, stabilità e idee di miglioramento | 24/10/2026 | Fatto | Attività pianificata "Controllo notturno CYF Gaming" ogni sera alle 23:07 ora italiana (prima 21:33, poi 22:59): giro completo delle prove (A-05), errori dai telefoni, correzione di ogni errore, pubblicazione con tutto verde, prossimi passi approvati con il tempo che resta (fino alle 6:30), rapporto con le misure |
+| R-503 | Controllo generale automatico ogni sera verso le 22: qualità, bachi, stabilità e idee di miglioramento | 24/10/2026 | Fatto | Attività pianificata "Controllo notturno CYF Gaming" ogni notte all'1:30 ora italiana (decisione di Luigi del 27/10; prima 21:33, poi 22:59, poi 23:07): giro completo delle prove (A-05), errori dai telefoni, correzione di ogni errore, pubblicazione con tutto verde, prossimi passi approvati con il tempo che resta (fino alle 6:30), rapporto con le misure |
 | R-504 | Migliorare la descrizione del documento Word e delle tabelle | 24/10/2026 | Fatto | Introduzione, legenda e colonne riscritte; colonna "Come funziona oggi" |
 | R-505 | Business plan con aspetti economici e strategia aziendale, in un file separato | 24/10/2026 | Fatto | CYF-Gaming-business-plan.docx nella cartella sul Desktop |
-| R-506 | Nessuna prova di giorno se Luigi non lo chiede chiaramente: le prove si fanno di notte, dopo le 23, sfruttando al massimo la notte; gli errori che il sistema vede vanno corretti (P-02) | 25/10/2026, aggiornato 26/10 | Fatto | Dal 26/10 sera. Di giorno Claude non lancia prove (né `npm test` né altre): scrive requisiti e codice su un ramo `giorno/<nome>`, dove il cancello di GitHub non parte (`branches-ignore` in `.github/workflows/cancello.yml`, dalla 0.20.2). Il turno di notte (R-503) unisce i rami, prova, corregge e pubblica: le novità vanno online la mattina dopo. Se Luigi scrive "pubblica adesso" o "fallo ora", si fanno le prove e si pubblica subito (S-42). Fino al 26/10 di giorno girava il cancello rapido |
+| R-506 | Nessuna prova di giorno se Luigi non lo chiede chiaramente: le prove si fanno di notte, dopo le 23, sfruttando al massimo la notte; gli errori che il sistema vede vanno corretti (P-02) | 25/10/2026, aggiornato 26/10 | Fatto | Dal 26/10 sera. Di giorno Claude non lancia prove (né `npm test` né altre): scrive requisiti e codice su un ramo `giorno/<nome>`, dove il cancello di GitHub non parte (`branches-ignore` in `.github/workflows/cancello.yml`, dalla 0.20.2). Il turno di notte (R-503, dal 27/10 parte all'1:30, fino alle 6:30) unisce i rami, prova, corregge e pubblica: le novità vanno online la mattina dopo. Se Luigi scrive "pubblica adesso" o "fallo ora", si fanno le prove e si pubblica subito (S-42). Fino al 26/10 di giorno girava il cancello rapido |
 | R-507 | Nel Word i prossimi passi all'inizio, poi tutto quello che è fatto; il Word si aggiorna da solo a ogni cosa fatta | 26/10/2026 | Fatto | Dalla 0.20.1: sezioni "Prossimi passi" e "Regole di lavoro" in testa; Word in `docs/CYF-Gaming-requisiti.docx`, copiato su Google Drive dall'attività delle 7:13, 13:13 e 19:13 |
 | R-508 | Verso le 18 un confronto con le altre app e cosa manca per migliorare | 26/10/2026 | Fatto | Attività pianificata "Confronto concorrenti CYF Gaming" alle 17:59, con notifica sul telefono; non tocca il codice |
 | R-509 | All'inizio di ogni attività il tempo che serve e i token | 26/10/2026 | Fatto | Prima frase di ogni attività: tempo stimato, token rimasti nella sessione e consumo stimato (il consumo esatto non è visibile) |
