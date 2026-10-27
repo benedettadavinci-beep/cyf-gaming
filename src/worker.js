@@ -13,6 +13,7 @@
 
 import { MAX_PLAYERS, DURATIONS, lengthFor, CODE_RE, PUBLIC_ROOMS, json, board, cleanId, cleanProfileCode, cleanProfile } from './comune.mjs';
 import { pistaDelGiorno } from './giorno.mjs';
+import { settimanaCorrente } from './settimana.mjs';
 // le due classi dei Durable Objects devono uscire dal file principale (wrangler.jsonc)
 export { RaceRoom } from './stanza.mjs';
 export { Leaderboard } from './classifica.mjs';
@@ -37,11 +38,12 @@ export default {
       if (request.headers.get('Upgrade') !== 'websocket') return json({ error: 'Serve una connessione WebSocket' }, { status: 426 });
       return env.RACE.get(env.RACE.idFromName('giorno:' + code)).fetch(request);
     }
-    // /api/giorno?id=… → la pista di oggi (numero, città), la classifica del giorno e, con id, il migliore del giocatore
+    // /api/giorno?id=… → la pista di oggi (numero, città), la classifica del giorno e, con id, il migliore del giocatore;
+    // dalla 0.23.0 anche la città della settimana (R-245): { n, scena, premio, da, a }
     if (url.pathname === '/api/giorno') {
       const g = pistaDelGiorno();
       const b = await board(env).giorno(g.giorno, 20, cleanId(url.searchParams.get('id')));
-      return json({ n: g.n, giorno: g.giorno, scena: g.scena, minuti: g.minuti, ...b });
+      return json({ n: g.n, giorno: g.giorno, scena: g.scena, minuti: g.minuti, ...b, settimana: settimanaCorrente() });
     }
 
     // /api/quick → la stanza pubblica in cui entrare (modalità online)
@@ -66,7 +68,7 @@ export default {
       return json(await board(env).top(20, lengthFor(min)));
     }
 
-    // /api/me?id=… → punti collezionati da un giocatore
+    // /api/me?id=… → punti collezionati da un giocatore e premi vinti (maglie della settimana, R-245)
     if (url.pathname === '/api/me') {
       const id = cleanId(url.searchParams.get('id'));
       if (!id) return json({ error: 'id mancante' }, { status: 400 });

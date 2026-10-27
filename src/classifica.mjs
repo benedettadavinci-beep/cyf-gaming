@@ -1,5 +1,5 @@
 // Classifica e contatori (Durable Object Leaderboard, SQLite): tempi per durata, pista del giorno, punti collezionati,
-// profili con il codice personale, contatori d'uso e misure, visite e ritorni, segnalazioni dei vocali, errori dei browser.
+// profili con il codice personale, premi (maglie della settimana), contatori d'uso e misure, visite e ritorni, segnalazioni dei vocali, errori dei browser.
 import { DurableObject } from 'cloudflare:workers';
 import { lengthFor, fasciaCarico, cleanId, PROFILE_ALPH, cleanName } from './comune.mjs';
 import { ritorni } from './ritorni.mjs';
@@ -24,6 +24,8 @@ export class Leaderboard extends DurableObject {
     // errori arrivati dai browser dei giocatori: uno per giorno, versione, messaggio e punto del codice, con il conteggio
     // profili con il codice personale (R-226): il codice è la chiave, id è il giocatore che lo usa
     sql.exec('CREATE TABLE IF NOT EXISTS profiles (code TEXT PRIMARY KEY, id TEXT NOT NULL, data TEXT NOT NULL, at INTEGER NOT NULL)');
+    // premi vinti da ogni giocatore (R-245): per ora le maglie della settimana ("settimana3"); li assegna solo il server
+    sql.exec('CREATE TABLE IF NOT EXISTS premi (id TEXT NOT NULL, premio TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (id, premio))');
     sql.exec('CREATE TABLE IF NOT EXISTS errors (day TEXT NOT NULL, ver TEXT NOT NULL, msg TEXT NOT NULL, src TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 1, first INTEGER NOT NULL, last INTEGER NOT NULL, ua TEXT, stack TEXT, ctx TEXT, PRIMARY KEY (day, ver, msg, src))');
   }
   async logError(e) {
@@ -160,7 +162,22 @@ export class Leaderboard extends DurableObject {
   }
   async player(id) {
     const row = this.ctx.storage.sql.exec('SELECT name, points, races, wins FROM players WHERE id = ?', cleanId(id)).toArray()[0];
-    return row || { points: 0, races: 0, wins: 0 };
+    return { ...(row || { points: 0, races: 0, wins: 0 }), premi: this.premiDi(id) };
+  }
+  // R-245: assegna un premio (maglia della settimana) a un giocatore; dice se è nuovo
+  async premia(id, premio) {
+    id = cleanId(id); premio = String(premio || '').replace(/[^a-z0-9-]/g, '').slice(0, 24);
+    if (!id || !premio) return { nuovo: false };
+    const sql = this.ctx.storage.sql;
+    const had = sql.exec('SELECT 1 AS x FROM premi WHERE id = ? AND premio = ?', id, premio).toArray().length;
+    if (had) return { nuovo: false };
+    sql.exec('INSERT OR IGNORE INTO premi (id, premio, at) VALUES (?, ?, ?)', id, premio, Date.now());
+    return { nuovo: true };
+  }
+  premiDi(id) {
+    id = cleanId(id);
+    if (!id) return [];
+    return this.ctx.storage.sql.exec('SELECT premio FROM premi WHERE id = ? ORDER BY at ASC LIMIT 200', id).toArray().map(r => r.premio);
   }
   async saveProfile(id, code, data) {
     const sql = this.ctx.storage.sql, at = Date.now();

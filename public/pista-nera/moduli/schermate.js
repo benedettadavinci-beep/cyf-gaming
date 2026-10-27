@@ -9,7 +9,7 @@
 window.PN = window.PN || {};
 PN.schermate = ({ diag, stato: S }) => {
   const { PALETTE, START_ALT, SLOPE, fmt, fmtTime } = PN.base;
-  const { tr, ord, fmtLen } = PN.lingua;
+  const { tr, ord, fmtLen, cityName } = PN.lingua;
   const $ = id => document.getElementById(id);
   const kmh = v => v * 3.6;
   const selScena = $('selScena');
@@ -138,11 +138,10 @@ PN.schermate = ({ diag, stato: S }) => {
   });
   $('btnLeave').addEventListener('click', () => S.toMenu());
   $('btnResLeave').addEventListener('click', () => S.toMenu());
-  const CITY_LABEL = { neve: 'snow', napoli: 'naples', roma: 'rome', milano: 'milan', parigi: 'paris', londra: 'london', francoforte: 'frankfurt', madrid: 'madrid', lisbona: 'lisbon', zagabria: 'zagreb', berlino: 'berlin', zurigo: 'zurich', newyork: 'newyorkCity' };
   // Condividi e 🖼️ Immagine: in moduli/sfida.js (R-236, D-05)
   function renderResults() {
     const G = S.net.daily && S.net.giorno;
-    $('resRound').textContent = G ? tr('dailyTitle', { n: G.n, city: tr(CITY_LABEL[G.scena] || 'snow') }) + ' · ' + (S.net.minutes || 5) + ' min'
+    $('resRound').textContent = G ? tr('dailyTitle', { n: G.n, city: cityName(G.scena) }) + ' · ' + (S.net.minutes || 5) + ' min'
       : (S.net.pub ? tr('onlineBrand') : tr('challenge') + ' ' + (S.net.code || '')) + ' · ' + tr('raceN', { n: S.net.round || 1 }) + ' · ' + (S.net.minutes || 5) + ' min';
     const ul = $('resList');
     ul.innerHTML = '';
@@ -250,14 +249,15 @@ PN.schermate = ({ diag, stato: S }) => {
   let giorno = null;
   function renderDaily() {
     const b = $('btnDaily');
-    if (!giorno) { b.hidden = true; if (S.sfida) S.sfida.render(); return; }
+    if (!giorno) { b.hidden = true; if (S.sfida) S.sfida.render(); if (S.settimana) S.settimana.render(); return; }
     b.hidden = false;
-    $('dailyName').textContent = '🏁 ' + tr('dailyBtn', { n: giorno.n, city: tr(CITY_LABEL[giorno.scena] || 'snow') });
+    $('dailyName').textContent = '🏁 ' + tr('dailyBtn', { n: giorno.n, city: cityName(giorno.scena) });
     const top = (giorno.top || [])[0];
     let info = top ? tr('dailyBest', { name: top.name, t: fmtTime(top.ms), k: giorno.of }) : tr('dailyNone');
     if (giorno.rank) info = tr('dailyMine', { t: fmtTime(giorno.best), p: ord(giorno.rank), k: giorno.of });
     $('dailyInfo').textContent = info;
     if (S.sfida) S.sfida.render();   // il riquadro "ti sfida" sa ora se la pista del link è di oggi (R-236)
+    if (S.settimana) S.settimana.render();   // città della settimana e maglia (R-245)
   }
   async function loadDaily() {
     try {
@@ -287,5 +287,5 @@ PN.schermate = ({ diag, stato: S }) => {
     } catch (e) { $('boardBox').hidden = true; }
   }
 
-  return { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard, renderDaily, cityName: sc => tr(CITY_LABEL[sc] || 'snow'), get giorno() { return giorno; } };
+  return { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard, renderDaily, cityName, get giorno() { return giorno; } };
 };

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- versione della pagina: deve essere uguale a public/config.js (R-011, controllata da tools/verifica/controlli.mjs C4) -->
-<meta name="cyf-versione" content="0.22.0">
+<meta name="cyf-versione" content="0.23.0">
 <title>Pista Nera · C-Y-F Gaming</title>
 <meta name="description" content="Sfida i tuoi amici in una discesa in 3D, in snowboard sulla neve o in skateboard per 12 città: stessa pista, stesso via, vince il tempo migliore.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -171,6 +171,13 @@
   .missions .mq { flex: none; font-size: 14px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
   .missions li::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; border-radius: 2px; background: var(--snow-deep); }
   .missions li i { position: absolute; left: 0; bottom: 0; height: 4px; border-radius: 2px; background: #e2b007; z-index: 1; }
+  /* città della settimana (R-245): riquadro con città, scadenza, premio e "Corri a …" */
+  .week { display: flex; flex-direction: column; gap: 4px; border-radius: 10px; padding: 12px 16px; background: #fff8e6; border: 2px solid #e2b007; }
+  .week b { font-family: var(--display); font-size: 16px; font-weight: 400; color: #8a5a00; }
+  .week small { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .week .ghost { margin-top: 6px; font-size: 15px; padding: 9px 12px; border-color: #e2b007; }
+  .week.won { background: #f1faf3; border-color: var(--ok); }
+  .week.won b { color: var(--ok); }
   .dayboard { margin: 0; padding-left: 1.6em; font-size: 16px; font-variant-numeric: tabular-nums; display: grid; gap: 1px; }
   .dayboard li span { float: right; font-weight: 700; }
   .dayboard li.me { color: var(--flare); font-weight: 700; }
@@ -331,6 +338,7 @@
           <button type="button" class="x" id="btnRivalX" data-i18n-aria="rivalClose" aria-label="Chiudi">✕</button>
         </div>
         <button type="button" class="daily" id="btnDaily"><b id="dailyName"></b><small id="dailyInfo"></small></button>
+        <div class="week" id="weekBox" hidden><b id="weekName"></b><small id="weekInfo"></small><button type="button" class="ghost" id="btnWeekGo"></button></div>
         <div class="missions" id="misBox" hidden><h3 id="misTitle"></h3><ul id="misList"></ul><small class="muted" data-i18n="misHint"></small></div>
         <button class="go" id="btnOnline" data-i18n="playOnline"></button>
         <button class="alt" id="btnCreate" data-i18n="createChallenge"></button>
@@ -517,6 +525,7 @@
               <option value="palermo" data-i18n="jPalermo">Palermo · rosanero</option>
               <option value="bologna" data-i18n="jBologna">Bologna · rossoblù</option>
               </optgroup>
+              <optgroup data-i18n-label="jerseyWeekGroup" label="Maglie della settimana" id="optSettimana" hidden></optgroup>
               <optgroup data-i18n-label="colorGroup" label="Colori">
                 <option value="colore-arancione" data-i18n="cOrange"></option>
                 <option value="colore-blu" data-i18n="cBlue"></option>
@@ -623,6 +632,7 @@
 <script src="/vendor/three.min.js"></script>
 <script src="/config.js"></script>
 <script src="/shared/protocollo.js"></script>
+<script src="/shared/calendario.js"></script>
 <script src="moduli/base.js"></script>
 <script src="moduli/lingua.js"></script>
 <script src="moduli/portale.js"></script>
@@ -657,6 +667,7 @@
 <script src="moduli/bot.js"></script>
 <script src="moduli/comandi.js"></script>
 <script src="moduli/schermate.js"></script>
+<script src="moduli/settimana.js"></script>
 <script src="moduli/missioni.js"></script>
 <script src="moduli/sfida.js"></script>
 <script src="game.js"></script>

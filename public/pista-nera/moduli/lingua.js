@@ -32,5 +32,9 @@ PN.lingua = (() => {
     return n + '°';
   };
   const fmtLen = m => m >= 1000 ? (Math.round(m / 100) / 10).toLocaleString(lang) + ' km' : Math.round(m) + ' m';
-  return { DICT, LANGS, get lang() { return lang; }, setLang(l) { lang = LANGS.includes(l) ? l : 'it'; return lang; }, tr, ord, fmtLen };
+  // nome di una città (scenario) nella lingua scelta: cityName('napoli') → "Napoli" / "Naples"
+  const CITY_KEY = { neve: 'snow', napoli: 'naples', roma: 'rome', milano: 'milan', parigi: 'paris', londra: 'london', francoforte: 'frankfurt', madrid: 'madrid', lisbona: 'lisbon', zagabria: 'zagreb', berlino: 'berlin', zurigo: 'zurich', newyork: 'newyorkCity' };
+  const cityKey = sc => CITY_KEY[sc] || 'snow';
+  const cityName = sc => tr(cityKey(sc));
+  return { DICT, LANGS, get lang() { return lang; }, setLang(l) { lang = LANGS.includes(l) ? l : 'it'; return lang; }, tr, ord, fmtLen, cityKey, cityName };
 })();

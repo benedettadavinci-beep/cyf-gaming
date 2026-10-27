@@ -1,5 +1,5 @@
 // modulo: personaggio
-// dipende da: base, rider
+// dipende da: base, lingua, rider, calendario
 // Schermata "Modifica il personaggio" (R-227…R-229): maglia o colore, pantaloni, capelli, casco e tavola, con l'omino
 // in 3D che gira (anteprima in città con lo skate o sulla neve con lo snowboard). Ogni scelta si salva subito sul
 // dispositivo e si vede subito nell'anteprima; il gioco applica le scelte al proprio rider, le manda agli altri e al
@@ -8,10 +8,13 @@
 //   colore() è il colore assegnato della giacca (quando non si sceglie una maglia); inCitta() dice se lo scenario è una
 //   città (l'anteprima parte con lo skate); cambiato() viene chiamata dopo ogni scelta.
 // Le scelte stanno in localStorage: cyf.jersey, cyf.hair ("forma:colore"), cyf.pants ("3"), cyf.helmet e cyf.board ("tipo:colore").
+// Le maglie della settimana vinte (R-245) stanno in cyf.premi ("settimana1,settimana3", le mette moduli/settimana.js) e
+// compaiono nel gruppo "Maglie della settimana" del menu delle maglie.
 window.PN = window.PN || {};
 PN.personaggio = ({ colore, inCitta, cambiato }) => {
   const { store, lin } = PN.base;
-  const { JERSEYS, myJersey, myHair, myGear, makeRider } = PN.rider;
+  const { tr, cityName } = PN.lingua;
+  const { jerseyOf, myJersey, myHair, myGear, makeRider } = PN.rider;
   const $ = id => document.getElementById(id);
   const box = $('look');
   const sel = {};
@@ -19,8 +22,24 @@ PN.personaggio = ({ colore, inCitta, cambiato }) => {
   // "tipo:colore", vuoto se non si è scelto niente
   const pair = (a, b) => (a || b ? a + ':' + b : '');
 
+  // il gruppo delle maglie della settimana vinte (R-245): una voce per premio, nella lingua di adesso
+  function maglieSettimana() {
+    const g = $('optSettimana');
+    if (!g) return;
+    const premi = String(store.get('cyf.premi') || '').split(',').filter(p => PN.calendario.numeroDelPremio(p) > 0);
+    g.innerHTML = '';
+    for (const p of premi) {
+      const n = PN.calendario.numeroDelPremio(p);
+      const o = document.createElement('option');
+      o.value = p; o.textContent = tr('jWeek', { n, city: cityName(PN.calendario.scenaDi(n)) });
+      g.append(o);
+    }
+    g.hidden = !premi.length;
+  }
+
   // mostra nei menu le scelte salvate
   function mostra() {
+    maglieSettimana();
     sel.Jersey.value = myJersey();
     const [hs, hc] = myHair().split(':'); sel.HairStyle.value = hs || ''; sel.HairColor.value = hc || '';
     const g = myGear();
@@ -30,7 +49,7 @@ PN.personaggio = ({ colore, inCitta, cambiato }) => {
     sel.HelmetColor.disabled = !sel.Helmet.value;
   }
   function salva() {
-    store.set('cyf.jersey', JERSEYS[sel.Jersey.value] ? sel.Jersey.value : '');
+    store.set('cyf.jersey', jerseyOf(sel.Jersey.value) ? sel.Jersey.value : '');
     store.set('cyf.hair', pair(sel.HairStyle.value, sel.HairColor.value));
     store.set('cyf.pants', sel.Pants.value);
     store.set('cyf.helmet', sel.Helmet.value ? pair(sel.Helmet.value, sel.HelmetColor.value) : '');

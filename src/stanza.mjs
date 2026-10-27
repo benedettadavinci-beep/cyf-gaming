@@ -2,8 +2,9 @@
 // stanze della pista del giorno. WebSocket con i giocatori, attesa e conto alla rovescia, stesso seme per tutti,
 // inoltro di posizioni, banane, bombe e vocali, tempi misurati dal server, punti, avversari del computer (R-234).
 import { DurableObject } from 'cloudflare:workers';
-import { PROTO, MAX_PLAYERS, DURATIONS, lengthFor, MAX_SPEED_MS, COUNTDOWN_MS, GATHER_MAX_MS, ATTESA_SFIDA_MS, PUBLIC_RE, AUTO_START_MS, VOICE_COOLDOWN_MS, VOICE_MAX_CHARS, VOICE_MIME, DROP_KINDS, cleanScena, PLACE_POINTS, BOT_ATTESA_MS, BOT_SALA, BOT_LIVELLI, BOT_PILOTA_MS, fasciaPunti, board, cleanId, cleanHair, cleanGear, cleanName, num, BOT_GIORNO } from './comune.mjs';
+import { PROTO, MAX_PLAYERS, DURATIONS, lengthFor, MAX_SPEED_MS, COUNTDOWN_MS, GATHER_MAX_MS, ATTESA_SFIDA_MS, PUBLIC_RE, AUTO_START_MS, VOICE_COOLDOWN_MS, VOICE_MAX_CHARS, VOICE_MIME, DROP_KINDS, cleanScena, PLACE_POINTS, BOT_ATTESA_MS, BOT_SALA, BOT_LIVELLI, BOT_PILOTA_MS, fasciaPunti, board, cleanId, cleanHair, cleanGear, cleanJersey, cleanName, num, BOT_GIORNO } from './comune.mjs';
 import { pistaDelGiorno, pistaNumero } from './giorno.mjs';
+import { premioPerGara } from './settimana.mjs';
 import { stimaArrivo } from './avversari.mjs';
 
 export class RaceRoom extends DurableObject {
@@ -287,7 +288,7 @@ export class RaceRoom extends DurableObject {
       }
       const used = new Set(others.map(p => p.color));
       let color = 0; while (used.has(color)) color++;
-      const j = typeof m.j === 'string' && /^[a-z-]{1,24}$/.test(m.j) ? m.j : '';
+      const j = cleanJersey(m.j);
       Object.assign(me, { id, name: cleanName(m.name), ready: false, color, j, h: cleanHair(m.h), ...cleanGear(m), sc: cleanScena(m.sc) });
       ws.serializeAttachment(me);
       this.fixHost();
@@ -357,7 +358,7 @@ export class RaceRoom extends DurableObject {
     // maglia: l'unica cosa che sceglie chi non organizza (R-118); si cambia nella stanza prima della gara
     if (m.t === 'jersey') {
       if (st.phase === 'countdown' || st.phase === 'racing') return;
-      me.j = typeof m.j === 'string' && /^[a-z-]{0,24}$/.test(m.j) ? m.j : '';
+      me.j = cleanJersey(m.j);
       if ('h' in m) me.h = cleanHair(m.h);   // anche i capelli (R-225)
       if ('p' in m || 'e' in m || 's' in m) Object.assign(me, cleanGear(m));   // e pantaloni, casco, tavola (R-229)
       ws.serializeAttachment(me);
@@ -561,6 +562,18 @@ export class RaceRoom extends DurableObject {
       const totals = await board(this.env).addPoints(st.results.filter(r => !r.bot).map(r => ({ id: r.id, name: r.name, earned: r.earned, won: r.won })));
       for (const r of st.results) r.total = totals[r.id] ?? null;
     } catch (e) {}
+    // città della settimana (R-245): chi finisce la gara nella città in evidenza vince la maglia della settimana; la decide
+    // e la ricorda il server (nei risultati "premio" solo per chi la vince adesso)
+    const premio = premioPerGara(st.raceScena, now);
+    if (premio) {
+      let gare = 0, nuovi = 0;
+      for (const r of st.results) {
+        if (r.bot || r.ms == null) continue;
+        gare++;
+        try { if ((await board(this.env).premia(r.id, premio)).nuovo) { r.premio = premio; nuovi++; } } catch (e) {}
+      }
+      if (gare) board(this.env).bumpMany({ settimana_gare: gare, settimana_premi: nuovi }).catch(() => {});
+    }
     st.phase = 'results';
     st.timeoutAt = 0;
     board(this.env).bump('races_finished').catch(() => {});

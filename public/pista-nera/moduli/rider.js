@@ -1,7 +1,8 @@
 // modulo: rider
-// dipende da: base
+// dipende da: base, calendario
 // Il modello del rider (lo stesso per te e per gli avversari): forme arrotondate, giacca con lo stemma CYF e la maglia
-// della città o il colore scelto (JERSEYS), capelli a caso tra 6 acconciature o scelti dal giocatore (setLook, myHair), tavola da neve o skateboard,
+// della città o il colore scelto (JERSEYS; dalla 0.23.0 anche le maglie esclusive della settimana, jerseyOf, R-245),
+// capelli a caso tra 6 acconciature o scelti dal giocatore (setLook, myHair), tavola da neve o skateboard,
 // pantaloni, casco e tipo di tavola scelti nella schermata "Modifica il personaggio" (setGear, myGear, R-227…R-229),
 // posa (pose) che segue curva, salto, grab e switch.
 // Solo modello e animazione: niente fisica, niente stato di gioco.
@@ -211,13 +212,32 @@ PN.rider = (() => {
     'colore-viola': { body: ['#9b4dca'], sleeves: '#9b4dca', color: true }, 'colore-rosso': { body: ['#e2352b'], sleeves: '#e2352b', color: true },
     'colore-nero': { body: ['#23262c'], sleeves: '#23262c', color: true }, 'colore-bianco': { body: ['#eceff2'], sleeves: '#eceff2', color: true }
   };
-  const myJersey = () => { const v = store.get('cyf.jersey') || ''; return JERSEYS[v] ? v : ''; };
+  // maglie esclusive della settimana (R-245, S-47): "settimana<N>", colori della città in evidenza quella settimana, fascia
+  // con il nome della città e il numero. Si creano quando servono (anche per gli altri giocatori che le indossano)
+  const SETTIMANA = {   // città → [giacca, fascia e maniche, testo sulla fascia]
+    napoli: ['#1e8fd6', '#f3f3f3', '#13233a'], roma: ['#8e2434', '#e8a21a', '#13233a'], milano: ['#15151a', '#e8e8e8', '#13233a'],
+    parigi: ['#1b3c8c', '#e2352b', '#ffffff'], londra: ['#c8102e', '#1b3c8c', '#ffffff'], francoforte: ['#15151a', '#ff5a1f', '#13233a'],
+    madrid: ['#f4f4f4', '#c8102e', '#ffffff'], lisbona: ['#1f8a4c', '#e8a21a', '#13233a'], zagabria: ['#2f7fd0', '#ffffff', '#13233a'],
+    berlino: ['#15151a', '#e2b007', '#13233a'], zurigo: ['#2f7fd0', '#eceff2', '#13233a'], newyork: ['#1b3c8c', '#ff8c1a', '#13233a'], neve: ['#eceff2', '#2f7fd0', '#ffffff']
+  };
+  const NOME_CITTA = { napoli: 'NAPOLI', roma: 'ROMA', milano: 'MILANO', parigi: 'PARIGI', londra: 'LONDRA', francoforte: 'FRANCOFORTE', madrid: 'MADRID', lisbona: 'LISBONA', zagabria: 'ZAGABRIA', berlino: 'BERLINO', zurigo: 'ZURIGO', newyork: 'NEW YORK', neve: 'NEVE' };
+  const JERSEY_BASE = Object.keys(JERSEYS);   // le maglie di tutti (città e colori): gli avversari del software vestono solo queste
+  function jerseyOf(name) {
+    if (!name || typeof name !== 'string') return null;
+    if (JERSEYS[name]) return JERSEYS[name];
+    const n = PN.calendario.numeroDelPremio(name);
+    if (!n) return null;
+    const scena = PN.calendario.scenaDi(n), C = SETTIMANA[scena] || SETTIMANA.neve;
+    JERSEYS[name] = { body: [C[0]], sleeves: C[1], settimana: n, scena, fascia: C[1], testo: C[2] };
+    return JERSEYS[name];
+  }
+  const myJersey = () => { const v = store.get('cyf.jersey') || ''; return jerseyOf(v) ? v : ''; };
   // aspetto degli avversari guidati dal software (R-234): scelto a caso dal loro codice, quindi uguale su ogni dispositivo
   function lookBot(id) {
     let h = 2166136261;
     for (const ch of String(id || '')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
     const r = mulberry32(h), any = n => Math.floor(r() * n);
-    const js = Object.keys(JERSEYS);
+    const js = JERSEY_BASE;
     return {
       j: r() < 0.6 ? js[any(js.length)] : '', h: HAIR_STYLES[any(HAIR_STYLES.length)].name + ':' + any(HAIR_COLORS.length),
       p: r() < 0.7 ? String(any(PANTS.length)) : '', e: r() < 0.45 ? HELMETS[any(HELMETS.length)] + ':' + any(HELMET_COLORS.length) : '',
@@ -255,7 +275,7 @@ PN.rider = (() => {
     if (jacketTex.has(key)) return jacketTex.get(key);
     const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
     const g = c.getContext('2d');
-    const J = JERSEYS[jersey];
+    const J = jerseyOf(jersey);
     const body = J ? J.body : [hex];
     g.fillStyle = body[0]; g.fillRect(0, 0, 1024, 512);
     if (body.length === 2) { g.fillStyle = body[1]; for (let x = 0; x < 1024; x += 256) g.fillRect(x + 128, 0, 128, 512); }   // strisce verticali
@@ -263,6 +283,16 @@ PN.rider = (() => {
     g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 300, 1024, 6);
     g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(0, 306, 1024, 4);
     g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(250, 0, 5, 512); g.fillRect(762, 0, 5, 512);
+    if (J && J.settimana) {
+      // maglia della settimana (R-245): fascia attorno al busto con il nome della città e il numero, sulla schiena (u = 0,75)
+      // grande e sul petto (u = 0,25) piccola; lo stemma CYF resta sopra la fascia come sulle altre maglie
+      g.fillStyle = J.fascia; g.fillRect(0, 330, 1024, 96);
+      g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, 330, 1024, 4); g.fillRect(0, 422, 1024, 4);
+      const txt = (NOME_CITTA[J.scena] || J.scena.toUpperCase()) + ' #' + J.settimana;
+      g.fillStyle = J.testo; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '900 54px "Arial Black", Arial, Helvetica, sans-serif'; g.fillText(txt, 0.75 * 1024, 378, 300);
+      g.font = '900 30px "Arial Black", Arial, Helvetica, sans-serif'; g.fillText(txt, 0.25 * 1024, 378, 180);
+    }
     // u = 0 è il fianco +z (quello che vede la telecamera), 0,25 il petto (+x), 0,5 l'altro fianco (si vede in "switch"),
     // 0,75 la schiena (-x); v cresce verso il collo
     for (const u of [0, 1]) drawBadge(g, u * 1024, 512 - 0.55 * 512, 120, 96);
@@ -495,7 +525,7 @@ PN.rider = (() => {
       gloveL.translateY(0.04); gloveR.translateY(0.04);
     }
     function setColor(hex, jersey = '') {
-      const J = JERSEYS[jersey];
+      const J = jerseyOf(jersey);
       jacket.map = jacketTexture(hex, J ? jersey : '');
       jacket.needsUpdate = true;
       sleeve.color.copy(lin(J ? J.sleeves : hex));
@@ -527,5 +557,5 @@ PN.rider = (() => {
     setBoard('snow');
     return { group, body, pose, setColor, setBoard, setLook, setGear };
   }
-  return { JERSEYS, HAIR_STYLES, HAIR_COLORS, HAIR_RE, PANTS, HELMETS, HELMET_COLORS, BOARDS, BOARD_COLORS, cleanGear, lookOf, lookBot, myHair, myGear, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
+  return { JERSEYS, JERSEY_BASE, jerseyOf, HAIR_STYLES, HAIR_COLORS, HAIR_RE, PANTS, HELMETS, HELMET_COLORS, BOARDS, BOARD_COLORS, cleanGear, lookOf, lookBot, myHair, myGear, myJersey, jacketTexture, switchOf, bodyTurn, makeRider };
 })();

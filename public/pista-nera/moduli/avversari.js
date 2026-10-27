@@ -9,7 +9,7 @@ window.PN = window.PN || {};
 PN.avversari = ({ world, pista, net, stato }) => {
   const { TAU, PALETTE, fmtTime } = PN.base;
   const { tr, ord, fmtLen } = PN.lingua;
-  const { JERSEYS, makeRider, bodyTurn, switchOf, lookBot } = PN.rider;
+  const { jerseyOf, makeRider, bodyTurn, switchOf, lookBot } = PN.rider;
   const { center, hgt } = pista;
   const $ = id => document.getElementById(id);
   // ---------- remote riders ----------
@@ -37,7 +37,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
     if (!r) {
       const color = PALETTE[(info.color || 0) % PALETTE.length];
       const model = makeRider(color);
-      model.setColor(color, JERSEYS[info.j] ? info.j : '');
+      model.setColor(color, jerseyOf(info.j) ? info.j : '');   // anche le maglie della settimana degli altri (R-245)
       model.setBoard(stato.isCity() ? 'skate' : 'snow');
       const label = nameSprite(info.name || 'Rider', color);
       label.position.y = 2.3;

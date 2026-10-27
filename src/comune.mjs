@@ -39,6 +39,8 @@ export const json = (data, init = {}) =>
   });
 export const board = env => env.LEADERBOARD.get(env.LEADERBOARD.idFromName('global'));
 export const cleanId = s => String(s || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+// maglia (R-209, R-221): nome di una maglia o di un colore; dalla 0.23.0 anche "settimana3", la maglia della settimana (R-245)
+export const cleanJersey = j => (typeof j === 'string' && /^[a-z0-9-]{0,24}$/.test(j) ? j : '');
 // capelli scelti (R-225): "forma:colore", parti vuote = a caso
 export const cleanHair = h => (typeof h === 'string' && /^[a-z]{0,12}:[0-9]?$/.test(h) ? h : '');
 // personaggio (R-228): pantaloni "3", casco e tavola "tipo:colore"; vuoto = normale
@@ -57,7 +59,7 @@ export function cleanProfile(d) {
   d = d && typeof d === 'object' ? d : {};
   return {
     name: d.name ? cleanName(d.name) : '', lang: LANGS.includes(d.lang) ? d.lang : '', scena: PROTO.SCENE.includes(d.scena) ? d.scena : '',
-    j: typeof d.j === 'string' && /^[a-z-]{0,24}$/.test(d.j) ? d.j : '', h: cleanHair(d.h), ...cleanGear(d),
+    j: cleanJersey(d.j), h: cleanHair(d.h), ...cleanGear(d),
     mi: typeof d.mi === 'string' && MISSIONI_RE.test(d.mi) ? d.mi : ''
   };
 }

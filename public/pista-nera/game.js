@@ -187,7 +187,8 @@
     // banana o bananone lanciati da qui a un avversario del software guidato da qui: il colpo lo applica questo dispositivo
     colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); },
     nome: () => inName.value.trim() || 'Rider',
-    get sfida() { return SFIDA; }   // "batti il mio tempo" (R-236): le schermate gli passano risultati e menu
+    get sfida() { return SFIDA; },   // "batti il mio tempo" (R-236): le schermate gli passano risultati e menu
+    get settimana() { return SETT; }   // città della settimana (R-245): riquadro nel menu quando arriva /api/giorno
   };
 
   // le regole del movimento (velocità, salti, rampe, punti delle acrobazie) sono in moduli/fisica.js, uguali per il
@@ -718,6 +719,7 @@
       if (mine && mine.ms != null) MISS.evento('arrivo', { pos: m.results.indexOf(mine) + 1, of: m.results.length, daily: net.daily, cadute: crashN });
       MISS.salva();
       endRaceView();
+      if (mine && mine.premio) SETT.vinto(mine.premio);   // maglia della settimana assegnata dal server (R-245)
     } else if (m.t === 'left') {
       removeRemote(m.id);
     } else if (m.t === 'full') {
@@ -881,6 +883,7 @@
       if (!res.ok) throw new Error();
       const d = await res.json();
       myTotal = d.points || 0;
+      if (d.premi) SETT.imposta(d.premi);   // maglie della settimana vinte (R-245), anche su un altro dispositivo
     } catch (e) {}
     renderMyPts();
   }
@@ -907,6 +910,8 @@
   const BOT = PN.bot({ pista: PISTA, rampTop: (r, z) => sopraRampa(r, z, 0), net, stato, oggetti: OGG, avversari: AVV, say, crash });
   // "batti il mio tempo" e immagine del risultato (R-236, D-05): foto() disegna la scena e la passa per l'immagine
   const SFIDA = PN.sfida({ stato, schermate: SCHERMATE, say, foto: () => { renderer.render(scene, camera); return cvs; }, accetta: sf => accettaSfida(sf) });
+  // città della settimana con la maglia esclusiva (R-245): "Corri a …" mette la città nel menu; le maglie vinte vanno nel personaggio
+  const SETT = PN.settimana({ schermate: SCHERMATE, say, vaiInCitta: sc => { if (THEMES[sc] && !racing()) { selScena.value = sc; selScena.dispatchEvent(new Event('change')); } }, cambiato: () => PERS.mostra() });
 
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
@@ -1017,7 +1022,7 @@
     renderMyPts();
     if (mode === 'lobby') renderLobby();
     if (mode === 'results') renderResults();
-    SCHERMATE.renderDaily();   // pulsante della pista del giorno nella lingua nuova (e riquadro della sfida, R-236)
+    SCHERMATE.renderDaily();   // pulsante della pista del giorno nella lingua nuova (e riquadri della sfida e della settimana, R-236, R-245)
     MISS.render();
     updateVoiceBtn();
     PROFILO.render();
