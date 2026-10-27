@@ -50,12 +50,15 @@ export const cleanGear = m => ({
 export const PROFILE_ALPH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const cleanProfileCode = c => { const v = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-HJ-NP-Z2-9]{8}$/.test(v) ? v : ''; };
 export const LANGS = ['it', 'en', 'fr', 'es'];
-// solo i campi conosciuti, puliti: nome, lingua, città, maglia, capelli, pantaloni, casco, tavola
+// missioni (R-243, S-45): "stelle;codice:avanzamento,…" con al massimo 3 missioni in corso, per esempio "7;flip3:1,porte10:4,km3:1250"
+export const MISSIONI_RE = /^\d{1,5}(;[a-z]{2,8}\d{1,3}:\d{1,6}(,[a-z]{2,8}\d{1,3}:\d{1,6}){0,2})?$/;
+// solo i campi conosciuti, puliti: nome, lingua, città, maglia, capelli, pantaloni, casco, tavola, missioni
 export function cleanProfile(d) {
   d = d && typeof d === 'object' ? d : {};
   return {
     name: d.name ? cleanName(d.name) : '', lang: LANGS.includes(d.lang) ? d.lang : '', scena: PROTO.SCENE.includes(d.scena) ? d.scena : '',
-    j: typeof d.j === 'string' && /^[a-z-]{0,24}$/.test(d.j) ? d.j : '', h: cleanHair(d.h), ...cleanGear(d)
+    j: typeof d.j === 'string' && /^[a-z-]{0,24}$/.test(d.j) ? d.j : '', h: cleanHair(d.h), ...cleanGear(d),
+    mi: typeof d.mi === 'string' && MISSIONI_RE.test(d.mi) ? d.mi : ''
   };
 }
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- versione della pagina: deve essere uguale a public/config.js (R-011, controllata da tools/verifica/controlli.mjs C4) -->
-<meta name="cyf-versione" content="0.20.2">
+<meta name="cyf-versione" content="0.21.0">
 <title>Pista Nera · C-Y-F Gaming</title>
 <meta name="description" content="Sfida i tuoi amici in una discesa in 3D, in snowboard sulla neve o in skateboard per 12 città: stessa pista, stesso via, vince il tempo migliore.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -150,6 +150,27 @@
   .daily:disabled { opacity: .55; cursor: default; }
   .daily b { font-family: var(--display); font-size: 16px; letter-spacing: .03em; font-weight: 400; }
   .daily small { font-size: 15px; font-weight: 600; opacity: .92; }
+  /* "batti il mio tempo" (R-236): riquadro della sfida nel menu, distacco in gara, esito nei risultati */
+  .rival-card { position: relative; display: flex; flex-direction: column; gap: 4px; border-radius: 10px; padding: 12px 40px 12px 16px; background: #fff1ea; border: 2px solid var(--flare); }
+  .rival-card b { font-family: var(--display); font-size: 16px; font-weight: 400; color: #b83a0c; }
+  .rival-card span { font-size: 16px; font-weight: 700; }
+  .rival-card small { font-size: 14px; color: var(--ink-soft); }
+  .rival-card .go { margin-top: 6px; font-size: 15px; padding: 10px 14px; }
+  .rival-card .x { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--ink-soft); font-size: 18px; font-weight: 700; }
+  .rival { position: absolute; top: 66px; left: 50%; transform: translateX(-50%); z-index: 2; padding: 6px 14px; border-radius: 999px; background: rgba(184,58,12,.88); color: #fff; font-weight: 700; font-size: 18px; white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .rival.ahead { background: rgba(31,138,76,.9); }
+  @media (max-width: 700px) { .rival { top: auto; bottom: 52%; font-size: 16px; } }
+  .res-rival { font-size: 19px; font-weight: 700; color: #b83a0c; }
+  .res-rival.win { color: var(--ok); }
+  /* missioni (R-243): 3 obiettivi con la barra di avanzamento */
+  .missions { display: flex; flex-direction: column; gap: 6px; border-radius: 10px; padding: 10px 14px; background: #fff; }
+  .missions h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+  .missions ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .missions li { position: relative; display: flex; gap: 8px; align-items: baseline; padding-bottom: 6px; font-size: 16px; font-weight: 600; }
+  .missions .mt { flex: 1; min-width: 0; }
+  .missions .mq { flex: none; font-size: 14px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .missions li::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; border-radius: 2px; background: var(--snow-deep); }
+  .missions li i { position: absolute; left: 0; bottom: 0; height: 4px; border-radius: 2px; background: #e2b007; z-index: 1; }
   .dayboard { margin: 0; padding-left: 1.6em; font-size: 16px; font-variant-numeric: tabular-nums; display: grid; gap: 1px; }
   .dayboard li span { float: right; font-weight: 700; }
   .dayboard li.me { color: var(--flare); font-weight: 700; }
@@ -250,6 +271,7 @@
     <div class="live" id="live" hidden><h4 id="liveTitle"></h4><ol id="liveList"></ol></div>
     <div class="voice-now" id="voiceNow" hidden><i></i><span><b></b> <span data-i18n="isTalking"></span></span><button type="button" id="btnMute" data-i18n-title="muteTitle">🔇</button><button type="button" id="btnReport" data-i18n-title="reportTitle">⚠️</button></div>
     <div class="banner" id="banner" hidden></div>
+    <div class="rival" id="rival" hidden></div>
 
     <div class="hud">
       <div class="stat hi"><span class="k" id="k1"></span><span class="v" id="v1">0</span></div>
@@ -295,7 +317,13 @@
           </select>
         </div>
         <button type="button" class="look-btn" id="btnLook"><span class="look-ico" aria-hidden="true">🎨</span><span data-i18n="editLook"></span></button>
+        <div class="rival-card" id="rivalCard" hidden>
+          <b id="rivalWho"></b><span id="rivalTrack"></span><small id="rivalPast" data-i18n="rivalPast" hidden></small>
+          <button type="button" class="go" id="btnRivalGo" data-i18n="rivalAccept"></button>
+          <button type="button" class="x" id="btnRivalX" data-i18n-aria="rivalClose" aria-label="Chiudi">✕</button>
+        </div>
         <button type="button" class="daily" id="btnDaily"><b id="dailyName"></b><small id="dailyInfo"></small></button>
+        <div class="missions" id="misBox" hidden><h3 id="misTitle"></h3><ul id="misList"></ul><small class="muted" data-i18n="misHint"></small></div>
         <button class="go" id="btnOnline" data-i18n="playOnline"></button>
         <button class="alt" id="btnCreate" data-i18n="createChallenge"></button>
         <div class="row">
@@ -410,17 +438,19 @@
         <span class="brand" id="resRound"></span>
         <h2 data-i18n="standings"></h2>
         <ul class="players" id="resList"></ul>
+        <span class="res-rival" id="resRival" hidden></span>
         <div class="awards" id="awards"></div>
         <span class="mypts" id="resMine" hidden></span>
         <div class="board" id="resDay" hidden>
           <span class="mypts" id="resDayRank"></span>
-          <h3 data-i18n="dailyBoard"></h3>
-          <ol class="dayboard" id="resDayBoard"></ol>
+          <div id="resDayBoardBox"><h3 data-i18n="dailyBoard"></h3>
+          <ol class="dayboard" id="resDayBoard"></ol></div>
         </div>
         <span class="muted" id="resStatus"></span>
         <div class="row">
           <button class="go grow" id="btnRematch" hidden data-i18n="rematch"></button>
           <button class="alt grow" id="btnShareRes" data-i18n="shareBtn"></button>
+          <button class="ghost grow" id="btnImgRes" data-i18n="imgBtn"></button>
           <button class="ghost grow" id="btnResLeave" data-i18n="exit"></button>
         </div>
         <a class="donate" data-donate hidden target="_blank" rel="noopener" data-i18n="donateResults"></a>
@@ -617,6 +647,8 @@
 <script src="moduli/bot.js"></script>
 <script src="moduli/comandi.js"></script>
 <script src="moduli/schermate.js"></script>
+<script src="moduli/missioni.js"></script>
+<script src="moduli/sfida.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

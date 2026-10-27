@@ -45,3 +45,12 @@ export function pistaDelGiorno(ms = Date.now()) {
   const giorno = giornoDi(ms);
   return { giorno, n: numeroDi(giorno), scena: scenaDi(giorno), seed: seedDi(giorno), minuti: MINUTI };
 }
+
+// R-236: la pista del giorno numero n (per rifare dal link "batti il mio tempo" la pista di un giorno passato).
+// Solo dalla #1 a quella di oggi; altrimenti null
+export function pistaNumero(n, ms = Date.now()) {
+  n = Math.floor(+n);
+  if (!Number.isFinite(n) || n < 1 || n > numeroDi(giornoDi(ms))) return null;
+  const giorno = new Date(Date.parse(PRIMO_GIORNO + 'T00:00:00Z') + (n - 1) * GIORNO).toISOString().slice(0, 10);
+  return { giorno, n, scena: scenaDi(giorno), seed: seedDi(giorno), minuti: MINUTI };
+}

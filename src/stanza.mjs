@@ -3,7 +3,7 @@
 // inoltro di posizioni, banane, bombe e vocali, tempi misurati dal server, punti, avversari del computer (R-234).
 import { DurableObject } from 'cloudflare:workers';
 import { PROTO, MAX_PLAYERS, DURATIONS, lengthFor, MAX_SPEED_MS, COUNTDOWN_MS, GATHER_MAX_MS, ATTESA_SFIDA_MS, PUBLIC_RE, AUTO_START_MS, VOICE_COOLDOWN_MS, VOICE_MAX_CHARS, VOICE_MIME, DROP_KINDS, cleanScena, PLACE_POINTS, BOT_ATTESA_MS, BOT_SALA, BOT_LIVELLI, BOT_PILOTA_MS, fasciaPunti, board, cleanId, cleanHair, cleanGear, cleanName, num, BOT_GIORNO } from './comune.mjs';
-import { pistaDelGiorno } from './giorno.mjs';
+import { pistaDelGiorno, pistaNumero } from './giorno.mjs';
 import { stimaArrivo } from './avversari.mjs';
 
 export class RaceRoom extends DurableObject {
@@ -44,7 +44,16 @@ export class RaceRoom extends DurableObject {
     const parts = new URL(request.url).pathname.split('/');
     const code = (parts[3] || '').toUpperCase();
     await this.load(code);
-    if (parts[2] === 'giorno' && !this.state.daily) { this.state.daily = true; await this.save(); }
+    if (parts[2] === 'giorno' && !this.state.daily) {
+      this.state.daily = true;
+      // R-236: chi arriva da un link "batti il mio tempo" (?b=1) e, per una pista di un giorno passato, il suo numero (?n=):
+      // si corre la pista di quel giorno, ma il tempo non entra in nessuna classifica (S-44)
+      const q = new URL(request.url).searchParams;
+      const g = q.get('n') ? pistaNumero(q.get('n')) : null;
+      this.state.rivN = g && g.n !== pistaDelGiorno().n ? g.n : 0;
+      this.state.batti = q.get('b') === '1';
+      await this.save();
+    }
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
@@ -78,10 +87,14 @@ export class RaceRoom extends DurableObject {
   // nelle sale pubbliche è quella di chi aspetta da più tempo
   roomScena(except) {
     const st = this.state;
-    if (st.daily) return pistaDelGiorno().scena;   // pista del giorno: la città di oggi (R-233)
+    if (st.daily) return this.pistaGiorno().scena;   // pista del giorno: la città di oggi (R-233) o del giorno del link (R-236)
     const host = this.players(except).find(p => p.id === st.hostId);
     if (st.pub || !st.scena) return cleanScena(host && host.sc);
     return cleanScena(st.scena);
+  }
+  // pista del giorno da correre: quella di oggi, oppure quella di un giorno passato arrivata con il link (R-236)
+  pistaGiorno(now = Date.now()) {
+    return (this.state.rivN && pistaNumero(this.state.rivN, now)) || pistaDelGiorno(now);
   }
   fixHost(except) {
     const ids = this.players(except).map(p => p.id);
@@ -122,7 +135,7 @@ export class RaceRoom extends DurableObject {
     st.round += 1;
     st.seed = (Math.random() * 2 ** 31) | 0;
     // pista del giorno: seed, città e durata del giorno italiano in cui si parte (S-40)
-    if (st.daily) { const g = pistaDelGiorno(now); st.giorno = g; st.seed = g.seed; st.minutes = g.minuti; st.scena = g.scena; }
+    if (st.daily) { const g = this.pistaGiorno(now); st.giorno = g; st.seed = g.seed; st.minutes = g.minuti; st.scena = g.scena; }
     // attesa: il conto alla rovescia di 5 s parte solo quando tutti hanno caricato la gara (o dopo 40 s)
     st.startAt = 0;
     st.gatherUntil = now + (st.pub || st.daily ? GATHER_MAX_MS : this.attesaSfida());
@@ -150,8 +163,9 @@ export class RaceRoom extends DurableObject {
     await this.schedule();
     board(this.env).bump('races_started').catch(() => {});
     if (bots.length) board(this.env).bump('races_bots').catch(() => {});
+    if (st.daily && st.batti) board(this.env).bump('batti_gare').catch(() => {});   // gare partite da un link "batti il mio tempo" (R-236)
     board(this.env).bump('racers', list.length).catch(() => {});
-    this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: 0, gatherUntil: st.gatherUntil, loaded: [], ready: st.ready, pilota: st.pilota, racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round, scena: st.raceScena, giorno: st.daily ? { n: st.giorno.n, giorno: st.giorno.giorno } : null });
+    this.broadcast({ t: 'countdown', now, seed: st.seed, startAt: 0, gatherUntil: st.gatherUntil, loaded: [], ready: st.ready, pilota: st.pilota, racers: st.racers, length: lengthFor(st.minutes), minutes: st.minutes, round: st.round, scena: st.raceScena, giorno: st.daily ? { n: st.giorno.n, giorno: st.giorno.giorno, ...(st.rivN ? { rivincita: true } : {}) } : null });
     this.broadcast(this.lobbyMsg());
   }
 
@@ -498,7 +512,8 @@ export class RaceRoom extends DurableObject {
       st.results.push({ id: me.id, name: me.name, color: me.color, ms: valid ? ms : null, dnf: !valid, top: s.top, tk: s.tk, p: s.p });
       await this.save();
       this.broadcast({ t: 'finished', id: me.id, ms: valid ? ms : null });
-      if (valid) {
+      // pista di un giorno passato rifatta dal link (R-236): il tempo non entra in nessuna classifica (S-44)
+      if (valid && !st.rivN) {
         try { await board(this.env).submit(me.name, ms, lengthFor(st.minutes)); } catch (e) {}
         // pista del giorno: il migliore di ognuno nella classifica del giorno in cui è partito (R-233, S-40)
         if (st.daily && st.giorno) { try { st.esitoGiorno = await board(this.env).submitGiorno(st.giorno.giorno, me.id, me.name, ms); } catch (e) {} }
@@ -555,7 +570,8 @@ export class RaceRoom extends DurableObject {
     await this.save();
     await this.schedule();
     let giorno = null;
-    if (st.daily && st.giorno) {
+    if (st.daily && st.giorno && st.rivN) giorno = { n: st.giorno.n, giorno: st.giorno.giorno, scena: st.giorno.scena, rivincita: true };
+    else if (st.daily && st.giorno) {
       try { giorno = { n: st.giorno.n, giorno: st.giorno.giorno, scena: st.giorno.scena, ...(st.esitoGiorno || {}), ...(await board(this.env).giorno(st.giorno.giorno, 10, (st.racers[0] || {}).id)) }; } catch (e) {}
       st.esitoGiorno = null;
     }

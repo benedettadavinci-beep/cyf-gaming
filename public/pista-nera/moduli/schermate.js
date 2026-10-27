@@ -134,26 +134,7 @@ PN.schermate = ({ diag, stato: S }) => {
   $('btnLeave').addEventListener('click', () => S.toMenu());
   $('btnResLeave').addEventListener('click', () => S.toMenu());
   const CITY_LABEL = { neve: 'snow', napoli: 'naples', roma: 'rome', milano: 'milan', parigi: 'paris', londra: 'london', francoforte: 'frankfurt', madrid: 'madrid', lisbona: 'lisbon', zagabria: 'zagreb', berlino: 'berlin', zurigo: 'zurich', newyork: 'newyorkCity' };
-  $('btnShareRes').addEventListener('click', async () => {
-    const i = S.net.results.findIndex(r => r.id === S.myId);
-    const mine = i >= 0 ? S.net.results[i] : null;
-    const link = location.origin + location.pathname;
-    const G = S.net.daily && S.net.giorno;
-    // pista del giorno: numero, città, tempo migliore e posizione del giorno (R-233)
-    const txt = G ? tr('shareDaily', {
-      n: G.n, city: tr(CITY_LABEL[G.scena] || 'snow'),
-      t: G.best != null ? fmtTime(G.best) : (mine && mine.ms != null ? fmtTime(mine.ms) : '—'),
-      p: G.rank ? ord(G.rank) : '…', k: G.of || 1, link
-    }) : tr(S.theme === 'neve' ? 'shareResultSnow' : 'shareResult', {
-      p: mine && mine.ms != null ? ord(i + 1) : '…',
-      city: tr(CITY_LABEL[S.theme] || 'snow'),
-      t: mine && mine.ms != null ? fmtTime(mine.ms) : '—',
-      link
-    });
-    try { if (navigator.share) { await navigator.share({ text: txt }); return; } }
-    catch (e) { if (e && e.name === 'AbortError') return; }
-    window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
-  });
+  // Condividi e 🖼️ Immagine: in moduli/sfida.js (R-236, D-05)
   function renderResults() {
     const G = S.net.daily && S.net.giorno;
     $('resRound').textContent = G ? tr('dailyTitle', { n: G.n, city: tr(CITY_LABEL[G.scena] || 'snow') }) + ' · ' + (S.net.minutes || 5) + ' min'
@@ -195,13 +176,16 @@ PN.schermate = ({ diag, stato: S }) => {
     $('btnRematch').textContent = tr(S.net.daily ? 'dailyRetry' : 'rematch');
     renderDayResults(G);
     renderResultsStatus();
+    if (S.sfida) S.sfida.risultati();   // "batti il mio tempo": esito della sfida e immagine pronta (R-236)
   }
   // pista del giorno: posizione di oggi e classifica del giorno (R-233)
   function renderDayResults(G) {
     $('resDay').hidden = !G;
     if (!G) return;
-    $('resDayRank').textContent = G.rank ? tr('dailyRank', { p: ord(G.rank), k: G.of, t: fmtTime(G.best) }) : tr('dailyNoTime');
-    fillDayBoard($('resDayBoard'), G.top || []);
+    // pista di un giorno passato rifatta dal link (R-236): niente classifica
+    $('resDayRank').textContent = G.rivincita ? tr('rivalReplay', { n: G.n }) : G.rank ? tr('dailyRank', { p: ord(G.rank), k: G.of, t: fmtTime(G.best) }) : tr('dailyNoTime');
+    $('resDayBoardBox').hidden = !!G.rivincita;
+    fillDayBoard($('resDayBoard'), G.rivincita ? [] : G.top || []);
   }
   function fillDayBoard(ol, rows) {
     ol.innerHTML = '';
@@ -261,13 +245,14 @@ PN.schermate = ({ diag, stato: S }) => {
   let giorno = null;
   function renderDaily() {
     const b = $('btnDaily');
-    if (!giorno) { b.hidden = true; return; }
+    if (!giorno) { b.hidden = true; if (S.sfida) S.sfida.render(); return; }
     b.hidden = false;
     $('dailyName').textContent = '🏁 ' + tr('dailyBtn', { n: giorno.n, city: tr(CITY_LABEL[giorno.scena] || 'snow') });
     const top = (giorno.top || [])[0];
     let info = top ? tr('dailyBest', { name: top.name, t: fmtTime(top.ms), k: giorno.of }) : tr('dailyNone');
     if (giorno.rank) info = tr('dailyMine', { t: fmtTime(giorno.best), p: ord(giorno.rank), k: giorno.of });
     $('dailyInfo').textContent = info;
+    if (S.sfida) S.sfida.render();   // il riquadro "ti sfida" sa ora se la pista del link è di oggi (R-236)
   }
   async function loadDaily() {
     try {

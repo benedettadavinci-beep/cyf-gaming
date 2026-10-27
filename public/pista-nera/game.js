@@ -168,7 +168,7 @@
   // mode: menu | solo | pause | over | lobby | countdown | race | finished | results
   let mode = 'menu';
   let best = parseInt(store.get('pistaNera.best') || '0', 10) || 0;
-  let wallT = 0, tricksN = 0, near500 = false, P, bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, camYaw, lean, camY, squash, armsUp;
+  let wallT = 0, tricksN = 0, crashN = 0, near500 = false, P, bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, camYaw, lean, camY, squash, armsUp;
   let finishObj = null, raceLen = 2000;
   const racing = () => mode === 'countdown' || mode === 'race' || mode === 'finished';
   const distM = () => Math.max(0, -P.z);
@@ -185,7 +185,9 @@
     get remotes() { return remotes; }, throwAnim: () => { throwT = 0.001; },
     distM: () => distM(), score: () => score(), racePlace: () => racePlace(), renderLive: l => renderLive(l), amIn: l => amIn(l), toMenu: () => toMenu(),
     // banana o bananone lanciati da qui a un avversario del software guidato da qui: il colpo lo applica questo dispositivo
-    colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); }
+    colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); },
+    nome: () => inName.value.trim() || 'Rider',
+    get sfida() { return SFIDA; }   // "batti il mio tempo" (R-236): le schermate gli passano risultati e menu
   };
 
   // le regole del movimento (velocità, salti, rampe, punti delle acrobazie) sono in moduli/fisica.js, uguali per il
@@ -207,7 +209,7 @@
     P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: 9, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, stop: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
-    maxSpeed = 0; bestSpin = 0; overTimer = 0; overReason = ''; tricksN = 0; near500 = false;
+    maxSpeed = 0; bestSpin = 0; overTimer = 0; overReason = ''; tricksN = 0; crashN = 0; near500 = false;
     clearHazards();
     camYaw = 0; lean = 0; camY = NaN; squash = 0; armsUp = 0;
     renderLives();
@@ -262,6 +264,7 @@
   function crash(reason, stop = 0) {
     if (invuln > 0 || P.crash > 0 || (mode === 'solo' && lives <= 0)) return;
     if (mode === 'solo') { lives--; renderLives(); }
+    crashN++;   // gara finita senza cadere: missione (R-243)
     P.crash = F.CADUTA; invuln = F.invuln(stop); P.stop = stop; P.stopFor = stop; P.stopUntil = performance.now() + stop * 1000; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
     combo = 0; shake = reduceMotion ? 0 : 0.45;
     spray(P.x, 0.2, P.z, 60, 4, 5);
@@ -285,6 +288,7 @@
     const sloppy = A.sloppy, names = A.nomi, pts = A.pts;
     if (sloppy) P.speed *= 0.75;
     if (A.mezziGiri >= 1) bestSpin = Math.max(bestSpin, A.mezziGiri * 180);
+    if (!sloppy) MISS.evento('atterraggio', { flips: Math.round(Math.abs(P.flip) / TAU), gradi: A.mezziGiri * 180, grab: names.includes('Grab'), nomi: names.length });   // missioni (R-243)
     if (names.length) {
       tricksN += names.length;
       bonus += pts;
@@ -384,6 +388,8 @@
       }
     }
     maxSpeed = Math.max(maxSpeed, P.speed);
+    // missioni (R-243): chilometri e velocità, solo quando si gioca davvero (non il rider del menu)
+    if (!auto && !frozen && (mode === 'solo' || mode === 'race')) { MISS.evento('metri', P.prevZ - P.z); MISS.evento('velocita', kmh(P.speed)); }
 
     if (P.onRamp && !P.air) {
       // sulla rampa il rider segue la superficie vera del modello (R-214): niente piedi dentro, anche sul trampolino gigante
@@ -394,6 +400,7 @@
         // trampolino gigante: stacco da 2,2 m e spinta 13,5 m/s → circa 6,8 m d'altezza e 1,5 s in aria (normale: 3 m e 1 s)
         P.onRamp = null; P.air = true; P.vy = r.big ? F.TRAMPOLINO : F.RAMPA; P.spin = P.spin % TAU; P.ramp = true; startAir();
         P.speed = F.stacco(P.speed);
+        if (r.big) MISS.evento('trampolino');
         say(tr(r.big ? (isPhone ? 'bigRampPhone' : 'bigRampKeys') : (isPhone ? 'rampPhone' : 'rampKeys')), r.big ? '#ff5a1f' : '#2f7fd0');
       }
     }
@@ -436,7 +443,7 @@
         const k = o.big ? 2 : 1;
         if (!o.used && !P.air && P.crash <= 0 && Math.abs(dx) < 1.5 * k && P.z < o.z + RAMP_FOOT * k + 0.9 && P.z > o.z - 1.2 * k) { o.used = true; P.onRamp = o; P.y = Math.max(P.y, sopraRampa(o, P.z, P.ang) + hgt(o.x, o.z) - hgt(P.x, P.z)); }
       } else if (o.type === 'gem') {
-        if (P.y < 2.2 && d2 < 0.95 * 0.95) { o.taken = true; taken = true; bonus += 10; spray(o.x, 0.9, o.z, 8, 1.5, 2); world.remove(o.mesh); chime(); if (o.food && Math.random() < 0.35) say(tr('food_' + o.food) + '!  +10', '#c4361f'); }
+        if (P.y < 2.2 && d2 < 0.95 * 0.95) { o.taken = true; taken = true; bonus += 10; MISS.evento('bonus'); spray(o.x, 0.9, o.z, 8, 1.5, 2); world.remove(o.mesh); chime(); if (o.food && Math.random() < 0.35) say(tr('food_' + o.food) + '!  +10', '#c4361f'); }
       } else if (o.type === 'gate') {
         const left = o.x - o.half, right = o.x + o.half;
         if (P.y < 1.7 && Math.abs(dz) < 0.25 && (Math.abs(P.x - left) < 0.2 || Math.abs(P.x - right) < 0.2)) crash(tr('crashGate'));
@@ -446,6 +453,7 @@
             combo++;
             const pts = 50 * combo;
             bonus += pts; chime();
+            MISS.evento('porta', combo);
             say(combo > 1 ? tr('gate') + ' x' + combo + '  +' + pts : tr('gate') + '  +50', o.col || '#d8302a');
           } else combo = 0;
         }
@@ -456,6 +464,7 @@
 
   function soloOver() {
     mode = 'over';
+    MISS.salva();
     soundLevels(0, 0, false);
     const s = score(), isBest = s > best;
     if (isBest) { best = s; store.set('pistaNera.best', String(best)); }
@@ -476,6 +485,8 @@
   inName.value = store.get('cyf.name') || '';
   // impostazioni ricordate dal server con il codice personale (R-226)
   const PROFILO = PN.profilo({ myId, aggiorna: () => daProfilo(), say: (...a) => say(...a) });
+  // missioni: 3 obiettivi alla volta e stelle (R-243); l'avanzamento va anche nel profilo
+  const MISS = PN.missioni({ say: (...a) => say(...a), salvaProfilo: () => PROFILO.salva() });
   inName.addEventListener('change', () => { const n = inName.value.trim(); if (n) { store.set('cyf.name', n); PROFILO.salva(); } });
   // "Modifica il personaggio" (R-227…R-229): maglia, pantaloni, capelli, casco e tavola. Ogni scelta vale subito
   // per il proprio rider, arriva agli altri giocatori della stanza (prima del via) e va nel profilo
@@ -491,6 +502,7 @@
   const PERS = PN.personaggio({ colore: () => PALETTE[(net.myColor || 0) % PALETTE.length], inCitta: () => isCity(), cambiato: aspettoCambiato });
   // il server aveva impostazioni più recenti (cambiate su un altro dispositivo): si mostrano, solo se si è nel menu
   function daProfilo() {
+    MISS.ricarica();   // missioni e stelle dal profilo (R-243)
     if (mode !== 'menu') return;
     inName.value = store.get('cyf.name') || inName.value;
     PERS.mostra();
@@ -537,10 +549,16 @@
   }
   $('btnJoin').addEventListener('click', joinFromMenu);
   // pista del giorno (R-233): una stanza da soli con la città e la pista di oggi; si parte subito
+  const codiceGiorno = () => 'G' + Array.from({ length: 7 }, () => ALPH[Math.floor(Math.random() * ALPH.length)]).join('');
   $('btnDaily').addEventListener('click', () => {
     if (!needName()) return;
-    connect('G' + Array.from({ length: 7 }, () => ALPH[Math.floor(Math.random() * ALPH.length)]).join(''), false, true);
+    connect(codiceGiorno(), false, true);
   });
+  // "batti il mio tempo" (R-236): la pista del giorno del link; se è di un giorno passato il server la fa correre senza classifica
+  function accettaSfida(sf) {
+    if (!needName()) return;
+    connect(codiceGiorno(), false, true, sf);
+  }
   // modalità online: il server indica una sala pubblica; si aspetta lì che arrivino altri giocatori
   $('btnOnline').addEventListener('click', async () => {
     if (!needName()) return;
@@ -555,9 +573,10 @@
     b.disabled = false;
   });
 
-  function connect(code, pub, daily) {
+  function connect(code, pub, daily, sfida) {
     initAudio();
     net.close();
+    net.sfida = daily && sfida ? sfida : null;   // R-236: numero della pista del giorno da correre (?n=) e arrivo da un link (?b=1)
     net.want = true; net.code = code; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map();
     net.pub = !!pub || /^ONLINE\d+$/.test(code); net.autoAt = 0; net.awards = null;
     net.daily = !!daily; net.giorno = null;
@@ -565,7 +584,7 @@
     mode = 'lobby';
     if (net.daily) {
       // niente stanza d'attesa: si vede la pista e si parte appena è caricata
-      const G = SCHERMATE.giorno;
+      const G = net.sfida ? { n: net.sfida.n, scena: net.sfida.c || 'neve' } : SCHERMATE.giorno;
       show(null);
       setBanner(G ? tr('dailyGather', { n: G.n, city: SCHERMATE.cityName(G.scena) }) : '…');
     } else { renderLobby(); show('lobby'); }
@@ -575,7 +594,7 @@
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     let ws;
     diag.log('rete', 'collegamento a ' + net.code + (net.retries ? ' (tentativo ' + (net.retries + 1) + ')' : ''));
-    try { ws = new WebSocket(proto + '://' + location.host + (net.daily ? '/api/giorno/' : '/api/room/') + net.code); }
+    try { ws = new WebSocket(proto + '://' + location.host + (net.daily ? '/api/giorno/' : '/api/room/') + net.code + (net.daily && net.sfida ? '?b=1&n=' + net.sfida.n : '')); }
     catch (e) { diag.log('rete', 'WebSocket non creato: ' + e.message); setBanner(tr('errServer')); return; }
     net.ws = ws;
     ws.onopen = () => {
@@ -695,6 +714,9 @@
       if (net.daily) net.giorno = m.giorno || (net.giorno && { n: net.giorno.n, scena: net.scena });
       const mine = m.results.find(r => r.id === myId);
       if (mine && mine.total != null) { myTotal = mine.total; renderMyPts(); }
+      // missioni (R-243): gara finita, posizione, pista del giorno, senza cadute
+      if (mine && mine.ms != null) MISS.evento('arrivo', { pos: m.results.indexOf(mine) + 1, of: m.results.length, daily: net.daily, cadute: crashN });
+      MISS.salva();
       endRaceView();
     } else if (m.t === 'left') {
       removeRemote(m.id);
@@ -747,6 +769,7 @@
     hudLabels();
     setBanner('');
     show('menu');
+    MISS.salva(); MISS.render(); SFIDA.render();
     loadBoard();
     loadMe();
   }
@@ -875,6 +898,8 @@
   const { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive } = AVV;
   // avversari guidati dal software (R-234…R-239): in allenamento li guida questo dispositivo, in gara il pilota scelto dal server
   const BOT = PN.bot({ pista: PISTA, rampTop: (r, z) => sopraRampa(r, z, 0), net, stato, oggetti: OGG, avversari: AVV, say, crash });
+  // "batti il mio tempo" e immagine del risultato (R-236, D-05): foto() disegna la scena e la passa per l'immagine
+  const SFIDA = PN.sfida({ stato, schermate: SCHERMATE, say, foto: () => { renderer.render(scene, camera); return cvs; }, accetta: sf => accettaSfida(sf) });
 
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
@@ -957,7 +982,7 @@
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
     if (mode === 'solo') { update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); }
-    else if (racing()) { raceClock(); update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); }
+    else if (racing()) { raceClock(); update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); SFIDA.hud(dt); }
     else if (mode === 'menu' || mode === 'lobby' || mode === 'results') update(dt, true);
     else if (mode === 'over') { updateSpray(dt); updateFlakes(dt, P.x, P.z, 0); }
     const playing = mode === 'solo' || racing();
@@ -985,7 +1010,8 @@
     renderMyPts();
     if (mode === 'lobby') renderLobby();
     if (mode === 'results') renderResults();
-    SCHERMATE.renderDaily();   // pulsante della pista del giorno nella lingua nuova
+    SCHERMATE.renderDaily();   // pulsante della pista del giorno nella lingua nuova (e riquadro della sfida, R-236)
+    MISS.render();
     updateVoiceBtn();
     PROFILO.render();
   }
