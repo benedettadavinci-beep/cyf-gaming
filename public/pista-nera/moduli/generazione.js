@@ -212,6 +212,41 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     world.add(gruppo);
     return gruppo;
   }
+  // archi CYF sopra la pista (R-514): ogni 23 paline (~506 m) un arco con due torri appena fuori dalle paline (a 21 m dal
+  // centro; si urtano come le paline, tipo 'torre') e uno striscione CYF a 8,2-10 m d'altezza: più in alto del salto più
+  // alto (~7 m), quindi il rider non lo tocca mai. Non usa numeri casuali: la pista resta identica per tutti (R-103, R-309)
+  let arcoRis = null;
+  function risorseArco() {
+    if (arcoRis) return arcoRis;
+    const c = document.createElement('canvas'); c.width = 2048; c.height = 80;
+    const g = c.getContext('2d');
+    g.fillStyle = '#13233a'; g.fillRect(0, 0, 2048, 80);
+    g.fillStyle = '#ffffff'; g.fillRect(0, 4, 2048, 5); g.fillRect(0, 71, 2048, 5);
+    g.font = '900 60px "Barlow Condensed", "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineJoin = 'round';
+    for (let i = 0; i < 6; i++) {
+      const x = 170 + i * 341;
+      g.lineWidth = 8; g.strokeStyle = '#ffffff'; g.strokeText('CYF', x, 42);
+      g.fillStyle = '#ff5a1f'; g.fillText('CYF', x, 42);
+      if (i < 5) { g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x + 170, 40, 7, 0, TAU); g.fill(); }
+    }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = Math.min(8, ANISO);
+    arcoRis = {
+      striscione: new THREE.PlaneGeometry(42, 1.8),
+      matStriscione: new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }),
+      torre: new THREE.BoxGeometry(0.6, 10, 0.6),
+      matTorre: new THREE.MeshStandardMaterial({ color: lin('#13233a'), roughness: 0.6 })
+    };
+    return arcoRis;
+  }
+  function spawnArco(z) {
+    const R = risorseArco(), c = center(z);
+    for (const s of [-1, 1]) objs.push({ type: 'torre', x: c + s * 21, z, mesh: addMesh(R.torre, R.matTorre, c + s * 21, z, { y: 5 }) });
+    const m = new THREE.Mesh(R.striscione, R.matStriscione);
+    m.position.set(c, Math.max(hgt(c - 21, z), hgt(c + 21, z)) + 9.1, z);
+    world.add(m);
+    objs.push({ type: 'arco', x: c, z, mesh: m });
+  }
   function costruisci(o) {
     const { x, z } = o;
     if (o.type === 'tree') {
@@ -316,6 +351,8 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
       if (markerZ <= bLine) {
         for (const s of [-1, 1]) objs.push({ type: 'marker', x: c + s * 19.5, z: markerZ, mesh: addMesh(isCity() ? assets().marker : GEO.marker, vcMat, c + s * 19.5, markerZ) });
         if (isCity()) spawnEdge(markerZ, 22);
+        // un arco CYF ogni 23 paline (la prima a ~240 m), mai negli ultimi 60 m prima del traguardo (R-514)
+        if (Math.round((10 - markerZ) / 22) % 23 === 11 && !(stato.racing() && -markerZ > raceLen - 60)) spawnArco(markerZ);
       }
       markerZ -= 22;
     }

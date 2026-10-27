@@ -442,6 +442,7 @@
       if (o.type === 'tree') { if (P.y < 5.5 * o.s && d2 < (0.8 * o.s) ** 2) crash(tr(CC ? CC.tallCrash : 'crashTree')); }
       else if (o.type === 'rock') { if (P.y < 0.75 * o.s && d2 < (1.1 * o.s) ** 2) crash(tr(CC ? CC.lowCrash : 'crashRock')); }
       else if (o.type === 'marker') { if (P.y < 1.5 && d2 < 0.35 * 0.35) crash(tr(CC ? CC.markerCrash : 'crashPole')); }
+      else if (o.type === 'torre') { if (P.y < 9 && d2 < 0.45 * 0.45) crash(tr(CC ? CC.markerCrash : 'crashPole')); }   // torri degli archi CYF (R-514)
       else if (o.type === 'ramp') {
         const k = o.big ? 2 : 1;
         if (!o.used && !P.air && P.crash <= 0 && Math.abs(dx) < 1.5 * k && P.z < o.z + RAMP_FOOT * k + 0.9 && P.z > o.z - 1.2 * k) { o.used = true; P.onRamp = o; P.y = Math.max(P.y, sopraRampa(o, P.z, P.ang) + hgt(o.x, o.z) - hgt(P.x, P.z)); }
