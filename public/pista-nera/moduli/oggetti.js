@@ -91,7 +91,7 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
       if (h.kind === 'bomb') { spray(h.x, 0.5, h.z, 90, 7, 8); sparkle(h.x, hgt(h.x, h.z) + 0.6, h.z, 80, true); thump(2); }
       removeHazard(hid);
       net.send({ t: 'hit', hid, owner: h.owner, kind: h.kind });
-      crash(tr(h.kind === 'bomb' ? 'crashBomb' : h.kind === 'bananone' ? 'crashBananone' : 'crashBanana'), STOP[h.kind] || STOP.banana);   // bomba e bananone: fermo 4 s, banana: 2 s (R-223, R-231)
+      crash(tr(h.kind === 'bomb' ? 'crashBomb' : h.kind === 'bananone' ? 'crashBananone' : 'crashBanana'), STOP[h.kind] || STOP.banana, true);   // bomba e bananone: fermo 4 s, banana: 2 s (R-223, R-231)
       return;
     }
   }
@@ -105,7 +105,10 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     }
     return best;
   }
-  const nameOf = id => { const x = net.racers.find(q => q.id === id); return x ? x.name : tr('someone'); };
+  const nameOf = id => {
+    const x = net.racers.find(q => q.id === id); if (x) return x.name;
+    const r = stato.remotes.get(id); return r && r.nome ? r.nome : tr('someone');   // in allenamento non c'è l'elenco del server (R-515)
+  };
   // una banana (o un bananone) che vola da chi la lancia (codice o io) a chi la riceve: la vedono tutti (R-224, R-231)
   function showThrow(fromId, toId, hid, kind) {
     const { P, myId } = stato;
@@ -121,7 +124,9 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
   function useItem(kind, target) {
     const { P, mode, myId } = stato;
     if (net.daily) return;   // pista del giorno: si corre da soli (S-40)
-    if (mode !== 'race' || !net.ws) { if (mode === 'solo') say(tr('itemsRaceOnly'), '#13233a'); return; }
+    // in gara passano dal server; in allenamento con gli avversari del computer (R-515) si simulano qui, come in gara
+    const allena = mode === 'solo' && stato.allenaConAvversari;
+    if (!allena && (mode !== 'race' || !net.ws)) { if (mode === 'solo') say(tr('itemsRaceOnly'), '#13233a'); return; }
     if (stato.bonus < COST[kind]) { say(tr('needPoints', { p: COST[kind] }), '#d8302a'); return; }
     if (performance.now() - (useItem.last || 0) < 950) return;
     useItem.last = performance.now();
@@ -156,7 +161,7 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     const now = performance.now();
     const dbl = now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40;
     lastTap = dbl ? { t: 0, x: 0, y: 0 } : { t: now, x: e.clientX, y: e.clientY };
-    if (!dbl || stato.mode !== 'race') return;
+    if (!dbl || (stato.mode !== 'race' && !stato.allenaConAvversari)) return;
     const { P } = stato;
     const r = cvs.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);

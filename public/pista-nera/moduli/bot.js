@@ -371,7 +371,7 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
     dati.dimentica(zMax + 20);
     const amb = {
       dati, ora: performance.now(), gara: inGara, fermi: inGara && stato.mode === 'countdown', lunghezza: stato.raceLen,
-      oggetti: inGara && !net.daily, rivali, pericoli: oggetti.hazards, vicino: inGara ? null : { z: stato.P.z }
+      oggetti: (inGara && !net.daily) || modo === 'allenamento', rivali, pericoli: oggetti.hazards, vicino: inGara ? null : { z: stato.P.z }   // in allenamento anche loro usano banane, bombe e bananoni (R-515)
     };
     for (const b of lista) {
       for (const e of passo(b, dt, amb)) evento(b, e);
@@ -400,10 +400,10 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
   function colpo(bersaglio, kind, chi) {
     const big = kind === 'bananone';
     setTimeout(() => {
-      if (!stato.racing()) return;
+      if (!stato.racing() && !(stato.mode === 'solo' && modo === 'allenamento')) return;
       if (bersaglio === stato.myId) {
         if (stato.P.air) { say(tr('dodgedAir'), '#1f8a4c'); return; }
-        crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: chi || tr('someone') }), FERMO[big ? 'bananone' : 'banana']);
+        crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: chi || tr('someone') }), FERMO[big ? 'bananone' : 'banana'], true);
         return;
       }
       const b = lista.find(x => x.id === bersaglio);

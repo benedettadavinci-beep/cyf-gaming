@@ -43,7 +43,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
       label.position.y = 2.3;
       model.group.add(label);
       world.add(model.group);
-      r = { model, x: 0, z: 0, y: 0, a: 0, s: 0, tx: 0, tz: 0, ty: 0, ta: 0, v: 0, c: 0, last: 0, has: false };
+      r = { model, nome: info.name || 'Rider', x: 0, z: 0, y: 0, a: 0, s: 0, tx: 0, tz: 0, ty: 0, ta: 0, v: 0, c: 0, last: 0, has: false };
       remotes.set(id, r);
     }
     r.model.setLook(id, info.h);   // gli stessi capelli che vede lui: scelti (R-225) o a caso dal suo codice (R-220)

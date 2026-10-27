@@ -30,7 +30,7 @@ PN.schermate = ({ diag, stato: S }) => {
     $('hLives').hidden = race;
     $('sPts').hidden = !race;
     $('live').hidden = !race;
-    $('items').hidden = !race || !!S.net.daily;   // pista del giorno: da soli, niente banane e bombe (S-40)
+    $('items').hidden = !(race || S.allenaConAvversari) || !!S.net.daily;   // pista del giorno: niente banane e bombe (S-40); in allenamento con gli avversari sì (R-515)
   }
 
   const toasts = $('toasts');
@@ -253,6 +253,7 @@ PN.schermate = ({ diag, stato: S }) => {
       liveT += 0.08;
       if (liveT > 0.25) { liveT = 0; S.renderLive(pl.list); }
     } else {
+      if (S.allenaConAvversari) for (const [id, k] of [['btnBanana', 'banana'], ['btnBomb', 'bomb'], ['btnBananone', 'bananone']]) { const b = $(id); b.disabled = S.mode !== 'solo'; b.classList.toggle('short', S.bonus < PN.protocollo.COSTI[k]); }   // R-515
       $('v1').textContent = fmt(S.score());
       $('v2').textContent = fmt(Math.floor(S.distM())) + ' m';
       $('v4').textContent = fmt(Math.max(0, START_ALT - S.distM() * Math.sin(SLOPE))) + ' m';

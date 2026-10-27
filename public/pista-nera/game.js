@@ -187,6 +187,8 @@
     distM: () => distM(), score: () => score(), racePlace: () => racePlace(), renderLive: l => renderLive(l), amIn: l => amIn(l), toMenu: () => toMenu(),
     // banana o bananone lanciati da qui a un avversario del software guidato da qui: il colpo lo applica questo dispositivo
     colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); },
+    // allenamento con gli avversari del computer (R-515): banane, bombe e bananoni come in gara, simulati su questo dispositivo
+    get allenaConAvversari() { return mode === 'solo' && BOT.modo === 'allenamento' && BOT.lista.length > 0; },
     nome: () => inName.value.trim() || 'Rider',
     get sfida() { return SFIDA; },   // "batti il mio tempo" (R-236): le schermate gli passano risultati e menu
     get settimana() { return SETT; },   // città della settimana (R-245): riquadro nel menu quando arriva /api/giorno
@@ -264,9 +266,10 @@
   }
 
   // stop: secondi da fermo dopo la caduta (bomba e bananone 4 s, banana 2 s: R-223, R-224, R-231); intanto non si può essere colpiti di nuovo
-  function crash(reason, stop = 0) {
+  // oggetto: colpito da banana, bomba o bananone; in allenamento con gli avversari (R-515) ferma come in gara ma non toglie una vita
+  function crash(reason, stop = 0, oggetto = false) {
     if (invuln > 0 || P.crash > 0 || (mode === 'solo' && lives <= 0)) return;
-    if (mode === 'solo') { lives--; renderLives(); }
+    if (mode === 'solo' && !oggetto) { lives--; renderLives(); }
     crashN++;   // gara finita senza cadere: missione (R-243)
     P.crash = F.CADUTA; invuln = F.invuln(stop); P.stop = stop; P.stopFor = stop; P.stopUntil = performance.now() + stop * 1000; P.speed *= 0.3; P.air = false; P.y = 0; P.vy = 0; P.spin = 0; P.flip = 0; P.grab = 0; P.onRamp = null;
     combo = 0; shake = reduceMotion ? 0 : 0.45;
@@ -420,7 +423,7 @@
     updateGround(P.x, P.z);
     ensureSpawned();
     if (!auto && !frozen && !braking) collide();
-    if (mode === 'race') collideHazards();
+    if (mode === 'race' || stato.allenaConAvversari) collideHazards();
     updateHazards(dt);
     for (const o of GEN.objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = hgt(o.x, o.z) + 0.9 + Math.sin(t * 3 + o.phase) * 0.15; }
     updateSpray(dt);
