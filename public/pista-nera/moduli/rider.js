@@ -225,7 +225,7 @@ PN.rider = (() => {
   function jerseyOf(name) {
     if (!name || typeof name !== 'string') return null;
     if (JERSEYS[name]) return JERSEYS[name];
-    const n = PN.calendario.numeroDelPremio(name);
+    const n = PN.calendario ? PN.calendario.numeroDelPremio(name) : 0;
     if (!n) return null;
     const scena = PN.calendario.scenaDi(n), C = SETTIMANA[scena] || SETTIMANA.neve;
     JERSEYS[name] = { body: [C[0]], sleeves: C[1], settimana: n, scena, fascia: C[1], testo: C[2] };
