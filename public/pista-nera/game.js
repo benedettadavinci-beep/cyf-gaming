@@ -193,6 +193,7 @@
   const F = PN.fisica;
   const RAMP_FOOT = F.RAMP_FOOT;
   const rampTop = (r, z) => F.rampTop(r, z, isCity());
+  const sopraRampa = (r, z, ang) => F.tavolaSuRampa(r, z, ang, isCity());   // dove poggia la tavola (punta e coda), R-214
   function clearWorld() {
     GEN.svuota();
     if (finishObj) { world.remove(finishObj); finishObj = null; }
@@ -387,7 +388,7 @@
     if (P.onRamp && !P.air) {
       // sulla rampa il rider segue la superficie vera del modello (R-214): niente piedi dentro, anche sul trampolino gigante
       const r = P.onRamp, k = r.big ? 2 : 1;
-      P.y = rampTop(r, P.z) + hgt(r.x, r.z) - hgt(P.x, P.z);
+      P.y = sopraRampa(r, P.z, P.ang) + hgt(r.x, r.z) - hgt(P.x, P.z);
       if (Math.abs(P.x - r.x) > 1.7 * k) { P.onRamp = null; P.air = true; P.vy = 0; }
       else if (P.z <= r.z - 2 * k) {
         // trampolino gigante: stacco da 2,2 m e spinta 13,5 m/s → circa 6,8 m d'altezza e 1,5 s in aria (normale: 3 m e 1 s)
@@ -433,7 +434,7 @@
       else if (o.type === 'marker') { if (P.y < 1.5 && d2 < 0.35 * 0.35) crash(tr(CC ? CC.markerCrash : 'crashPole')); }
       else if (o.type === 'ramp') {
         const k = o.big ? 2 : 1;
-        if (!o.used && !P.air && P.crash <= 0 && Math.abs(dx) < 1.5 * k && P.z < o.z + RAMP_FOOT * k + 0.9 && P.z > o.z - 1.2 * k) { o.used = true; P.onRamp = o; P.y = Math.max(P.y, rampTop(o, P.z) + hgt(o.x, o.z) - hgt(P.x, P.z)); }
+        if (!o.used && !P.air && P.crash <= 0 && Math.abs(dx) < 1.5 * k && P.z < o.z + RAMP_FOOT * k + 0.9 && P.z > o.z - 1.2 * k) { o.used = true; P.onRamp = o; P.y = Math.max(P.y, sopraRampa(o, P.z, P.ang) + hgt(o.x, o.z) - hgt(P.x, P.z)); }
       } else if (o.type === 'gem') {
         if (P.y < 2.2 && d2 < 0.95 * 0.95) { o.taken = true; taken = true; bonus += 10; spray(o.x, 0.9, o.z, 8, 1.5, 2); world.remove(o.mesh); chime(); if (o.food && Math.random() < 0.35) say(tr('food_' + o.food) + '!  +10', '#c4361f'); }
       } else if (o.type === 'gate') {
@@ -873,7 +874,7 @@
   const AVV = PN.avversari({ world, pista: PISTA, net, stato });
   const { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive } = AVV;
   // avversari guidati dal software (R-234…R-239): in allenamento li guida questo dispositivo, in gara il pilota scelto dal server
-  const BOT = PN.bot({ pista: PISTA, rampTop, net, stato, oggetti: OGG, avversari: AVV, say, crash });
+  const BOT = PN.bot({ pista: PISTA, rampTop: (r, z) => sopraRampa(r, z, 0), net, stato, oggetti: OGG, avversari: AVV, say, crash });
 
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
