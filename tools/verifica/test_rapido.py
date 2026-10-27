@@ -60,6 +60,27 @@ with sync_playwright() as p:
     check(st['sfondo'] == 'pronto' and st['pittore'] == 'pagina' and not errs, 'parigi: cartolina dipinta nella pagina', f"{st['sfondo']} · {st['pittore']} · {'; '.join(errs)[:150]}")
     pg.close()
 
+    print('R1c · pagina vecchia insieme al programma nuovo (R-011): si ricarica una volta sola, poi il gioco parte')
+    ctx2 = br.new_context(locale='it-IT', viewport={'width': 720, 'height': 460}); ctx2.set_default_timeout(60000)
+    ctx2.route('**/three.min.js', lambda r: r.fulfill(body=THREE, content_type='application/javascript'))
+    ctx2.route('**/fonts.g*/**', lambda r: r.abort())
+    def pagina_vecchia(route):
+        resp = route.fetch()
+        route.fulfill(response=resp, body=resp.text().replace('name="cyf-versione" content="', 'name="cyf-versione" content="0.0.0-'))
+    ctx2.route('**/pista-nera/?scena=neve', pagina_vecchia)
+    pg = ctx2.new_page(); errs = []; caricamenti = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.on('framenavigated', lambda f: caricamenti.append(f.url) if f == pg.main_frame else None)
+    pg.goto(f'{BASE}/pista-nera/?scena=neve', wait_until='domcontentloaded')
+    try:
+        pg.wait_for_function("window.CYFDiag && window.CYFDiag.snapshot && window.CYFDiag.snapshot().log.some(l => l.includes('già ricaricata'))", timeout=60000)
+        pg.wait_for_function("(() => { try { return window.CYFDiag.state().modo === 'menu'; } catch (e) { return false; } })()", timeout=60000)
+    except Exception: pass
+    log = pg.evaluate("window.CYFDiag && window.CYFDiag.snapshot ? window.CYFDiag.snapshot().log.filter(l => l.includes('pagina')) : []")
+    check(len(caricamenti) == 2 and any('già ricaricata' in l for l in log) and pg.evaluate("window.CYFDiag.state().modo") == 'menu' and not errs,
+          'una sola ricarica, poi il gioco parte senza errori', f"{len(caricamenti)} caricamenti · {log[-1:] if log else 'niente nel registro'} · {'; '.join(errs)[:120]}")
+    ctx2.close()
+
     print('R2 · diagnosi: pannello, versione nel menu, errori nel registro')
     pg = ctx.new_page(); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))

@@ -45,6 +45,15 @@ PN.fisica = (() => {
     return (1.1 * (1 - u) + bev) * k;
   }
 
+  // Altezza della tavola sulla rampa (R-214): la tavola è dritta e lunga 1,6 m, la salita si fa più ripida verso l'alto,
+  // quindi la tavola poggia sulla corda tra punta e coda e non solo sul punto sotto i piedi. Senza questo, nel primo
+  // fotogramma sulla rampa e con pochi fotogrammi al secondo la punta entrava fino a 11 cm nel bordo (prova notturna del
+  // 27/10). ang: direzione del rider (0 = dritto giù per la pista); in cima la corda non supera mai lo stacco.
+  function tavolaSuRampa(r, z, ang, citta) {
+    const fz = -Math.cos(ang || 0) * 0.8;
+    return Math.max(rampTop(r, z, citta), (rampTop(r, z + fz, citta) + rampTop(r, z - fz, citta)) / 2);
+  }
+
   // Atterraggio: oltre ~57° di rotazione o ~63° di salto mortale si cade; poco storto = solo rallentamento.
   // spin0: la rotazione allo stacco (si conta solo quella fatta in aria; il rider passa da 0 a π scendendo "al contrario").
   // Restituisce { cade, sloppy, nomi, pts, mezziGiri }: pts già con il doppio sulla rampa, la combinazione e la metà se storto.
@@ -70,5 +79,5 @@ PN.fisica = (() => {
   // dopo l'atterraggio: un numero dispari di mezzi giri vuol dire scendere "al contrario"
   const switchDopo = spin => (Math.round(spin / Math.PI) % 2 ? Math.PI : 0);
 
-  return { vmax, MAX, limita, RACCOLTA, FRENATA, AUTO, STERZO, ANGOLO, GRAVITA, SALTO, RAMPA, TRAMPOLINO, CADUTA, obiettivo, stacco, invuln, RAMP_FOOT, rampTop, nearest, atterraggio, switchDopo };
+  return { vmax, MAX, limita, RACCOLTA, FRENATA, AUTO, STERZO, ANGOLO, GRAVITA, SALTO, RAMPA, TRAMPOLINO, CADUTA, obiettivo, stacco, invuln, RAMP_FOOT, rampTop, tavolaSuRampa, nearest, atterraggio, switchDopo };
 })();

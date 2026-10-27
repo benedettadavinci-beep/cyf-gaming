@@ -324,7 +324,8 @@ console.log('T6 · sala online: /api/quick, partenza automatica in 30 s, 3 s se 
   A.send({ t: 'ready', ready: true }); B.send({ t: 'ready', ready: true });
   lb = await A.wait(m => m.t === 'lobby' && m.players.every(p => p.ready), 3000);
   ok(lb && lb.autoAt - lb.now <= 3000, 'tutti pronti: parte entro 3 s', lb && String(lb.autoAt - lb.now));
-  const cd = await B.waitType('countdown', 6000); ok(!!cd, 'conto alla rovescia partito da solo');
+  // qui conta che parta da solo (i 3 s sono controllati sopra): 10 s di margine, il 27/10 con il processore carico 6 s non sono bastati una volta
+  const cd = await B.waitType('countdown', 10000); ok(!!cd, 'conto alla rovescia partito da solo');
   A.close(); B.close();
 }
 
