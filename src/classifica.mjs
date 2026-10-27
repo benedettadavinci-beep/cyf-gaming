@@ -2,7 +2,7 @@
 // profili con il codice personale, premi (maglie della settimana), contatori d'uso e misure, visite e ritorni, segnalazioni dei vocali, errori dei browser.
 import { DurableObject } from 'cloudflare:workers';
 import { lengthFor, fasciaCarico, cleanId, PROFILE_ALPH, cleanName } from './comune.mjs';
-import { ritorni } from './ritorni.mjs';
+import { ritorni, ritorniPerFonte } from './ritorni.mjs';
 
 export class Leaderboard extends DurableObject {
   constructor(ctx, env) {
@@ -16,8 +16,11 @@ export class Leaderboard extends DurableObject {
     // contatori aggregati per giorno (niente cookie, niente dati personali)
     sql.exec('CREATE TABLE IF NOT EXISTS stats (day TEXT NOT NULL, metric TEXT NOT NULL, value INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, metric))');
     sql.exec('CREATE TABLE IF NOT EXISTS seen (day TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (day, id))');
-    // chi apre la pagina del gioco, anche solo per allenarsi: una riga per giocatore e giorno (R-232)
+    // chi apre la pagina del gioco, anche solo per allenarsi: una riga per giocatore e giorno (R-232); dalla 0.24.0 con la
+    // fonte della prima visita del giorno (R-246: sfida, batti, portale, home, diretto; vuota per le righe più vecchie)
     sql.exec('CREATE TABLE IF NOT EXISTS visits (day TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY (day, id))');
+    const vcols = sql.exec('PRAGMA table_info(visits)').toArray().map(c => c.name);
+    if (!vcols.includes('fonte')) sql.exec("ALTER TABLE visits ADD COLUMN fonte TEXT NOT NULL DEFAULT ''");
     // pista del giorno (R-233): il tempo migliore di ogni giocatore per ogni giorno italiano
     sql.exec('CREATE TABLE IF NOT EXISTS giorno (day TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, ms INTEGER NOT NULL, tries INTEGER NOT NULL DEFAULT 1, at INTEGER NOT NULL, PRIMARY KEY (day, id))');
     sql.exec('CREATE TABLE IF NOT EXISTS voice_reports (at INTEGER NOT NULL, room TEXT NOT NULL, reporter TEXT NOT NULL, reported TEXT NOT NULL)');
@@ -72,13 +75,15 @@ export class Leaderboard extends DurableObject {
   async bumpMany(m) {
     for (const [k, n] of Object.entries(m || {})) if (n > 0) await this.bump(k, n);
   }
-  // R-232: una visita al giorno per giocatore e il tempo di caricamento in fasce (telefono o PC)
-  async visita(id, ms, tel) {
+  // R-232: una visita al giorno per giocatore e il tempo di caricamento in fasce (telefono o PC); R-246: la fonte
+  async visita(id, ms, tel, fonte = 'diretto') {
     const d = this.day(), sql = this.ctx.storage.sql;
+    fonte = String(fonte || 'diretto').replace(/[^a-z]/g, '').slice(0, 12) || 'diretto';
     const had = sql.exec('SELECT 1 AS x FROM visits WHERE day = ? AND id = ?', d, id).toArray().length;
     if (!had) {
-      sql.exec('INSERT OR IGNORE INTO visits (day, id) VALUES (?, ?)', d, id);
+      sql.exec('INSERT OR IGNORE INTO visits (day, id, fonte) VALUES (?, ?, ?)', d, id, fonte);
       await this.bump('visitors');
+      await this.bump('visit_' + fonte);
     }
     if (ms) {
       await this.bump('load_' + (tel ? 'tel' : 'pc') + '_' + fasciaCarico(ms));
@@ -90,9 +95,11 @@ export class Leaderboard extends DurableObject {
   async ritorni() {
     const sql = this.ctx.storage.sql, oggi = this.day();
     const da = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10);
+    const visite = sql.exec('SELECT day, id, fonte FROM visits WHERE day >= ?', da).toArray();
     return {
-      visite: ritorni(sql.exec('SELECT day, id FROM visits WHERE day >= ?', da).toArray(), oggi),
-      corse: ritorni(sql.exec('SELECT day, id FROM seen WHERE day >= ?', da).toArray(), oggi)
+      visite: ritorni(visite, oggi),
+      corse: ritorni(sql.exec('SELECT day, id FROM seen WHERE day >= ?', da).toArray(), oggi),
+      fonti: ritorniPerFonte(visite, oggi)   // R-246
     };
   }
   async reportVoice(room, reporter, reported) {

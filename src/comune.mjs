@@ -31,6 +31,9 @@ export const BOT_PILOTA_MS = 3000;                 // se chi li guida non manda 
 // e fasce del tempo di caricamento della pagina del gioco (3 s è la soglia dello studio di Google sui siti da telefono)
 export const fasciaPunti = g => (g < PROTO.COSTI.banana ? 'pts_lt50' : g < PROTO.COSTI.bomb ? 'pts_50_149' : g < PROTO.COSTI.bananone ? 'pts_150_1499' : 'pts_1500');
 export const fasciaCarico = ms => (ms < 3000 ? 'lt3' : ms < 6000 ? '3_6' : ms < 10000 ? '6_10' : 'gt10');
+// da dove arriva una visita (R-246, S-48): poche fonti fisse; tutto il resto è "diretto"
+export const FONTI = ['sfida', 'batti', 'portale', 'home', 'diretto'];
+export const cleanFonte = f => (FONTI.includes(f) ? f : 'diretto');
 
 export const json = (data, init = {}) =>
   new Response(JSON.stringify(data), {

@@ -136,15 +136,30 @@
     });
   }
 
+  // R-246: da dove arriva questa visita, letto subito (prima che il gioco tolga i parametri dall'indirizzo):
+  // sfida (link ?sfida=), batti (link "batti il mio tempo"), portale (?portale= o già in modalità portale), home (dalla
+  // pagina iniziale del sito), diretto (tutto il resto). Niente dati personali.
+  const fonte = (() => {
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.has('batti')) return 'batti';
+      if (q.has('sfida')) return 'sfida';
+      if (q.has('portale') && !['0', 'no'].includes(String(q.get('portale')).toLowerCase())) return 'portale';
+      if (sessionStorage.getItem('cyf.portale')) return 'portale';
+      const r = document.referrer || '';
+      if (r && r.indexOf(location.origin + '/') === 0 && r.indexOf('/pista-nera') < 0) return 'home';
+    } catch (e) {}
+    return 'diretto';
+  })();
   // R-232: una volta per pagina, il giocatore (codice anonimo) e il tempo di caricamento, dall'apertura della pagina
   // alla prima immagine del gioco. Servono a contare quanti giocano e quanti tornano. Le prove locali non inviano.
   let visitaFatta = false;
   function visita(id, tel) {
     if (visitaFatta || !id) return;
     visitaFatta = true;
-    log('misure', 'caricato in ' + (performance.now() / 1000).toFixed(1) + ' s');
+    log('misure', 'caricato in ' + (performance.now() / 1000).toFixed(1) + ' s · fonte ' + fonte);
     if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') return;
-    const body = JSON.stringify({ id, ms: Math.round(performance.now()), tel: tel ? 1 : 0 });
+    const body = JSON.stringify({ id, ms: Math.round(performance.now()), tel: tel ? 1 : 0, fonte });
     try { if (navigator.sendBeacon && navigator.sendBeacon('/api/visita', new Blob([body], { type: 'application/json' }))) return; } catch (e) {}
     try { fetch('/api/visita', { method: 'POST', body, headers: { 'content-type': 'application/json' }, keepalive: true }).catch(() => {}); } catch (e) {}
   }
@@ -157,5 +172,5 @@
   window.addEventListener('keydown', e => { if (e.key === 'F2') { e.preventDefault(); toggle(); } });
 
   log('pagina', location.pathname + ' · ' + ua());
-  const D = window.CYFDiag = { log, report, snapshot, toggle, tapToOpen, visita, state: null, get errors() { return errs.slice(); } };
+  const D = window.CYFDiag = { log, report, snapshot, toggle, tapToOpen, visita, fonte, state: null, get errors() { return errs.slice(); } };
 })();

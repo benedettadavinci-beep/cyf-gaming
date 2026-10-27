@@ -40,3 +40,25 @@ export function ritorni(righe, oggi, quanti = 60) {
   for (const c of lista) for (const n of PASSI) c['p' + n] = c['d' + n] == null ? null : perc(c['d' + n], c.nuovi);
   return { oggi, totale, giorni: lista };
 }
+
+// R-246: gli stessi ritorni divisi per la fonte della PRIMA visita di ogni giocatore (sfida, batti, portale, home, diretto).
+// righe: [{ day, id, fonte }]; le righe senza fonte (più vecchie della 0.24.0) valgono "diretto".
+// Risultato: { sfida: { oggi, totale, giorni }, … } solo per le fonti che hanno almeno un giocatore.
+export function ritorniPerFonte(righe, oggi, quanti = 60) {
+  const prima = new Map();   // id → { day, fonte } della prima visita
+  for (const r of righe) {
+    if (!r || !r.id || !r.day) continue;
+    const p = prima.get(r.id);
+    if (!p || r.day < p.day) prima.set(r.id, { day: r.day, fonte: r.fonte || 'diretto' });
+  }
+  const perFonte = new Map();
+  for (const r of righe) {
+    if (!r || !r.id || !r.day) continue;
+    const f = prima.get(r.id).fonte;
+    if (!perFonte.has(f)) perFonte.set(f, []);
+    perFonte.get(f).push(r);
+  }
+  const out = {};
+  for (const [f, lista] of perFonte) out[f] = ritorni(lista, oggi, quanti);
+  return out;
+}

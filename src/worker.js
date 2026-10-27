@@ -11,7 +11,7 @@
 // Il server è diviso in parti (A-20): qui gli indirizzi /api/…; la stanza delle gare in stanza.mjs, la classifica in
 // classifica.mjs, costanti e funzioni comuni in comune.mjs; calcoli puri in giorno.mjs, ritorni.mjs, avversari.mjs.
 
-import { MAX_PLAYERS, DURATIONS, lengthFor, CODE_RE, PUBLIC_ROOMS, json, board, cleanId, cleanProfileCode, cleanProfile } from './comune.mjs';
+import { MAX_PLAYERS, DURATIONS, lengthFor, CODE_RE, PUBLIC_ROOMS, json, board, cleanId, cleanProfileCode, cleanProfile, cleanFonte } from './comune.mjs';
 import { pistaDelGiorno } from './giorno.mjs';
 import { settimanaCorrente } from './settimana.mjs';
 // le due classi dei Durable Objects devono uscire dal file principale (wrangler.jsonc)
@@ -98,8 +98,9 @@ export default {
     // /api/stats → contatori aggregati degli ultimi 14 giorni
     if (url.pathname === '/api/stats') return json(await board(env).stats(14));
 
-    // /api/visita (R-232): POST { id, ms, tel } una volta per pagina aperta del gioco, anche in allenamento:
-    // conta il giocatore una volta al giorno e il tempo di caricamento (ms) in fasce, telefono o PC. Niente dati personali.
+    // /api/visita (R-232): POST { id, ms, tel, fonte } una volta per pagina aperta del gioco, anche in allenamento:
+    // conta il giocatore una volta al giorno e il tempo di caricamento (ms) in fasce, telefono o PC; dalla 0.24.0 anche
+    // da dove arriva (R-246: sfida, batti, portale, home, diretto). Niente dati personali.
     if (url.pathname === '/api/visita') {
       if (request.method !== 'POST') return json({ error: 'Serve POST' }, { status: 405 });
       const body = await request.text();
@@ -108,12 +109,13 @@ export default {
       const id = cleanId(b && b.id);
       if (!id) return json({ error: 'id mancante' }, { status: 400 });
       const ms = typeof b.ms === 'number' && Number.isFinite(b.ms) && b.ms > 0 && b.ms < 600000 ? Math.round(b.ms) : 0;
-      await board(env).visita(id, ms, b.tel ? 1 : 0);
+      await board(env).visita(id, ms, b.tel ? 1 : 0, cleanFonte(b.fonte));
       return json({ ok: true });
     }
 
     // /api/ritorni (R-232): quanti giocatori tornano dopo 1, 7 e 30 giorni, per giorno di prima visita.
-    // "visite" = chi apre il gioco (dalla 0.16.1), "corse" = chi entra in una gara (dal 24/10)
+    // "visite" = chi apre il gioco (dalla 0.16.1), "corse" = chi entra in una gara (dal 24/10), "fonti" = le visite divise
+    // per la fonte della prima visita di ogni giocatore (R-246, dalla 0.24.0)
     if (url.pathname === '/api/ritorni') return json(await board(env).ritorni());
 
     // /api/errors → POST: un telefono segnala un errore del gioco (anonimo); GET: errori degli ultimi giorni, raggruppati
