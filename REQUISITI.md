@@ -1,11 +1,12 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versioni 0.21.0-0.25.1 (in prova stanotte) · aggiornato al 27 ottobre 2026, ore 22:10 · turno di notte all'1:30 · scritte di giorno: batti il mio tempo e missioni, modalità portale (CrazyGames), città della settimana con la maglia, fonte delle visite, Gran Premio delle 21 · online su Google Drive"
+online: "0.20.2"
+subtitle: "Versioni 0.21.0-0.25.1 (in prova stanotte) · aggiornato al 27 ottobre 2026, ore 22:40 · turno di notte all'1:30 · requisiti divisi in due Word · scritte di giorno: batti il mio tempo e missioni, modalità portale (CrazyGames), città della settimana con la maglia, fonte delle visite, Gran Premio delle 21 · online su Google Drive"
 ---
 
 # Prossimi passi
 
-Aggiornati il 27/10/2026 alle 22:10 (versione online: 0.20.2; la 0.21.0 con "batti il mio tempo" e le missioni è sul ramo `giorno/batti-missioni`; la 0.22.0 modalità portale, la 0.23.0 città della settimana, la 0.24.0 fonte delle visite e la 0.25.0 Gran Premio delle 21 sono sul ramo `giorno/portale-settimana`, che contiene anche la 0.21.0; la 0.25.1 (correzione di un errore dai telefoni, R-011) è sul ramo `giorno/pagina-vecchia`, che parte da `giorno/portale-settimana`: vanno online domattina, dopo le prove del turno di notte). Questo Word è anche su Google Drive, cartella "CYF gaming", e si aggiorna da solo. È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
+Aggiornati il 27/10/2026 alle 22:40 (versione online: 0.20.2; la 0.21.0 con "batti il mio tempo" e le missioni è sul ramo `giorno/batti-missioni`; la 0.22.0 modalità portale, la 0.23.0 città della settimana, la 0.24.0 fonte delle visite e la 0.25.0 Gran Premio delle 21 sono sul ramo `giorno/portale-settimana`, che contiene anche la 0.21.0; la 0.25.1 (correzione di un errore dai telefoni, R-011) è sul ramo `giorno/pagina-vecchia`, che parte da `giorno/portale-settimana`: vanno online domattina, dopo le prove del turno di notte). Dal 27/10 i requisiti sono in due Word, entrambi su Google Drive nella cartella "CYF gaming" (R-511): «CYF Gaming Requisiti da Implementare o Bachi», con in testa questi prossimi passi, i bachi aperti e tutto ciò che manca, e «CYF Gaming Requisiti Implementati e Testati», con tutto ciò che è già online e provato. Questa è la parte da leggere per prima: che cosa si può fare adesso.
 
 ## Cosa puoi fare tu, Luigi
 
@@ -47,7 +48,7 @@ Scritti il 27/10 pomeriggio e sera su richiesta di Luigi ("procedi con la 2 e la
 ## Regole di lavoro (decise da Luigi)
 
 1. **Prove solo di notte (R-506).** Di giorno nessuna prova, nemmeno quella rapida, se Luigi non lo chiede chiaramente ("fai le prove adesso", "pubblica adesso", "fallo ora"). Il turno di notte parte all'1:30 (decisione di Luigi del 27/10; prima 23:07), fa il giro completo, corregge tutti gli errori che le prove e i telefoni dei giocatori mostrano, e pubblica solo se tutto è verde. Il lavoro del giorno sta sui rami `giorno/…`, dove il cancello di GitHub non parte.
-2. **Prima il file dei requisiti, poi il software (R-501),** e il Word si rigenera a ogni cosa fatta, con i prossimi passi in testa (R-507). Il Word è in `docs/CYF-Gaming-requisiti.docx` e l'attività delle 7:13, 13:13 e 19:13 lo copia su Google Drive (se il PC di casa è acceso).
+2. **Prima il file dei requisiti, poi il software (R-501),** e il Word si rigenera a ogni cosa fatta, con i prossimi passi in testa (R-507). Dal 27/10 i Word sono due (R-511), generati dallo stesso REQUISITI.md con `python3 tools/requisiti_docx.py REQUISITI.md docs/`: `docs/CYF-Gaming-Requisiti-Implementati-e-Testati.docx` e `docs/CYF-Gaming-Requisiti-da-Implementare-o-Bachi.docx`; l'attività delle 7:13, 13:13 e 19:13 li copia su Google Drive (se il PC di casa è acceso). Chi pubblica una versione aggiorna `online:` in testa a REQUISITI.md: le righe dello storico fino a quella versione passano nel Word dei requisiti implementati.
 3. **Ogni giorno verso le 18 il confronto con le altre app** e cosa manca (R-508).
 4. **All'inizio di ogni attività: tempo che serve e token (R-509).**
 5. **Il software deve crescere senza rallentare (R-510):** struttura scelta da Claude (S-43), piano nella sezione 11 e qui sopra; un passo di struttura alla volta.
@@ -55,7 +56,7 @@ Scritti il 27/10 pomeriggio e sera su richiesta di Luigi ("procedi con la 2 e la
 
 # Come leggere questo documento
 
-Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta; il Word è su GitHub (`docs/CYF-Gaming-requisiti.docx`) e nella cartella Google Drive "CYF gaming"; la fonte è REQUISITI.md.
+Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga è una richiesta di Luigi: che cosa deve fare il gioco, quando è stata chiesta, a che punto è e come funziona oggi. Claude lo aggiorna a ogni nuova richiesta. La fonte è una sola, REQUISITI.md su GitHub; da lì si generano i due Word (R-511), su GitHub in `docs/` e nella cartella Google Drive "CYF gaming": un requisito passa da solo dal Word «da Implementare o Bachi» a quello «Implementati e Testati» quando diventa Fatto.
 
 **Come leggere le tabelle.** Ogni sezione raggruppa i requisiti per argomento. Le colonne sono: **ID** (il codice da citare per parlarne, per esempio "R-303"), **Richiesta** (che cosa deve fare il gioco, con le parole più semplici possibili), **Data** (quando è stata chiesta), **Stato** (a che punto è, vedi la legenda) e **Come funziona oggi** (che cosa si vede nel gioco e i limiti scelti).
 
@@ -70,6 +71,15 @@ Questo documento è l'elenco ufficiale dei requisiti di C-Y-F Gaming. Ogni riga 
 Quando Luigi controlla un requisito, basta dirlo a Claude con il numero (per esempio "R-303 controllato"): lo stato passa a Controllato.
 
 Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-nera/`)
+
+# Bachi
+
+Errori visti dai telefoni dei giocatori (`/api/errors`), dalle prove o da Luigi. Ogni baco ha un numero B-xx. Il turno di notte li corregge tutti (R-506) con una prova che lo avrebbe trovato; quando la correzione è online lo stato diventa Fatto e il baco passa nel Word dei requisiti implementati.
+
+| ID | Baco | Visto il | Stato | Causa e correzione |
+|---|---|---|---|---|
+| B-01 | Su Samsung Internet (Android 10) il gioco si fermava all'apertura: `$('btnDaily')` nullo in `game.js` (versione 0.17.0) | 26/10/2026 | Fatto | Il telefono aveva unito la pagina vecchia con il programma nuovo. Dalla 0.20.1 la pagina dichiara la sua versione e, se è diversa da quella del sito, si ricarica una volta (R-011); prova R1c |
+| B-02 | Sullo stesso telefono il gioco si fermava sugli sfondi: `Cannot read properties of undefined (reading 'GEOMETRIA')` in `sfondi.js` (versione 0.20.2, 27/10 alle 20:53) | 27/10/2026 | In corso | Pagina salvata di prima della 0.20.0, senza la versione scritta, con il programma nuovo: la guardia della 0.20.1 controllava solo le pagine con la versione. Correzione scritta nella 0.25.1 (ramo `giorno/pagina-vecchia`): anche la pagina senza versione si ricarica. Da provare e pubblicare stanotte (variante di R1c) |
 
 # 1. Sito e piattaforma
 
@@ -173,16 +183,17 @@ Sito: https://cyf-gaming.benedetta-davinci-mellum.workers.dev (gioco: `/pista-ne
 
 | ID | Richiesta | Data | Stato | Come funziona oggi |
 |---|---|---|---|---|
-| R-501 | File con tutti i requisiti del gioco, aggiornato a ogni richiesta, nella cartella "CYF gaming" | 24/10/2026 | Fatto | Questo documento (REQUISITI.md su GitHub) e il Word `docs/CYF-Gaming-requisiti.docx`; dal 26/10 la cartella è su Google Drive ("CYF gaming"), prima era sul Desktop |
+| R-501 | File con tutti i requisiti del gioco, aggiornato a ogni richiesta, nella cartella "CYF gaming" | 24/10/2026 | Fatto | Questo documento (REQUISITI.md su GitHub) e i due Word generati da lui (R-511, in `docs/`); dal 26/10 la cartella è su Google Drive ("CYF gaming"), prima era sul Desktop; il 27/10 Luigi ha spostato su Drive anche gli altri file della cartella del Desktop (business plan, moduli, elementi per città) |
 | R-502 | Nel file dei requisiti, oltre a fatto e da fare, lo stato "Controllato" | 24/10/2026 | Fatto | Vedi la legenda all'inizio |
 | R-503 | Controllo generale automatico ogni sera verso le 22: qualità, bachi, stabilità e idee di miglioramento | 24/10/2026 | Fatto | Attività pianificata "Controllo notturno CYF Gaming" ogni notte all'1:30 ora italiana (decisione di Luigi del 27/10; prima 21:33, poi 22:59, poi 23:07): giro completo delle prove (A-05), errori dai telefoni, correzione di ogni errore, pubblicazione con tutto verde, prossimi passi approvati con il tempo che resta (fino alle 6:30), rapporto con le misure |
 | R-504 | Migliorare la descrizione del documento Word e delle tabelle | 24/10/2026 | Fatto | Introduzione, legenda e colonne riscritte; colonna "Come funziona oggi" |
 | R-505 | Business plan con aspetti economici e strategia aziendale, in un file separato | 24/10/2026 | Fatto | CYF-Gaming-business-plan.docx nella cartella sul Desktop |
 | R-506 | Nessuna prova di giorno se Luigi non lo chiede chiaramente: le prove si fanno di notte, dopo le 23, sfruttando al massimo la notte; gli errori che il sistema vede vanno corretti (P-02) | 25/10/2026, aggiornato 26/10 | Fatto | Dal 26/10 sera. Di giorno Claude non lancia prove (né `npm test` né altre): scrive requisiti e codice su un ramo `giorno/<nome>`, dove il cancello di GitHub non parte (`branches-ignore` in `.github/workflows/cancello.yml`, dalla 0.20.2). Il turno di notte (R-503, dal 27/10 parte all'1:30, fino alle 6:30) unisce i rami, prova, corregge e pubblica: le novità vanno online la mattina dopo. Se Luigi scrive "pubblica adesso" o "fallo ora", si fanno le prove e si pubblica subito (S-42). Fino al 26/10 di giorno girava il cancello rapido |
-| R-507 | Nel Word i prossimi passi all'inizio, poi tutto quello che è fatto; il Word si aggiorna da solo a ogni cosa fatta | 26/10/2026 | Fatto | Dalla 0.20.1: sezioni "Prossimi passi" e "Regole di lavoro" in testa; Word in `docs/CYF-Gaming-requisiti.docx`, copiato su Google Drive dall'attività delle 7:13, 13:13 e 19:13 |
+| R-507 | Nel Word i prossimi passi all'inizio, poi tutto quello che è fatto; il Word si aggiorna da solo a ogni cosa fatta | 26/10/2026 | Fatto | Dalla 0.20.1: sezioni "Prossimi passi" e "Regole di lavoro" in testa. Dal 27/10 (R-511) i prossimi passi sono in testa al Word «da Implementare o Bachi» e le regole di lavoro in testa a quello «Implementati e Testati»; i Word sono in `docs/` e l'attività delle 7:13, 13:13 e 19:13 li copia su Google Drive |
 | R-508 | Verso le 18 un confronto con le altre app e cosa manca per migliorare | 26/10/2026 | Fatto | Attività pianificata "Confronto concorrenti CYF Gaming" alle 17:59, con notifica sul telefono; non tocca il codice |
 | R-509 | All'inizio di ogni attività il tempo che serve e i token | 26/10/2026 | Fatto | Prima frase di ogni attività: tempo stimato, token rimasti nella sessione e consumo stimato (il consumo esatto non è visibile) |
 | R-510 | Il software deve crescere senza rallentare; la struttura la sceglie Claude | 26/10/2026 | In corso | Scelta S-43; piano nella sezione 11 e nei prossimi passi (A-14, A-23, A-25, A-11…) |
+| R-511 | Su Drive due documenti dei requisiti al posto di uno: «CYF Gaming Requisiti Implementati e Testati» e «CYF Gaming Requisiti da Implementare o Bachi» | 27/10/2026 | Fatto | Una sola fonte, REQUISITI.md; `tools/requisiti_docx.py REQUISITI.md docs/` genera i due Word e una riga passa da sola dal secondo al primo quando cambia stato. Nel primo: requisiti Fatto e Controllato, scelte confermate, bachi corretti, verifiche, regole di lavoro e storico fino alla versione online (`online:` in testa a REQUISITI.md). Nel secondo: in testa i prossimi passi, poi bachi aperti (sezione "Bachi", numeri B-xx), requisiti Da fare e In corso, scelte e idee da confermare, cose da fare (sezione 9) e le versioni scritte che aspettano le prove della notte. Scelte di Luigi del 27/10: nome con "CYF", nel primo "Fatto + Controllato", prossimi passi nel secondo e regole nel primo, il vecchio Word unico tolto da Drive (nel cestino di Drive per 30 giorni) |
 
 # 7. Scelte fatte da Claude (da confermare)
 
@@ -194,7 +205,7 @@ Dettagli decisi durante il lavoro, che Luigi non ha chiesto esplicitamente. Si p
 | S-02 | In città la strada è chiusa dai palazzi: chi va contro il muro rimbalza e rallenta ("Muro!"), senza perdere vite | 24/10/2026 | Confermata 25/10 |
 | S-03 | In città le rocce sono di pietra, senza neve sopra | 24/10/2026 | Confermata 25/10 |
 | S-04 | Il messaggio vocale dura al massimo circa 8 secondi | 24/10/2026 | Confermata 25/10 |
-| S-05 | La pista è identica in tutti gli scenari, così i tempi restano confrontabili | 24/10/2026 | Aggiornata 25/10 | Dalla 0.11.0 resta identica la sequenza di ostacoli, bonus, rampe e porte (R-309) e la larghezza giocabile; la forma della strada invece è propria di ogni città, con tempi simili (R-312); i lati cambiano città per città (R-307) |
+| S-05 | La pista è identica in tutti gli scenari, così i tempi restano confrontabili. Aggiornata il 25/10: dalla 0.11.0 resta identica la sequenza di ostacoli, bonus, rampe e porte (R-309) e la larghezza giocabile; la forma della strada invece è propria di ogni città, con tempi simili (R-312); i lati cambiano città per città (R-307) | 24/10/2026 | Aggiornata 25/10 |
 | S-06 | Per bombe e banane si spendono i punti guadagnati nella gara in corso; quelli che restano a fine gara si aggiungono ai punti collezionati (R-112) | 24/10/2026 | Confermata 25/10 |
 | S-07 | La freccia su a terra non fa più saltare, perché ora frena (R-207): si salta con la barra spaziatrice. In aria le frecce su e giù restano per i salti mortali | 24/10/2026 | Da confermare |
 | S-08 | Lunghezza della gara = minuti × 40 m/s (velocità media stimata): 5 min ≈ 12 km, 10 ≈ 24, 15 ≈ 36. Fuori tempo massimo al doppio dei minuti scelti | 24/10/2026 | Da confermare |
