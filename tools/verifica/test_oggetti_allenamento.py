@@ -48,8 +48,9 @@ with sync_playwright() as p:
     r = pg.evaluate("""() => { const D = window.__dbg, P = D.P, b = D.BOT.lista[0];
         D.bonus = 2000; P.speed = 0; b.x = P.x; b.z = P.z - 25; b.speed = 0; b.air = false; b.y = 0; b.crash = 0; b.stopUntil = 0; b.inv = 0;
         for (const q of D.BOT.lista.slice(1)) { q.z = P.z + 80; q.speed = 0; }   // gli altri dietro, lontani
-        const prima = D.bonus; D.OGG.useItem('banana');
-        return new Promise(res => setTimeout(() => res({ costo: prima - D.bonus, fermo: b.stopUntil > performance.now(), id: b.id }), 900)); }""")
+        // qualche fotogramma perché le nuove posizioni arrivino anche ai modelli che il lancio usa per scegliere il bersaglio
+        return D.frames(4).then(() => { b.x = P.x; b.z = P.z - 25; const prima = D.bonus; D.OGG.useItem('banana');
+          return new Promise(res => setTimeout(() => res({ costo: prima - D.bonus, fermo: b.stopUntil > performance.now(), id: b.id }), 900)); }); }""")
     check(r['costo'] == 50, 'la banana costa 50 punti', json.dumps(r))
     check(r['fermo'], 'la banana ferma l\'avversario davanti', json.dumps(r))
 
