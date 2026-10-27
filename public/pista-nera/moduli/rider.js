@@ -244,8 +244,8 @@ PN.rider = (() => {
       s: BOARDS[any(BOARDS.length)] + ':' + (r() < 0.3 ? '' : any(BOARD_COLORS.length))
     };
   }
-  // la giacca è una texture per colore o maglia, con la scritta CYF grande sui fianchi e sulla schiena (R-514) e lo stemma CYF
-  // piccolo sul petto e sulla schiena (R-216, al posto delle ali)
+  // la giacca è una texture per colore o maglia, con la scritta CYF grande sulla schiena (R-514) e lo stemma CYF sui fianchi,
+  // sul petto e in alto sulla schiena (R-216, al posto delle ali)
   const jacketTex = new Map();
   // stemma CYF: scudo bianco bordato di blu notte, fascia arancione con la cima innevata e la scritta CYF.
   // Disegnato in 256 x 256 e stirato in w x h pixel della texture, perché la superficie del busto è ovale.
@@ -296,18 +296,18 @@ PN.rider = (() => {
     }
     // u = 0 è il fianco +z (quello che vede la telecamera), 0,25 il petto (+x), 0,5 l'altro fianco (si vede in "switch"),
     // 0,75 la schiena (-x); v cresce verso il collo.
-    // Dalla 0.25.3 (R-514) la scritta CYF grande e ben visibile, bianca con il bordo blu notte (si legge su ogni colore):
-    // sui due fianchi, che sono la "schiena" vista dalla telecamera e dagli altri (il rider sta di traverso sulla tavola),
-    // e sulla schiena vera; lo stemma resta piccolo sul petto e in alto sulla schiena
+    // Dalla 0.25.3 (R-514) la scritta CYF grande e ben visibile sulla schiena, bianca con il bordo blu notte (si legge su
+    // ogni colore): la telecamera e gli altri giocatori vedono il rider da dietro, di tre quarti, tra la schiena (u = 0,75)
+    // e il fianco +z (u = 1), quindi la scritta sta a u = 0,84 e prende il posto dello stemma di quel fianco (foto della
+    // prova test_cyf.py e di rider_view.py: nella prima versione si leggeva solo "YF", e prima ancora "FCYF")
     const scritta = (cx, cy, h, maxW) => {
       g.save(); g.font = '900 ' + h + 'px "Arial Black", Arial, Helvetica, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.lineJoin = 'round'; g.lineWidth = Math.round(h * 0.18); g.strokeStyle = '#13233a'; g.strokeText('CYF', cx, cy, maxW);
       g.fillStyle = '#ffffff'; g.fillText('CYF', cx, cy, maxW); g.restore();
     };
-    for (const u of [0, 1]) scritta(u * 1024, 236, 140, 236);         // fianco +z: metà a sinistra e metà a destra della cucitura
-    scritta(0.5 * 1024, 236, 140, 236);                                // l'altro fianco
-    scritta(0.75 * 1024, 250, 150, 360);                               // schiena
+    scritta(0.84 * 1024, 250, 160, 300);                               // schiena, verso il fianco +z che vede la telecamera
     drawBadge(g, 0.75 * 1024, 120, 84, 70);                            // stemma piccolo in alto sulla schiena
+    drawBadge(g, 0.5 * 1024, 512 - 0.55 * 512, 120, 96);               // stemma sull'altro fianco (R-216)
     drawBadge(g, 0.25 * 1024 + 34, 512 - 0.62 * 512, 70, 56);           // piccolo sul petto, accanto alla cerniera
     const tex = new THREE.CanvasTexture(c);
     tex.encoding = THREE.sRGBEncoding;
