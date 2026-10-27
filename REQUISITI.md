@@ -1,11 +1,11 @@
 ---
 title: "C-Y-F Gaming · Pista Nera — Requisiti del gioco"
-subtitle: "Versioni 0.21.0-0.25.1 (in prova stanotte) · aggiornato al 27 ottobre 2026, ore 22:15 · scritte di giorno: batti il mio tempo e missioni, modalità portale (CrazyGames), città della settimana con la maglia, fonte delle visite, Gran Premio delle 21 · online su Google Drive"
+subtitle: "Versioni 0.21.0-0.25.1 (in prova stanotte) · aggiornato al 27 ottobre 2026, ore 22:05 · scritte di giorno: batti il mio tempo e missioni, modalità portale (CrazyGames), città della settimana con la maglia, fonte delle visite, Gran Premio delle 21 · online su Google Drive"
 ---
 
 # Prossimi passi
 
-Aggiornati il 27/10/2026 alle 22:15 (versione online: 0.20.2; la 0.21.0 con "batti il mio tempo" e le missioni è sul ramo `giorno/batti-missioni`; la 0.22.0 modalità portale, la 0.23.0 città della settimana, la 0.24.0 fonte delle visite e la 0.25.0 Gran Premio delle 21 sono sul ramo `giorno/portale-settimana`, che contiene anche la 0.21.0; la 0.25.1 (correzione di un errore dai telefoni, R-011) è sul ramo `giorno/pagina-vecchia`, che parte da `giorno/portale-settimana`: vanno online domattina, dopo le prove del turno di notte). Questo Word è anche su Google Drive, cartella "CYF gaming", e si aggiorna da solo. È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
+Aggiornati il 27/10/2026 alle 22:05 (versione online: 0.20.2; la 0.21.0 con "batti il mio tempo" e le missioni è sul ramo `giorno/batti-missioni`; la 0.22.0 modalità portale, la 0.23.0 città della settimana, la 0.24.0 fonte delle visite e la 0.25.0 Gran Premio delle 21 sono sul ramo `giorno/portale-settimana`, che contiene anche la 0.21.0; la 0.25.1 (correzione di un errore dai telefoni, R-011) è sul ramo `giorno/pagina-vecchia`, che parte da `giorno/portale-settimana`: vanno online domattina, dopo le prove del turno di notte). Questo Word è anche su Google Drive, cartella "CYF gaming", e si aggiorna da solo. È la parte da leggere per prima: che cosa si può fare adesso. Tutto quello che è già fatto viene dopo, nelle sezioni 1-13 e nello storico delle versioni.
 
 ## Cosa puoi fare tu, Luigi
 
