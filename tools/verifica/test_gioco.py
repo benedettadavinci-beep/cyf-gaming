@@ -256,11 +256,11 @@ with sync_playwright() as p:
     check(r['bonus'] == 150 and 'Ospite' in r['toast'], 'doppio clic con un avversario davanti: la banana è lanciata a lui (R-224)', json.dumps(r))
     try:
         gp.wait_for_function("window.__dbg.P.stop > 0", timeout=10000)
-        # durata decisa al colpo (P.stopFor), non il tempo che resta: con il processore carico ne restavano 0,23 s
+        # durata decisa al colpo (P.stopFor), non il tempo che resta: il browser delle prove gira a pochi fotogrammi al secondo
         gr = gp.evaluate("() => ({ stop: window.__dbg.P.stopFor, left: +window.__dbg.P.stop.toFixed(2), toast: window.__toasts.join('|') })")
     except Exception as e:
-        gr = { 'stop': 0, 'toast': str(e)[:80] }
-    check(gr['stop'] > 1 and gr['stop'] <= 2 and 'Banana' in gr['toast'], 'chi la riceve cade e resta fermo 2 s (R-224)', json.dumps(gr))
+        gr = { 'stop': 0, 'left': 0, 'toast': str(e)[:80] }
+    check(gr['stop'] == 2 and gr['left'] > 0 and 'Banana' in gr['toast'], 'chi la riceve cade e resta fermo 2 s (R-224)', json.dumps(gr))
     # il pulsante 🍌 lancia come il doppio clic, con il gesto del braccio (R-230)
     pg.wait_for_timeout(1100)
     r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 200; window.__toasts.length = 0; document.getElementById('btnBanana').click();

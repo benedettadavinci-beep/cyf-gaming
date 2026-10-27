@@ -5,6 +5,9 @@ name: Cancello dei test
 
 on:
   push:
+    # R-506: di giorno il lavoro sta sui rami giorno/* e le prove le fa il turno di notte
+    branches-ignore:
+      - 'giorno/**'
   pull_request:
   workflow_dispatch:
     inputs:
