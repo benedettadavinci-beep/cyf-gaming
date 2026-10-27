@@ -23,6 +23,9 @@ if ! curl -s -o /dev/null "$BASE/"; then
   [ -d node_modules/wrangler ] || npm ci --no-audit --no-fund >/dev/null 2>&1 || npm install --no-audit --no-fund >/dev/null 2>&1
   # attesa della sfida accorciata a 10 s solo qui (online sono 25 s, R-119): le prove che avviano gare non aspettano 25 s ognuna
   export ATTESA_SFIDA_MS="${ATTESA_SFIDA_MS:-10000}"
+  # stato locale pulito, come su GitHub: senza, i giocatori di prova dei giri precedenti si accumulano
+  # e /api/points (primi 10) non elenca più quelli del giro in corso
+  rm -rf .wrangler/state
   # setsid: wrangler e i suoi workerd in un gruppo a parte, così alla fine si spengono tutti (prima restavano accesi e il giro dopo li riusava)
   WRANGLER_SEND_METRICS=false setsid npx wrangler dev --port 8787 --var "ATTESA_SFIDA_MS:$ATTESA_SFIDA_MS" > /tmp/cyf-wrangler.log 2>&1 &
   SERVER_PID=$!
