@@ -42,7 +42,14 @@ jobs:
         env:
           WRANGLER_SEND_METRICS: 'false'
           THREE_JS: /home/runner/three/package/build/three.min.js
-        run: bash tools/verifica/cancello.sh ${{ github.event.inputs.modo || 'rapido' }}
+        run: |
+          set -o pipefail
+          bash tools/verifica/cancello.sh ${{ github.event.inputs.modo || 'rapido' }} 2>&1 | tee /tmp/cyf-giro.log
+      - name: Prove fallite in breve (si leggono anche dalle API di GitHub, come annotazioni)
+        if: failure()
+        run: |
+          grep -E "✗|Traceback|Error|FALLIT" /tmp/cyf-giro.log | head -25 | cut -c1-900 | sed 's/^/::error::/' || true
+          grep -B2 -A12 "Traceback" /tmp/cyf-giro.log | tail -40 | cut -c1-600 | sed 's/^/::warning::/' || true
       - name: Registro del server locale (se qualcosa è andato storto)
         if: failure()
         run: tail -100 /tmp/cyf-wrangler.log || true
