@@ -48,6 +48,12 @@ with sync_playwright() as p:
         coarse = pg.evaluate("matchMedia('(pointer: coarse)').matches")
         menu_vis = pg.evaluate("[getComputedStyle(tJump).display, getComputedStyle(stick).display]")
         pg.click('#btnSolo') if pg.locator('#btnSolo').count() else pg.get_by_role('button', name='Allenati da solo').click()
+        # dalla 0.20.0 l'avvio dipinge anche la cartolina (R-405): si aspetta che il gioco parta davvero,
+        # non un tempo fisso (sulla macchina carica 1,5 s non bastavano)
+        try:
+            pg.wait_for_function("document.getElementById('stage').classList.contains('playing')", timeout=30000)
+        except Exception:
+            pass
         pg.wait_for_timeout(1500)
         info = pg.evaluate("""() => {
           const r = id => { const b = document.getElementById(id).getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)]; };
