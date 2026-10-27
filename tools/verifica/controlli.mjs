@@ -79,6 +79,11 @@ const verPag = (/<meta name="cyf-versione" content="([\d.]+)">/.exec(read('publi
 ok(verPag === ver, 'la pagina del gioco ha la stessa versione di config.js (R-011)', verPag + ' / ' + ver);
 const verPkg = JSON.parse(read('package.json')).version;
 ok(verPkg === ver, 'package.json ha la stessa versione di config.js', verPkg + ' / ' + ver);
+// R-511: `online:` in testa a REQUISITI.md divide lo storico tra i due Word dei requisiti (fino a quella versione:
+// «Implementati e Testati»; dopo: «da Implementare o Bachi»). Il ramo che si pubblica deve averla uguale a config.js:
+// chi pubblica la aggiorna e rigenera i Word (python3 tools/requisiti_docx.py REQUISITI.md docs/) prima del push.
+const verOnline = (/^online:\s*"([\d.]+)"/m.exec(req) || [])[1];
+ok(verOnline === ver, '`online:` in testa a REQUISITI.md è la versione di config.js (R-511, da aggiornare quando si pubblica)', verOnline + ' / ' + ver);
 
 console.log('C5 · attesa della sfida (R-119)');
 const wk = read('src/comune.mjs'), wr = read('wrangler.jsonc');   // dalla 0.19.0 le costanti del server stanno in comune.mjs (A-20)
