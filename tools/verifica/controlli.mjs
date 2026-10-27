@@ -74,6 +74,11 @@ const ver = (/version:\s*'([\d.]+)'/.exec(read('public/config.js')) || [])[1];
 const req = read('REQUISITI.md');
 ok(!!ver, 'versione in public/config.js', ver);
 ok(new RegExp('^\\| ' + (ver || 'x').replace(/\./g, '\\.') + ' \\|', 'm').test(req), 'la versione ' + ver + ' è nello storico di REQUISITI.md');
+// R-011: la pagina del gioco dichiara la sua versione (se è diversa da config.js il gioco si ricarica una volta)
+const verPag = (/<meta name="cyf-versione" content="([\d.]+)">/.exec(read('public/pista-nera/index.html')) || [])[1];
+ok(verPag === ver, 'la pagina del gioco ha la stessa versione di config.js (R-011)', verPag + ' / ' + ver);
+const verPkg = JSON.parse(read('package.json')).version;
+ok(verPkg === ver, 'package.json ha la stessa versione di config.js', verPkg + ' / ' + ver);
 
 console.log('C5 · attesa della sfida (R-119)');
 const wk = read('src/comune.mjs'), wr = read('wrangler.jsonc');   // dalla 0.19.0 le costanti del server stanno in comune.mjs (A-20)

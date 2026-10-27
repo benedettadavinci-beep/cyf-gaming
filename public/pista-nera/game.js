@@ -4,6 +4,20 @@
   const $ = id => document.getElementById(id);
   // registro eventi e pannello di debug (diagnosi.js): se manca, il gioco funziona lo stesso
   const diag = window.CYFDiag || { log() {}, tapToOpen() {}, report() {} };
+  // R-011: pagina e programma della stessa versione. Il 26/10 un telefono (Samsung Internet) ha unito la pagina vecchia,
+  // senza il pulsante della pista del giorno, con il programma nuovo, e il gioco si è fermato con un errore. Succede se
+  // la pagina resta in memoria o se si apre proprio mentre il sito si aggiorna. Se la versione scritta nella pagina non è
+  // quella di config.js (letto insieme al programma) si ricarica una volta sola; se non basta si va avanti e la diagnosi
+  // lo registra.
+  {
+    const pagina = (document.querySelector('meta[name="cyf-versione"]') || {}).content, sito = window.CYF && window.CYF.version;
+    if (pagina && sito && pagina !== sito) {
+      let gia = null;
+      try { gia = sessionStorage.getItem('cyf.ricarica'); } catch (e) {}
+      diag.log('gioco', 'pagina ' + pagina + ' diversa dal sito ' + sito + (gia === sito ? ': già ricaricata, si va avanti' : ': si ricarica'));
+      if (gia !== sito) { try { sessionStorage.setItem('cyf.ricarica', sito); } catch (e) {} location.reload(); return; }
+    }
+  }
   const stage = $('stage');
   const cvs = $('game');
 
