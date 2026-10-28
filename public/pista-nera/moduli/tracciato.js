@@ -50,6 +50,11 @@ PN.tracciato = (() => {
           ctx.zona({ x, z0: z + 5, z1: z - 5.5, hw: 3.6 });
         }
         ctx.metti({ type: 'ramp', x, z, big });
+        // B-06: davanti alla rampa niente alberi, rocce, porte o altre rampe dove si atterra. Salto dalla rampa: stacco a
+        // 4 m dal centro, ~0,9 s in aria, fino a 22 m/s → si atterra entro ~26 m; trampolino gigante: stacco a 8 m, ~1,5 s
+        // → entro ~42 m. Il corridoio è dritto come il volo (non segue la curva della strada) e largo come la rampa più
+        // un margine. Non consuma numeri casuali: la pista resta la stessa per tutti, solo senza ostacoli lì
+        ctx.zona({ x, z0: z - 1, z1: z - (big ? 48 : 30), hw: big ? 3.8 : 2.6, atterraggio: true });
       } else if (kind < 0.881) { /* posto lasciato libero (prima c'era una porta) */ }
       else {
         const gx = c + rr(-9, 9), gi = r() < 0.5 ? 0 : 1;

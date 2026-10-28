@@ -450,6 +450,7 @@
 
   function soloOver() {
     mode = 'over';
+    hudLabels();   // via la classifica dal vivo dell'allenamento (B-05)
     MISS.salva();
     soundLevels(0, 0, false);
     const s = score(), isBest = s > best;

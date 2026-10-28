@@ -21,15 +21,15 @@ PN.schermate = ({ diag, stato: S }) => {
   function setBanner(text) { banner.hidden = !text; banner.textContent = text || ''; if (!text) banner.classList.remove('wait'); }
 
   function hudLabels() {
-    const race = S.racing();
+    const race = S.racing(), allena = S.allenaConAvversari;   // allenamento con gli avversari: posizione e classifica come in gara (B-05, R-519)
     $('k1').textContent = race ? tr('hudTime') : tr('hudPoints');
-    $('k2').textContent = race ? tr('hudPlace') : tr('hudDistance');
+    $('k2').textContent = race || allena ? tr('hudPlace') : tr('hudDistance');
     $('kSpeed').textContent = tr('hudSpeed');
-    $('k4').textContent = race ? tr('hudLeft') : tr('hudAltitude');
+    $('k4').textContent = race ? tr('hudLeft') : allena ? tr('hudDistance') : tr('hudAltitude');
     $('k5').textContent = tr('hudPoints');
     $('hLives').hidden = race;
     $('sPts').hidden = !race;
-    $('live').hidden = !race;
+    $('live').hidden = !(race || allena);
     $('items').hidden = !(race || S.allenaConAvversari) || !!S.net.daily;   // pista del giorno: niente banane e bombe (S-40); in allenamento con gli avversari sì (R-515)
   }
 
@@ -255,8 +255,17 @@ PN.schermate = ({ diag, stato: S }) => {
     } else {
       if (S.allenaConAvversari) for (const [id, k] of [['btnBanana', 'banana'], ['btnBomb', 'bomb'], ['btnBananone', 'bananone']]) { const b = $(id); b.disabled = S.mode !== 'solo'; b.classList.toggle('short', S.bonus < PN.protocollo.COSTI[k]); }   // R-515
       $('v1').textContent = fmt(S.score());
-      $('v2').textContent = fmt(Math.floor(S.distM())) + ' m';
-      $('v4').textContent = fmt(Math.max(0, START_ALT - S.distM() * Math.sin(SLOPE))) + ' m';
+      if (S.allenaConAvversari) {
+        // come in gara: posizione tra gli avversari e classifica dal vivo (B-05, R-519); la distanza va al posto della quota
+        const pl = S.racePlace();
+        $('v2').textContent = tr('placeOf', { p: ord(pl.place), n: pl.of });
+        $('v4').textContent = fmt(Math.floor(S.distM())) + ' m';
+        liveT += 0.08;
+        if (liveT > 0.25) { liveT = 0; S.renderLive(pl.list); }
+      } else {
+        $('v2').textContent = fmt(Math.floor(S.distM())) + ' m';
+        $('v4').textContent = fmt(Math.max(0, START_ALT - S.distM() * Math.sin(SLOPE))) + ' m';
+      }
     }
   }
   function renderLives() {
