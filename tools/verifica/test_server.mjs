@@ -447,6 +447,28 @@ console.log('T11 · misure (R-232): punti fatti per gara, oggetti usati, visite,
   const g1 = finto.giorni.find(g => g.giorno === '2026-10-01');
   ok(g1.nuovi === 2 && g1.d1 === 1 && g1.d7 === 1 && g1.d30 === null && finto.totale.d1.perc === 50 && finto.totale.d7.perc === 33.3,
     'ritorni calcolati giusti: D1 50%, D7 33,3%, D30 non ancora maturo', JSON.stringify(finto.totale));
+
+  // fonte della visita (R-246): visit_<fonte> su /api/stats e ritorni divisi per fonte su /api/ritorni
+  const s2 = await giorno();
+  ok(await vis({ id: 'vf' + code, ms: 1000, tel: 1, fonte: 'batti' }) === 200, 'POST /api/visita con la fonte accettato');
+  await vis({ id: 'vf' + code, fonte: 'portale' });            // seconda visita dello stesso giorno: non conta
+  await vis({ id: 'vg' + code, fonte: 'q<script>!' });         // fonte sconosciuta o sporca → "diretto"
+  const s3 = await giorno();
+  const f = k => (s3[k] || 0) - (s2[k] || 0);
+  ok(f('visit_batti') === 1 && f('visit_portale') === 0 && f('visit_diretto') === 1 && f('visitors') === 2,
+    'la fonte conta con la prima visita del giorno; una fonte sconosciuta vale "diretto"',
+    JSON.stringify({ batti: f('visit_batti'), portale: f('visit_portale'), diretto: f('visit_diretto') }));
+  const rt2 = await api('/api/ritorni');
+  const fonti = rt2.body && rt2.body.fonti;
+  ok(rt2.status === 200 && fonti && fonti.batti && fonti.batti.giorni.some(g => g.giorno === today && g.nuovi >= 1),
+    '/api/ritorni ha i ritorni divisi per la fonte della prima visita (R-246)', fonti && Object.keys(fonti).join(','));
+  const { ritorniPerFonte } = await import('../../src/ritorni.mjs');
+  const pf = ritorniPerFonte([
+    { id: 'a', day: '2026-10-01', fonte: 'sfida' }, { id: 'a', day: '2026-10-02', fonte: 'home' },
+    { id: 'b', day: '2026-10-01' }, { id: 'b', day: '2026-10-02', fonte: 'sfida' }
+  ], '2026-10-03');
+  ok(pf.sfida && pf.sfida.giorni[0].nuovi === 1 && pf.sfida.giorni[0].d1 === 1 && pf.diretto && pf.diretto.giorni[0].d1 === 1 && !pf.home,
+    'per fonte conta la PRIMA visita: a è "sfida" anche se poi torna dalla home; b senza fonte è "diretto"', JSON.stringify(Object.keys(pf)));
 }
 
 console.log('T12 · pista del giorno (R-233): giorno italiano, città e seed uguali per tutti, stanza da soli, classifica del giorno');
@@ -587,6 +609,85 @@ console.log('T13 · avversari del computer (R-234…R-238, S-39): sfida, pilota,
   Gd.close();
 }
 
+console.log('T14 · batti il mio tempo (R-236, S-44): pistaNumero e la pista di un giorno passato, fuori da ogni classifica');
+{
+  const G = await import('../../src/giorno.mjs');
+  const oggi = G.pistaDelGiorno();
+  const p1 = G.pistaNumero(1);
+  ok(p1 && p1.n === 1 && p1.giorno === '2026-10-26' && p1.scena === G.scenaDi('2026-10-26') && p1.seed === G.seedDi('2026-10-26') && p1.minuti === 5,
+    'pistaNumero(1): il 26/10, con la sua città e il suo seed', p1 && JSON.stringify({ giorno: p1.giorno, scena: p1.scena }));
+  ok(G.pistaNumero(oggi.n).seed === oggi.seed && G.pistaNumero(oggi.n + 1) === null && G.pistaNumero(0) === null && G.pistaNumero('x') === null,
+    'pistaNumero: oggi è la pista di oggi; domani, 0 e "x" non esistono (null)');
+  // stanza della pista di un giorno passato (?n=…&b=1): si corre quella pista
+  const code = 'G' + rnd().slice(0, 5) + 'R';
+  const R = new Client(code + '?n=1&b=1', 'rn' + code, 'Rivincita'); R.path = '/api/giorno/';
+  await R.connect(); const w = await R.waitType('welcome');
+  ok(w && w.daily === true, 'il link con ?n= apre una stanza della pista del giorno');
+  R.send({ t: 'start' });
+  const g = await R.waitType('gathering', 3000);
+  ok(g && g.seed === p1.seed && g.scena === p1.scena && g.giorno && g.giorno.n === 1,
+    'si corre la pista #1 (seed e città del 26/10), non quella di oggi', g && JSON.stringify({ n: g.giorno && g.giorno.n, scena: g.scena, seedOk: g.seed === p1.seed }));
+  R.close();
+}
+
+console.log('T15 · città della settimana (R-245, S-47): calendario, premio della settimana e /api/giorno');
+{
+  const C = (await import('../../src/settimana.mjs'));
+  const CAL = C.CALENDARIO;
+  const w1 = CAL.settimanaDi('2026-10-28');
+  ok(w1.n === 1 && w1.scena === 'roma' && w1.premio === 'settimana1' && w1.da === '2026-10-26' && w1.a === '2026-11-01',
+    'settimana #1 (26/10-1/11): Roma, maglia "settimana1"', JSON.stringify(w1));
+  ok(CAL.settimanaDi('2026-11-02').n === 2 && CAL.settimanaDi('2026-11-02').scena === 'napoli' && CAL.settimanaDi('2026-10-25').n === 0,
+    'il 2/11 inizia la settimana #2 (Napoli); prima del 26/10 non c\'è la settimana');
+  const tredici = Array.from({ length: 13 }, (_, i) => CAL.scenaDi(i + 1));
+  ok(new Set(tredici).size === 13 && CAL.scenaDi(14) === CAL.scenaDi(1), '13 settimane tutte con una città diversa, poi si ricomincia');
+  ok(CAL.numeroDelPremio('settimana12') === 12 && CAL.numeroDelPremio('settimana') === 0 && CAL.numeroDelPremio('x9') === 0,
+    'numeroDelPremio legge solo le maglie "settimanaN"');
+  const lun = Date.parse('2026-10-28T12:00:00Z');
+  ok(C.premioPerGara('roma', lun) === 'settimana1' && C.premioPerGara('napoli', lun) === '' && C.premioPerGara('napoli', Date.parse('2026-11-03T12:00:00Z')) === 'settimana2',
+    'il premio arriva solo per una gara finita nella città della settimana');
+  const a = await api('/api/giorno');
+  const s = a.body && a.body.settimana;
+  ok(a.status === 200 && s && s.n >= 1 && s.scena && CAL.numeroDelPremio(s.premio) === s.n,
+    '/api/giorno porta anche la settimana di adesso (numero, città, premio)', s && JSON.stringify({ n: s.n, scena: s.scena, premio: s.premio }));
+}
+
+console.log('T16 · Gran Premio delle 21 (R-247, S-49): orario, finestra d\'ingresso, seme della sera e sale GP');
+{
+  const GP = await import('../../src/granpremio.mjs');
+  const C = (await import('../../src/settimana.mjs'));
+  const alle = iso => Date.parse(iso);
+  // il 28/10/2026 l'Italia è in ora solare: le 21:00 italiane sono le 20:00 UTC
+  const g21 = GP.granPremio(alle('2026-10-28T20:03:00Z'));
+  ok(g21.giorno === '2026-10-28' && g21.aperto && g21.inCorso, 'alle 21:03 italiane il Gran Premio di oggi è in corso e si entra ancora', JSON.stringify({ giorno: g21.giorno, aperto: g21.aperto, inCorso: g21.inCorso }));
+  const g2050 = GP.granPremio(alle('2026-10-28T19:51:00Z'));
+  ok(g2050.aperto && !g2050.inCorso, 'dalle 20:50 italiane la sala è aperta ma il via non è dato');
+  const g18 = GP.granPremio(alle('2026-10-28T17:00:00Z'));
+  ok(g18.giorno === '2026-10-28' && !g18.aperto, 'alle 18 italiane il Gran Premio di stasera non è ancora aperto');
+  const g2107 = GP.granPremio(alle('2026-10-28T20:07:00Z'));
+  ok(g2107.giorno === '2026-10-29', 'alle 21:07 italiane (oltre i 6 minuti) conta già il Gran Premio di domani');
+  ok(g21.chiave === 'gp:2026-10-28' && g21.seed === GP.granPremio(alle('2026-10-28T20:01:00Z')).seed && g21.seed !== g2107.seed,
+    'stessa sera stesso seme per tutte le sale (chiave gp:<giorno>), sere diverse semi diversi');
+  ok(g21.scena === C.settimanaCorrente(alle('2026-10-28T20:03:00Z')).scena && g21.minuti === 5,
+    'il Gran Premio si corre nella città della settimana, 5 minuti', g21.scena);
+  // il server: /api/gp e la sala GP01 (il via vero delle 21 non si può provare di notte: è legato all\'orologio)
+  const a = await api('/api/gp');
+  const b = a.body || {};
+  ok(a.status === 200 && typeof b.at === 'number' && typeof b.now === 'number' && b.scena && typeof b.aperto === 'boolean' && Array.isArray(b.top),
+    '/api/gp: orario del via, orologio del server, città, finestra e classifica della sera', JSON.stringify({ aperto: b.aperto, inCorso: b.inCorso, scena: b.scena }));
+  const vero = GP.granPremio();
+  ok(b.aperto === vero.aperto && Math.abs(b.at - vero.at) < 2000, 'l\'orario di /api/gp è quello calcolato da granPremio()');
+  const q = await api('/api/quick?gp=1');
+  if (vero.aperto) ok(q.status === 200 && GP.GP_RE.test(q.body && q.body.code), 'finestra aperta: /api/quick?gp=1 dà una sala GP', q.body && q.body.code);
+  else ok(q.status === 409 && q.body && typeof q.body.at === 'number', 'finestra chiusa: /api/quick?gp=1 risponde 409 con l\'orario del via', String(q.status));
+  const P = new Client('GP01', 'gp' + Date.now(), 'Puntuale');
+  await P.connect(); const w = await P.waitType('welcome');
+  const lb = await P.waitType('lobby', 2000);
+  ok(w && w.pub === true && typeof w.gp === 'number' && w.gp >= 1 && lb && lb.gp === w.gp,
+    'la sala GP01 è pubblica e si presenta come sala del Gran Premio (1 = aspetta il via, 2 = dopo il via)', w && String(w.gp));
+  P.close();
+}
+
 if (process.env.VELOCE === '1') console.log('T8 saltata (VELOCE=1: giro rapido del cancello; il giro completo la fa ogni notte)');
 else {
 console.log('T8 · gara valida con attesa reale (≥ 175 s), classifica, punti, chi esce è "non arrivato", contatori');
@@ -597,20 +698,41 @@ console.log('T8 · gara valida con attesa reale (≥ 175 s), classifica, punti, 
   const A = new Client(code, 'wa' + code, name), B = new Client(code, 'wb' + code, 'Lento');
   await A.connect(); await A.waitType('welcome'); await B.connect(); await B.waitType('welcome');
   await B.wait(m => m.t === 'lobby' && m.players.length === 2, 3000);
+  // la sfida si corre nella città della settimana (R-245): chi arriva con un tempo valido vince la maglia
+  const sett = ((await api('/api/giorno')).body || {}).settimana || { scena: 'roma', premio: '' };
+  A.send({ t: 'scena', scena: sett.scena });
+  await B.wait(m => m.t === 'lobby' && m.scena === sett.scena, 3000);
   A.send({ t: 'start' }); const cd = await A.waitType('countdown');
+  ok(cd && cd.scena === sett.scena, 'la gara parte nella città della settimana', cd && cd.scena);
   // nello stesso tempo una pista del giorno valida (R-233)
   const vcode = 'G' + code.slice(0, 5) + 'V';
   const V = new Client(vcode, 'gv' + code, 'Del giorno' + code.slice(0, 3)); V.path = '/api/giorno/';
   await V.connect(); await V.waitType('welcome'); V.send({ t: 'start' }); const vgo = await V.waitType('go', 5000);
   const vStart = Date.now() + (vgo ? vgo.startAt - vgo.now : 5000);
+  // e una pista di un giorno passato da un link "batti il mio tempo" (R-236, S-44): valida ma fuori dalle classifiche
+  const pcode = 'G' + code.slice(0, 5) + 'P';
+  const pname = 'Passato' + code.slice(0, 3);
+  const P = new Client(pcode + '?n=1&b=1', 'gp' + code, pname); P.path = '/api/giorno/';
+  await P.connect(); await P.waitType('welcome'); P.send({ t: 'start' }); const pgo = await P.waitType('go', 5000);
+  const pStart = Date.now() + (pgo ? pgo.startAt - pgo.now : 5000);
+  const pScena = (P.last('gathering') || {}).scena;
   const minMs = Math.floor(4200 / 24 * 1000);   // 4,2 km a 24 m/s, il limite fisico con margine (R-242)
   console.log('   aspetto', Math.round((cd.startAt + minMs - Date.now()) / 1000), 's per un arrivo valido…');
-  const pinger = setInterval(() => { A.send({ t: 'pos', x: 0, z: -100, top: 21, tk: 3, p: 210 }); B.send({ t: 'pos', x: 0, z: -90, top: 19, tk: 7, p: 50 }); V.send({ t: 'pos', x: 0, z: -80, top: 18, tk: 2, p: 90 }); }, 5000);
+  const pinger = setInterval(() => { A.send({ t: 'pos', x: 0, z: -100, top: 21, tk: 3, p: 210 }); B.send({ t: 'pos', x: 0, z: -90, top: 19, tk: 7, p: 50 }); V.send({ t: 'pos', x: 0, z: -80, top: 18, tk: 2, p: 90 }); P.send({ t: 'pos', x: 0, z: -70, top: 17, tk: 1, p: 60 }); }, 5000);
   await sleep(cd.startAt + minMs + 1500 - Date.now());
   A.send({ t: 'finish', top: 21, tk: 3, p: 210 });
   const fA = await A.waitType('finished', 3000);
   ok(fA && typeof fA.ms === 'number' && fA.ms >= minMs, 'arrivo valido con tempo misurato dal server', fA && String(fA.ms));
   clearInterval(pinger);
+  // la pista del giorno passato (R-236): arrivo valido, ma niente classifiche
+  await sleep(Math.max(0, pStart + minMs + 1500 - Date.now()));
+  P.send({ t: 'finish', top: 17, tk: 1, p: 60 });
+  const pf = await P.waitType('finished', 3000), pr = await P.waitType('results', 4000);
+  ok(pf && typeof pf.ms === 'number' && pf.ms >= minMs, 'pista passata: arrivo valido con tempo misurato dal server', pf && String(pf.ms));
+  ok(pr && pr.giorno && pr.giorno.n === 1 && pr.giorno.rivincita === true && pr.giorno.rank === undefined,
+    'pista passata: i risultati dicono che è una rivincita, senza posizione del giorno', pr && JSON.stringify(pr.giorno));
+  ok(pr && pr.results[0] && pr.results[0].earned === 60, 'pista passata: solo i punti fatti in gara', pr && String(pr.results[0].earned));
+  P.close();
   await sleep(Math.max(0, vStart + minMs + 1500 - Date.now()));
   V.send({ t: 'finish', top: 18, tk: 2, p: 90 });
   const vf = await V.waitType('finished', 3000), vr = await V.waitType('results', 4000);
@@ -631,18 +753,29 @@ console.log('T8 · gara valida con attesa reale (≥ 175 s), classifica, punti, 
     ok(rA.earned === 100 + 210 && rB.earned === 50, 'punti: 100 al vincitore + 210 rimasti; 0 + 50 al non arrivato', rA.earned + '/' + rB.earned);
     ok(rA.total === 310, 'totale del vincitore salvato sul server', String(rA.total));
     ok(res.awards.fastest.id === A.id && res.awards.tricks.id === B.id, 'premi: velocità a A (21 m/s), acrobazie a B (7)');
+    if (sett.premio) ok(rA.premio === sett.premio && rB.premio === undefined,
+      'maglia della settimana al solo arrivo valido nella città della settimana (R-245)', JSON.stringify({ A: rA.premio, B: rB.premio }));
   }
   const me = (await api('/api/me?id=' + A.id)).body; ok(me.points === 310 && me.races === 1 && me.wins === 1, '/api/me: punti, gare e vittorie', JSON.stringify(me));
+  if (sett.premio) ok(Array.isArray(me.premi) && me.premi.includes(sett.premio), '/api/me ricorda la maglia della settimana vinta (R-245)', JSON.stringify(me.premi));
   const lbd = (await api('/api/leaderboard?min=5')).body;
   const row = lbd.find(r => r.name === name); ok(row && row.ms === fA.ms, 'tempo in classifica (5 min)', JSON.stringify(row));
+  ok(!lbd.some(r => r.name === pname), 'il tempo della pista passata NON va nella classifica generale (S-44)');
+  const giornoOggi = (await api('/api/giorno')).body;
+  ok(!(giornoOggi.top || []).some(r => r.name === pname), 'il tempo della pista passata NON va nella classifica del giorno (S-44)');
   const lbd10 = (await api('/api/leaderboard?min=10')).body; ok(!lbd10.find(r => r.name === name), 'non compare nella classifica dei 10 min');
   const pts = (await api('/api/points')).body; ok(pts.some(r => r.name === name && r.points === 310), '/api/points lo elenca');
   const stats = (await api('/api/stats')).body;
   const today = new Date().toISOString().slice(0, 10);
   const row0 = stats.find(r => r.day === today) || {}, rowB = (statsBefore || []).find(r => r.day === today) || {};
   const d = k => (row0[k] || 0) - (rowB[k] || 0);
-  // in questo blocco corrono due gare: la sfida A-B e, in parallelo, la pista del giorno di V (R-233)
-  ok(d('races_started') === 2 && d('races_finished') === 2 && d('racers') === 3 && d('players') >= 3, '/api/stats: gare avviate/finite, corridori e giocatori unici del giorno', JSON.stringify({ started: d('races_started'), finished: d('races_finished'), racers: d('racers'), players: d('players') }));
+  // in questo blocco corrono tre gare: la sfida A-B, la pista del giorno di V (R-233) e la pista passata di P (R-236)
+  ok(d('races_started') === 3 && d('races_finished') === 3 && d('racers') === 4 && d('players') >= 4, '/api/stats: gare avviate/finite, corridori e giocatori unici del giorno', JSON.stringify({ started: d('races_started'), finished: d('races_finished'), racers: d('racers'), players: d('players') }));
+  ok(d('batti_gare') === 1, 'una gara partita da un link "batti il mio tempo" è contata (R-236)', String(d('batti_gare')));
+  if (sett.premio) {
+    const attesi = 1 + ((giornoOggi.scena === sett.scena) ? 1 : 0) + ((pScena === sett.scena) ? 1 : 0);   // A sempre; V e P solo se corrono nella città della settimana
+    ok(d('settimana_gare') === attesi && d('settimana_premi') === attesi, 'gare e maglie della settimana contate (R-245)', JSON.stringify({ gare: d('settimana_gare'), premi: d('settimana_premi'), attesi }));
+  }
   ok((row0.voice_reports || 0) >= 2, '/api/stats conta le segnalazioni dei vocali', String(row0.voice_reports));
   A.close();
 }

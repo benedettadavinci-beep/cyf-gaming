@@ -81,6 +81,29 @@ with sync_playwright() as p:
           'una sola ricarica, poi il gioco parte senza errori', f"{len(caricamenti)} caricamenti · {log[-1:] if log else 'niente nel registro'} · {'; '.join(errs)[:120]}")
     ctx2.close()
 
+    print('R1d · pagina SENZA versione insieme al programma nuovo (R-011, B-02, 0.25.1): si ricarica una volta sola, poi il gioco parte')
+    ctx3 = br.new_context(locale='it-IT', viewport={'width': 720, 'height': 460}); ctx3.set_default_timeout(60000)
+    ctx3.route('**/three.min.js', lambda r: r.fulfill(body=THREE, content_type='application/javascript'))
+    ctx3.route('**/fonts.g*/**', lambda r: r.abort())
+    def pagina_senza_versione(route):   # come una pagina salvata prima della 0.20.1, quando la versione non c'era
+        resp = route.fetch()
+        route.fulfill(response=resp, body=resp.text().replace('name="cyf-versione"', 'name="cyf-senza-versione"'))
+    ctx3.route('**/pista-nera/?scena=neve', pagina_senza_versione)
+    pg = ctx3.new_page(); errs = []; caricamenti = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.on('framenavigated', lambda f: caricamenti.append(f.url) if f == pg.main_frame else None)
+    pg.goto(f'{BASE}/pista-nera/?scena=neve', wait_until='domcontentloaded')
+    try:
+        pg.wait_for_function("window.CYFDiag && window.CYFDiag.snapshot && window.CYFDiag.snapshot().log.some(l => l.includes('già ricaricata'))", timeout=60000)
+        pg.wait_for_function("(() => { try { return window.CYFDiag.state().modo === 'menu'; } catch (e) { return false; } })()", timeout=60000)
+    except Exception: pass
+    log = pg.evaluate("window.CYFDiag && window.CYFDiag.snapshot ? window.CYFDiag.snapshot().log.filter(l => l.includes('pagina')) : []")
+    check(len(caricamenti) == 2 and any('senza versione' in l for l in log) and any('già ricaricata' in l for l in log)
+          and pg.evaluate("window.CYFDiag.state().modo") == 'menu' and not errs,
+          'anche la pagina senza versione si ricarica una volta sola, poi il gioco parte senza errori',
+          f"{len(caricamenti)} caricamenti · {log[-1:] if log else 'niente nel registro'} · {'; '.join(errs)[:120]}")
+    ctx3.close()
+
     print('R2 · diagnosi: pannello, versione nel menu, errori nel registro')
     pg = ctx.new_page(); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))

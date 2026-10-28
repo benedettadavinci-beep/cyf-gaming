@@ -63,6 +63,7 @@ if [ "$MODO" = "tutto" ]; then
   prova "Capelli e impostazioni ricordate (codice personale)" python3 tools/verifica/test_profilo.py
   prova "Avversari del computer (allenamento, sfida, sala online)" python3 tools/verifica/test_avversari.py
   prova "Banane, bombe e bananoni in allenamento con gli avversari (R-515)" python3 tools/verifica/test_oggetti_allenamento.py
+  prova "Novità 0.21-0.25: batti il mio tempo, missioni, portale, settimana, Gran Premio" python3 tools/verifica/test_novita.py
   echo; echo "════ Rotellina contro tastiera (solo informativa)"; python3 tools/verifica/cmp_input.py || true
 fi
 
