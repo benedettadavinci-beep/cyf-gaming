@@ -55,6 +55,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/pista.js` | pista | 176 | base (TAU, clamp, isPhone, lin, mulberry32) |
 | `moduli/portale.js` | portale | 44 | nessuno |
 | `moduli/profilo.js` | profilo | 101 | base (store); lingua (tr) |
+| `moduli/pubblicita.js` | pubblicita | 127 | portale (attivo); lingua (tr) |
 | `moduli/rider.js` | rider | 572 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi) |
 | `moduli/schermate.js` | schermate | 312 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
 | `moduli/settimana.js` | settimana | 62 | base (store); lingua (lang, tr, cityName); calendario (); schermate (js, giorno) |
@@ -62,9 +63,9 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/sfondi.js` | sfondi | 119 | base (lin); panorami (dipingi) |
 | `moduli/tracciato.js` | tracciato | 98 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 194 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr); portale (attivo) |
-| `game.js` | — | 1097 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio () |
+| `game.js` | — | 1105 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio () |
 | `diagnosi.js` | — | 177 | nessuno |
-| `i18n.js` | — | 391 | nessuno |
+| `i18n.js` | — | 395 | nessuno |
 | `shared/calendario.js` | calendario | 35 | nessuno |
 | `shared/protocollo.js` | protocollo | 94 | nessuno |
 <!-- /matrice -->

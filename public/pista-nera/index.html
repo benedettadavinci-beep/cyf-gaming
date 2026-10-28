@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- versione della pagina: deve essere uguale a public/config.js (R-011, controllata da tools/verifica/controlli.mjs C4) -->
-<meta name="cyf-versione" content="0.25.5">
+<meta name="cyf-versione" content="0.25.6">
 <title>Pista Nera · C-Y-F Gaming</title>
 <meta name="description" content="Sfida i tuoi amici in una discesa in 3D, in snowboard sulla neve o in skateboard per 12 città: stessa pista, stesso via, vince il tempo migliore.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -269,6 +269,18 @@
   @media (max-width: 700px) { .live { top: 64px; font-size: 14px; min-width: 150px; } .voice { width: 64px; height: 64px; top: 64px; } }
   @media (pointer: coarse) and (max-width: 700px) { .sound { left: 84px; top: 82px; } .toast { font-size: 22px; } }
   @media (max-width: 480px) { .stat .v { font-size: 20px; } .hud { gap: 4px 12px; padding: 8px 10px 14px; } .stat.opt { display: none; } .code { font-size: 32px; } }
+  /* riquadro pubblicitario (R-517): piccolo, in un angolo, mai sopra i comandi; nella stanza e nei risultati sta dentro il pannello */
+  .adbox { position: relative; width: 300px; max-width: 100%; margin: 0 auto; background: rgba(255,255,255,.96); color: #13233a; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.25); padding: 4px 6px 6px; box-sizing: border-box; }
+  .adbox.in-stage { position: absolute; right: 12px; top: 68px; z-index: 3; margin: 0; }
+  @media (pointer: coarse) { .adbox.in-stage { right: 10px; top: auto; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: 240px; } }
+  .adlbl { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #6b7a8c; margin: 0 0 3px; }
+  .adcontent { min-height: 60px; display: grid; place-items: center; }
+  .adcontent ins { display: inline-block; }
+  .adprova { width: 100%; min-height: 72px; border: 2px dashed #b8c4d2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; padding: 6px; box-sizing: border-box; }
+  .adprova b { font-size: 15px; } .adprova span { font-size: 12px; color: #6b7a8c; }
+  .adclose { position: absolute; top: 2px; right: 4px; border: 0; background: none; color: #6b7a8c; font-size: 16px; line-height: 1; padding: 2px 4px; cursor: pointer; }
+  .adhome { display: flex; justify-content: center; }
+  .adhome .adbox { box-shadow: 0 0 0 1px rgba(19,35,58,.12); }
 </style>
 </head>
 <body>
@@ -449,6 +461,7 @@
         </div>
         <ul class="players" id="lobbyPlayers"></ul>
         <span class="muted" id="lobbyStatus"></span>
+        <div class="adhome" id="lobbyAd" hidden></div>
         <div class="row">
           <button class="ghost grow" id="btnReady"></button>
           <button class="go grow" id="btnGo" hidden data-i18n="goBtn"></button>
@@ -472,6 +485,7 @@
           <ol class="dayboard" id="resDayBoard"></ol></div>
         </div>
         <span class="muted" id="resStatus"></span>
+        <div class="adhome" id="resAd" hidden></div>
         <div class="row">
           <button class="go grow" id="btnRematch" hidden data-i18n="rematch"></button>
           <button class="alt grow" id="btnShareRes" data-i18n="shareBtn"></button>
@@ -644,6 +658,7 @@
 <script src="moduli/base.js"></script>
 <script src="moduli/lingua.js"></script>
 <script src="moduli/portale.js"></script>
+<script src="moduli/pubblicita.js"></script>
 <script src="moduli/geometria.js"></script>
 <script src="moduli/panorami.js"></script>
 <script src="moduli/sfondi.js"></script>

@@ -234,6 +234,7 @@
   const { keys, stick, inSteer, inFast, inSlow, stickRest } = COMANDI;
   const SCHERMATE = PN.schermate({ diag, stato });
   const { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard } = SCHERMATE;
+  const PUB = PN.pubblicita({ diag });   // riquadro pubblicitario nei momenti di attesa (R-517): spento se config.js non dice altro
   // ---------- solo ----------
   function startSolo() {
     initAudio();
@@ -787,6 +788,7 @@
     net.daily = false; net.giorno = null;
     history.replaceState(null, '', location.pathname);
     mode = 'menu';
+    PUB.nascondi();
     me.setColor(PALETTE[0], myJersey());
     if (theme !== selScena.value) applyTheme(selScena.value);   // dopo una sfida in un'altra città si torna alla propria
     reset((Math.random() * 2 ** 31) | 0, null, false);
@@ -807,6 +809,7 @@
     const n = net.racers.length;
     const x0 = center(0) + (slot - (n - 1) / 2) * 2.6;
     mode = 'countdown';
+    PUB.nascondi(); PUB.cambioPosto();   // il riquadro della stanza se ne va; nell'attesa prima del via torna (R-517)
     me.setColor(PALETTE[net.myColor % PALETTE.length], myJersey());
     reset(net.seed, x0, true);
     hudLabels();
@@ -857,18 +860,21 @@
       if (net.gatherTxt !== txt) { net.gatherTxt = txt; setBanner(txt); banner.classList.add('wait'); }
       cnt.hidden = true;
       showPronto(true);
+      PUB.mostra('attesa');
     } else if (mode === 'countdown') {
       if (net.gatherTxt) { net.gatherTxt = ''; setBanner(''); banner.classList.remove('wait'); }
       showPronto(false);
       const left = net.startAt - serverNow();
       if (left <= 0) {
         mode = 'race';
+        PUB.nascondi();
         cnt.hidden = false; cnt.innerHTML = '<span>' + tr('go') + '</span>';
         beep(true);
         setTimeout(() => { if (mode !== 'countdown') cnt.hidden = true; }, 800);
       } else {
         const n = Math.ceil(left / 1000);
         if (n !== lastCount) { lastCount = n; cnt.hidden = false; cnt.innerHTML = '<span>' + n + '</span>'; if (n <= 3) beep(false); }
+        if (n >= 4) PUB.mostra('attesa'); else PUB.nascondi();   // il riquadro resta con il 5 e il 4, sparisce al 3 (R-517)
       }
     }
     if (mode === 'race' && !near500 && raceLen - distM() < 500) { near500 = true; say(tr('finishNear'), '#1f8a4c'); }
@@ -890,6 +896,7 @@
     hudLabels();
     renderResults();
     show('raceResults');
+    PUB.garaIniziata(); PUB.cambioPosto(); PUB.mostra('risultati');   // R-517: nei risultati; conta la gara per la regola "mai alla prima"
   }
 
   // ---------- punti collezionati (li tiene il server, legati a questo dispositivo) ----------
@@ -1020,7 +1027,7 @@
     last = now;
     if (mode === 'solo') { update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); }
     else if (racing()) { raceClock(); update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); SFIDA.hud(dt); }
-    else if (mode === 'menu' || mode === 'lobby' || mode === 'results') update(dt, true);
+    else if (mode === 'menu' || mode === 'lobby' || mode === 'results') { update(dt, true); if (mode === 'lobby' && net.pub && net.autoAt) PUB.mostra('lobby'); }
     else if (mode === 'over') { updateSpray(dt); updateFlakes(dt, P.x, P.z, 0); }
     const playing = mode === 'solo' || racing();
     if (playing !== wasPlaying) { wasPlaying = playing; stage.classList.toggle('playing', playing); stick.x = stick.y = 0; stickRest(); diag.log('gioco', 'modo ' + mode); }
@@ -1085,7 +1092,8 @@
     ping: net.ping, msg: net.msgs, giocatori: net.players.length, avversari: remotes.size, lingua: lang, tel: isPhone ? 1 : 0, gl: glName,
     sfondo: builtSky[theme] ? (builtSky[theme].userData.pronto ? 'pronto' : 'in arrivo') : '-', pittore: SFONDI.pittore(),   // cartolina della città (R-405, A-22)
     portale: PORTALE.nome || '-', vocali: VOCALI.abilitati() ? 1 : 0,   // modalità portale e vocali accesi (R-244)
-    fonte: diag.fonte || '-'   // da dove arriva la visita (R-246)
+    fonte: diag.fonte || '-',   // da dove arriva la visita (R-246)
+    pubblicita: PUB.fornitore + (PUB.visibile ? ' (visibile)' : '')   // riquadro pubblicitario (R-517)
   });
   const verLabel = $('verLabel');
   if (verLabel) { verLabel.textContent = 'v' + ((window.CYF && window.CYF.version) || '?'); diag.tapToOpen(verLabel); }
