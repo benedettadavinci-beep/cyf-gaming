@@ -1,7 +1,7 @@
 // Classifica e contatori (Durable Object Leaderboard, SQLite): tempi per durata, pista del giorno, punti collezionati,
 // profili con il codice personale, premi (maglie della settimana), contatori d'uso e misure, visite e ritorni, segnalazioni dei vocali, errori dei browser.
 import { DurableObject } from 'cloudflare:workers';
-import { lengthFor, fasciaCarico, cleanId, PROFILE_ALPH, cleanName } from './comune.mjs';
+import { lengthFor, fasciaCarico, fasciaFps, cleanId, PROFILE_ALPH, cleanName } from './comune.mjs';
 import { ritorni, ritorniPerFonte } from './ritorni.mjs';
 
 export class Leaderboard extends DurableObject {
@@ -90,6 +90,17 @@ export class Leaderboard extends DurableObject {
       await this.bump('load_ms_sum', ms);
       await this.bump('load_n');
     }
+  }
+  // A-14: fps veri dei giocatori (media di una pagina dopo 45 s di gioco) in fasce e in somma, telefono o PC, e il livello
+  // di qualità scelto in automatico. Da /api/stats: fps_tel_lt20, fps_tel_20_40, fps_tel_40_55, fps_tel_gt55, fps_tel_sum
+  // (somma degli fps ×10), fps_tel_n, lo stesso con pc, e q_alta / q_media / q_bassa
+  async fpsMisura(tel, fps, q) {
+    const chi = tel ? 'tel' : 'pc';
+    await this.bump('fps_' + chi + '_' + fasciaFps(fps));
+    await this.bump('fps_' + chi + '_sum', fps * 10);
+    await this.bump('fps_' + chi + '_n');
+    const liv = ['alta', 'media', 'bassa'].includes(q) ? q : 'altro';
+    await this.bump('q_' + liv);
   }
   // R-232: ritorni dopo 1, 7 e 30 giorni, su chi apre il gioco e su chi corre (ultimi 120 giorni)
   async ritorni() {

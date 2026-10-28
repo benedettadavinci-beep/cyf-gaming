@@ -33,7 +33,7 @@
   let renderer;
   try { renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: true }); }
   catch (e) { $('glErr').hidden = false; return; }
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));   // poi la qualità automatica (A-14) la regola
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -49,43 +49,22 @@
   scene.add(world);
   world.updateMatrixWorld(true);
 
-  const SUN_OFFSET = new THREE.Vector3(-26, 30, -34);
-  const sunDir = SUN_OFFSET.clone().normalize();
-  const sky = new THREE.Mesh(
-    new THREE.SphereGeometry(900, 32, 16),
-    new THREE.ShaderMaterial({
-      side: THREE.BackSide, depthWrite: false,
-      uniforms: {
-        top: { value: new THREE.Color('#3f7fc4') }, mid: { value: new THREE.Color('#9cc5e6') },
-        horizon: { value: new THREE.Color(HORIZON) }, sunDir: { value: sunDir }, sunCol: { value: new THREE.Color('#fff4dc') }
-      },
-      vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
-      fragmentShader: [
-        'uniform vec3 top; uniform vec3 mid; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 sunCol; varying vec3 vW;',
-        'void main(){',
-        '  vec3 d = normalize(vW - cameraPosition);',
-        '  float h = d.y;',
-        '  vec3 c = h > 0.0 ? mix(mix(horizon, mid, smoothstep(0.0, 0.18, h)), top, smoothstep(0.15, 0.75, h)) : horizon;',
-        '  float s = max(dot(d, normalize(sunDir)), 0.0);',
-        '  c += sunCol * (pow(s, 900.0) * 2.0 + pow(s, 40.0) * 0.18 + pow(s, 6.0) * 0.08);',
-        '  gl_FragColor = vec4(min(c, vec3(1.0)), 1.0);',
-        '}'
-      ].join('\n')
-    })
-  );
-  sky.renderOrder = -2;
-  scene.add(sky);
+  // il cielo con il sole e le nuvole (moduli/cielo.js, R-513): la direzione del sole è una sola per cielo, luce e cartoline
+  const CIELO = PN.cielo({ scene, telefono: isPhone });
+  const SUN_OFFSET = CIELO.SOLE;
 
   const hemi = new THREE.HemisphereLight(lin('#cfe4f7'), lin('#aebfd0'), 0.55);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(lin('#fff0d6'), 0.9);
   sun.castShadow = true;
-  const sm = isPhone ? 1024 : 2048;
-  sun.shadow.mapSize.set(sm, sm);
   Object.assign(sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 140 });
   sun.shadow.bias = -0.0006;
   sun.shadow.normalBias = 0.02;
   scene.add(sun, sun.target);
+  // qualità scelta in automatico (A-14): pixel per pixel dello schermo e misura delle ombre (prima: 2 e 2048/1024 fissi);
+  // misura gli fps veri mentre si gioca e li manda una volta a /api/fps
+  let avviato = false;
+  const QUALITA = PN.qualita({ renderer, ombra: sun.shadow, telefono: isPhone, dopoCambio: () => { if (avviato) resize(); } });
 
   const PISTA = PN.pista({ scene, world, ANISO, TEX });
   const { TRACKS, center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_TEX, GROUND_MAKE, groundMat, ground, updateGround, ranges } = PISTA;
@@ -125,8 +104,7 @@
     if (!temp) store.set('cyf.scena', theme);
     PISTA.setTrack(theme);
     const T = THEMES[theme];
-    const u = sky.material.uniforms;
-    u.top.value.set(T.sky[0]); u.mid.value.set(T.sky[1]); u.horizon.value.set(T.sky[2]);
+    CIELO.applica(theme, T);
     scene.fog.color.copy(lin(T.fog));
     scene.fog.near = T.fogN || 60;
     scene.fog.far = T.fogF || 200;
@@ -137,10 +115,10 @@
     groundMat.roughness = T.rough || 0.9;
     groundMat.needsUpdate = true;
     PISTA.resetGround();
-    ranges.visible = theme === 'neve';
-    for (const k in builtSky) builtSky[k].visible = false;
-    const sg = T.city ? skylineFor(theme, { orizzonte: T.sky[2], nebbia: T.fog }) : null;
-    if (sg) sg.visible = true;
+    // la cartolina dello scenario (città, e dalla 0.26.0 anche la Neve: i coni 3D restano solo se la Neve non ha la sua)
+    const sg = SFONDI.ha(theme) ? skylineFor(theme, { orizzonte: T.sky[2], nebbia: T.fog }) : null;
+    ranges.visible = theme === 'neve' && !sg;
+    SFONDI.mostra(sg ? theme : null);
     PART = T.part || null;
     flakes.visible = !!PART && !reduceMotion;
     if (PART) { flakes.material.color.copy(lin(PART.col)); flakes.material.size = PART.size; flakes.material.opacity = PART.op; }
@@ -997,10 +975,9 @@
     v3.set(P.x, gH, P.z); world.localToWorld(v3);
     sun.target.position.copy(v3);
     sun.position.copy(v3).add(SUN_OFFSET);
-    sky.position.copy(camera.position);
+    CIELO.aggiorna(dt, camera);
     ranges.position.copy(camera.position);
-    const skyG = builtSky[theme];
-    if (skyG) skyG.position.copy(camera.position);
+    SFONDI.segui(theme, camera, center(P.z));   // la città ferma sull'asse della strada, i monti con la telecamera (R-513)
     updateTrail();
   }
 
@@ -1023,6 +1000,7 @@
     else if (mode === 'menu' || mode === 'lobby' || mode === 'results') update(dt, true);
     else if (mode === 'over') { updateSpray(dt); updateFlakes(dt, P.x, P.z, 0); }
     const playing = mode === 'solo' || racing();
+    QUALITA.tick(dt, playing && mode !== 'countdown');
     if (playing !== wasPlaying) { wasPlaying = playing; stage.classList.toggle('playing', playing); stick.x = stick.y = 0; stickRest(); diag.log('gioco', 'modo ' + mode); }
     place(mode === 'pause' ? 0 : dt);
     renderer.render(scene, camera);
@@ -1084,12 +1062,15 @@
     rete: net.ws ? ['apertura', 'aperta', 'chiusura', 'chiusa'][net.ws.readyState] : 'no', stanza: net.code || '-', fase: net.phase,
     ping: net.ping, msg: net.msgs, giocatori: net.players.length, avversari: remotes.size, lingua: lang, tel: isPhone ? 1 : 0, gl: glName,
     sfondo: builtSky[theme] ? (builtSky[theme].userData.pronto ? 'pronto' : 'in arrivo') : '-', pittore: SFONDI.pittore(),   // cartolina della città (R-405, A-22)
+    monti: builtSky[theme] && builtSky[theme].userData.lontano && builtSky[theme].userData.lontano.children[0].visible ? 'sì' : '-',   // piano lontano della cartolina (R-513)
     portale: PORTALE.nome || '-', vocali: VOCALI.abilitati() ? 1 : 0,   // modalità portale e vocali accesi (R-244)
-    fonte: diag.fonte || '-'   // da dove arriva la visita (R-246)
+    fonte: diag.fonte || '-',   // da dove arriva la visita (R-246)
+    qualita: QUALITA.livello, fpsGioco: QUALITA.fps()   // qualità automatica e fps medi di gioco (A-14)
   });
   const verLabel = $('verLabel');
   if (verLabel) { verLabel.textContent = 'v' + ((window.CYF && window.CYF.version) || '?'); diag.tapToOpen(verLabel); }
   diag.log('gioco', 'pronto · ' + theme + ' · ' + lang);
+  avviato = true;
   requestAnimationFrame(frame);
   // R-232: visita e tempo di caricamento, misurati quando la prima immagine del gioco è sullo schermo
   requestAnimationFrame(() => requestAnimationFrame(() => { if (diag.visita) diag.visita(myId, isPhone); }));

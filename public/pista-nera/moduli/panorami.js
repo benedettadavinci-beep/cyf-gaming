@@ -7,6 +7,8 @@
 // s = metri lungo l'arco (0 = dritto davanti, positivo a destra), h = metri d'altezza (0 = altezza degli occhi).
 // Prospettiva: più una cosa è in basso (h negativa), più è vicina, quindi più grande e meno velata dalla foschia.
 // PN.panorami.dipingi(nome, larghezza, cielo) restituisce la tela; GEOMETRIA dice come montarla (moduli/sfondi.js).
+// Dalla 0.26.0 (R-513) dipingiPiani restituisce due tele: la città e, a parte, i monti lontani (il piano che nel gioco si
+// muove meno); c'è anche la "neve", che prima aveva solo coni 3D.
 window.PN = window.PN || {};
 PN.panorami = (() => {
   const { mulberry32 } = PN.base;
@@ -45,13 +47,17 @@ PN.panorami = (() => {
   const foschia = (sc, f = 1) => cl(0.9 * Math.exp(-sc * 2.4 / f), 0.03, 0.9);
 
   // ---------- tela e coordinate ----------
-  function tela(W, cielo, seme, citta) {
+  // piani: se vero (R-513) i monti lontani si dipingono su una seconda tela (P.cL, contesto P.gL): è il piano lontano,
+  // che nel gioco si muove meno del resto quando il rider si sposta, così la cartolina ha profondità
+  function tela(W, cielo, seme, citta, piani = false) {
     const k = W / (R * ARCO), Hpx = Math.round((ALTO - BASSO) * k);
     const c = nuovaTela(W, Hpx);
     const g = c.getContext('2d', CPU);
+    const cL = piani ? nuovaTela(W, Hpx) : null;
     const rnd = mulberry32(seme);
     return {
       c, g, W, H: Hpx, k, rnd, orizzonte: cielo.orizzonte, nebbia: cielo.nebbia, fosch: citta.foschia || 1,
+      piani, cL, gL: cL ? cL.getContext('2d', CPU) : g, lontano: false,
       x: s => W / 2 + s * k, y: h => (ALTO - h) * k, m: v => v * k,
       aria: (col, d) => mix(col, cielo.orizzonte, cl(d, 0, 0.92)),
       rr: (a, b) => a + rnd() * (b - a), pick: a => a[Math.floor(rnd() * a.length)]
@@ -105,7 +111,11 @@ PN.panorami = (() => {
       pts.push([s, o.base + Math.max(0, h)]);
       top = Math.max(top, o.base + h);
     }
-    const g = P.g;
+    // sul piano lontano (P.gL) vanno i monti veri: base all'altezza degli occhi o più su e senza bosco né case sopra
+    // (quelli con il bosco hanno quartieri e monumenti appoggiati: restano con la città). o.piano lo decide a mano.
+    const lontano = P.piani && (o.piano === 'lontano' || (o.piano !== 'vicino' && o.base >= -10 && !o.bosco));
+    if (lontano) P.lontano = true;
+    const g = lontano ? P.gL : P.g;
     const path = () => { g.beginPath(); g.moveTo(P.x(o.da), P.y(o.base - 3)); for (const [s, h] of pts) g.lineTo(P.x(s), P.y(h)); g.lineTo(P.x(o.a), P.y(o.base - 3)); g.closePath(); };
     const gr = g.createLinearGradient(0, P.y(top), 0, P.y(o.base));
     gr.addColorStop(0, o.colore); gr.addColorStop(1, mix(o.colore, P.orizzonte, o.velo ?? 0.45));
@@ -884,6 +894,19 @@ PN.panorami = (() => {
   // terra: colore del mare o del fiume davanti (disco sotto la cartolina); se manca, il suolo lontano prende il colore
   // della nebbia del gioco, così la fine della pista si fonde con la cartolina.
   const RICETTE = {
+    // La Neve (R-513): una valle alpina. Lontano le cime con i ghiacciai, in mezzo i versanti con i boschi di abeti,
+    // davanti il fondovalle bianco con le baite e il lago gelato. Prima (fino alla 0.25.5) c'erano solo coni 3D.
+    neve: { nebbia: '#d6e7f3', seme: 5, dipingi(P) {
+      crinale(P, { da: -1100, a: 1100, base: 14, alt: 108, punte: true, colore: P.aria('#7f95b4', 0.46), neve: 50, colNeve: '#f3f7fc', passo: 4, fase: 11, veloNeve: 0.28 });   // le cime con i ghiacciai
+      crinale(P, { da: -1100, a: 1100, base: -2, alt: 92, punte: true, colore: P.aria('#8aa0bc', 0.34), neve: 40, colNeve: '#eef4fa', passo: 5, fase: 4, veloNeve: 0.22 });   // la catena più vicina
+      crinale(P, { da: -1100, a: 1100, base: -30, alt: 86, colore: P.aria('#5a7a5c', 0.22), passo: 6, fase: 2, bosco: true, rilievo: 0.8, neve: 30, colNeve: '#e9f1f7', veloNeve: 0.15 });   // i versanti con il bosco
+      for (const [h, sz, d] of [[-52, 14, 0.14], [-74, 20, 0.09], [-98, 28, 0.05]]) alberi(P, -1100, 1100, h, 'abete', sz, ['#3b5a3f', '#44663f', '#35523a'], 0.55, d);   // gli abeti, più grandi venendo avanti
+      sfuma(P, -100, -150, '#f4f8fc', '#eef3f8', 0.95, 1);   // il fondovalle bianco
+      for (let i = 0; i < 9; i++) { const s = P.rr(-900, 900), h = P.rr(-112, -126), sc = scala(h); if (Math.abs(s) < 120) continue; rett(P, s, h, 7 * sc, 4 * sc, P.aria('#6b4a34', 0.06)); poli(P, [[s - 1 * sc, h + 4 * sc], [s + 8 * sc, h + 4 * sc], [s + 3.5 * sc, h + 7 * sc]], P.aria('#f2f5f8', 0.06)); }   // le baite
+      acqua(P, -128, -142, '#c8dcea', '#b4cde0', 200, 900);   // il lago gelato
+      alberi(P, -1100, -150, -132, 'abete', 34, ['#2f4a34', '#3b5a3f'], 0.7, 0.02);
+      alberi(P, 150, 1100, -132, 'abete', 34, ['#2f4a34', '#3b5a3f'], 0.7, 0.02);
+    } },
     // Napoli dal lungomare: il golfo, il Vesuvio in fondo, la città sulla collina a sinistra, Castel dell'Ovo, Capri
     napoli: { nebbia: '#e1e8ec', terra: '#2f78b4', seme: 81, dipingi(P) {
       const st = STILI.napoli;
@@ -1088,22 +1111,45 @@ PN.panorami = (() => {
   // Dipinge la città "nome" su una tela larga W. cielo: { orizzonte, nebbia } i colori del gioco (all'orizzonte e della
   // nebbia della pista): le cose lontane sfumano nel cielo, il fondo nella nebbia, così la cartolina si fonde con la pista.
   function dipingi(nome, W, cielo = {}) {
+    const r = pittura(nome, W, cielo, false);
+    return r ? r.vicino : null;
+  }
+  // Come dipingi, ma in due piani (R-513): { vicino: la città con il monumento, lontano: i monti su una tela larga W/4
+  // (sono sfumati dalla foschia: bastano meno pixel, e la memoria della scheda video cresce di un sedicesimo) oppure
+  // null se la città non ha monti lontani }
+  function dipingiPiani(nome, W, cielo = {}) {
+    return pittura(nome, W, cielo, true);
+  }
+  function pittura(nome, W, cielo, piani) {
     const Rc = RICETTE[nome];
     if (!Rc) return null;
     const c = { orizzonte: cielo.orizzonte || Rc.nebbia, nebbia: cielo.nebbia || Rc.nebbia };
     misti.clear(); cache.clear();   // i colori tenuti da parte servono solo alla città che si sta dipingendo
-    const P = tela(W, c, Rc.seme, Rc);
+    const P = tela(W, c, Rc.seme, Rc, piani);
     Rc.dipingi(P);
     sfuma(P, 26, -4, c.orizzonte, c.orizzonte, 0, 0.16);   // un velo di foschia all'orizzonte
     sfuma(P, -4, -40, c.orizzonte, c.orizzonte, 0.16, 0);
     const fondo = terra(nome, c.nebbia);
     sfuma(P, -118, -150, fondo, fondo, 0, 1);   // in fondo il passaggio al suolo lontano (nebbia o acqua)
-    return P.c;
+    let lontano = null;
+    if (piani && P.cL) {
+      if (P.lontano) {
+        const Q = Object.assign({}, P, { g: P.gL });
+        sfuma(Q, 26, -4, c.orizzonte, c.orizzonte, 0, 0.16);   // lo stesso velo anche sui monti
+        sfuma(Q, -4, -40, c.orizzonte, c.orizzonte, 0.16, 0);
+        lontano = nuovaTela(Math.max(64, Math.round(P.W / 4)), Math.max(16, Math.round(P.H / 4)));
+        const gl = lontano.getContext('2d', CPU);
+        gl.imageSmoothingEnabled = true; gl.imageSmoothingQuality = 'high';
+        gl.drawImage(P.cL, 0, 0, lontano.width, lontano.height);
+      }
+      butta(P.cL);
+    }
+    return { vicino: P.c, lontano };
   }
   function terra(nome, nebbia) {
     const Rc = RICETTE[nome];
     if (!Rc) return null;
     return Rc.terra ? mix(Rc.terra, nebbia || Rc.nebbia, 0.15) : (nebbia || Rc.nebbia);
   }
-  return { GEOMETRIA, citta: Object.keys(RICETTE), dipingi, terra };
+  return { GEOMETRIA, citta: Object.keys(RICETTE), dipingi, dipingiPiani, terra };
 })();

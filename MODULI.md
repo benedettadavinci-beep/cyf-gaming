@@ -16,7 +16,7 @@ usano a vicenda. Il cancello dei test la esegue a ogni modifica: così la matric
 ## Come sono fatti i moduli
 
 - **Puri** (`PN.base`, `PN.lingua`, `PN.portale`, `PN.calendario`, `PN.geometria`, `PN.rider`, `PN.tracciato`, `PN.fisica`, `PN.panorami`): un oggetto pronto all'uso, creato quando il file si carica. `base` e `panorami` girano anche dentro un worker (niente `document`, niente THREE): `sfondi` li ricarica lì per dipingere le cartoline senza fermare il gioco (A-22).
-- **Con istanza** (`PN.pista`, `PN.sfondi`, `PN.citta`, `PN.generazione`, `PN.effetti`, `PN.audio`, `PN.vocali`, `PN.profilo`, `PN.personaggio`, `PN.oggetti`, `PN.avversari`, `PN.bot`, `PN.comandi`, `PN.schermate`, `PN.settimana`, `PN.granpremio`, `PN.missioni`, `PN.sfida`):
+- **Con istanza** (`PN.cielo`, `PN.qualita`, `PN.pista`, `PN.sfondi`, `PN.citta`, `PN.generazione`, `PN.effetti`, `PN.audio`, `PN.vocali`, `PN.profilo`, `PN.personaggio`, `PN.oggetti`, `PN.avversari`, `PN.bot`, `PN.comandi`, `PN.schermate`, `PN.settimana`, `PN.granpremio`, `PN.missioni`, `PN.sfida`):
   una funzione che il gioco chiama una volta sola passando quello che serve (la scena 3D, il terreno, la rete…) e che
   restituisce l'istanza. Quello che un modulo riceve è scritto nel commento in testa al file.
 - **Lo stato del gioco** (posizione del rider, modalità, punti…) resta in `game.js`. I moduli che devono leggerlo
@@ -40,6 +40,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/avversari.js` | avversari | 141 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (jerseyOf, makeRider, bodyTurn, switchOf, lookBot) |
 | `moduli/base.js` | base | 41 | nessuno |
 | `moduli/bot.js` | bot | 419 | fisica (); base (TAU, clamp, mulberry32); lingua (tr); protocollo (COSTI, FERMO, NOMI_BOT); tracciato (dati); pista (center, hgt); oggetti (hazards, showThrow, addHazard, removeHazard); avversari (botUpdate, remotes, playThrow) |
+| `moduli/cielo.js` | cielo | 84 | base (HORIZON, reduceMotion) |
 | `moduli/citta.js` | citta | 881 | pista (center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_MAKE); base (TAU, lin, mulberry32); lingua (tr, fmtLen); geometria (merge, lumpy, vcMat, GEO, gateGeo) |
 | `moduli/comandi.js` | comandi | 105 | base (clamp); audio (initAudio, muted) |
 | `moduli/effetti.js` | effetti | 132 | base (isPhone, lin, rand, reduceMotion) |
@@ -50,19 +51,20 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/lingua.js` | lingua | 41 | base (store) |
 | `moduli/missioni.js` | missioni | 129 | base (store); lingua (lang, tr) |
 | `moduli/oggetti.js` | oggetti | 181 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
-| `moduli/panorami.js` | panorami | 1110 | base (mulberry32) |
+| `moduli/panorami.js` | panorami | 1156 | base (mulberry32) |
 | `moduli/personaggio.js` | personaggio | 123 | base (store, lin); lingua (tr, cityName); rider (jerseyOf, myJersey, myHair, myGear, makeRider); calendario (numeroDelPremio, scenaDi) |
 | `moduli/pista.js` | pista | 176 | base (TAU, clamp, isPhone, lin, mulberry32) |
 | `moduli/portale.js` | portale | 44 | nessuno |
 | `moduli/profilo.js` | profilo | 101 | base (store); lingua (tr) |
+| `moduli/qualita.js` | qualita | 71 | base (store) |
 | `moduli/rider.js` | rider | 572 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi) |
 | `moduli/schermate.js` | schermate | 312 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
 | `moduli/settimana.js` | settimana | 62 | base (store); lingua (lang, tr, cityName); calendario (); schermate (js, giorno) |
 | `moduli/sfida.js` | sfida | 186 | base (fmtTime); lingua (lang, tr, ord); protocollo (SCENE); portale (link, titolo); schermate (cityName, giorno) |
-| `moduli/sfondi.js` | sfondi | 119 | base (lin); panorami (dipingi) |
+| `moduli/sfondi.js` | sfondi | 178 | panorami (dipingiPiani) |
 | `moduli/tracciato.js` | tracciato | 98 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 194 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr); portale (attivo) |
-| `game.js` | — | 1097 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio () |
+| `game.js` | — | 1078 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio () |
 | `diagnosi.js` | — | 177 | nessuno |
 | `i18n.js` | — | 391 | nessuno |
 | `shared/calendario.js` | calendario | 35 | nessuno |
@@ -76,7 +78,9 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | le costanti, `clamp`, `store`, il generatore di numeri casuali con seme | `moduli/base.js` |
 | i testi e la lingua | `moduli/lingua.js` (i testi stessi in `i18n.js`) |
 | la forma della strada di una città (`TRACKS`), il rilievo, il terreno | `moduli/pista.js` |
-| gli sfondi lontani (Vesuvio, Colosseo, skyline) | `moduli/sfondi.js` |
+| il cielo: colori dello scenario, sole, nuvole che scorrono, la direzione del sole di tutto il gioco (R-513) | `moduli/cielo.js` |
+| la qualità automatica (alta, media, bassa), gli fps veri dei giocatori e il loro invio a `/api/fps` (A-14) | `moduli/qualita.js` (il server in `src/worker.js` e `src/classifica.mjs`) |
+| gli sfondi lontani (Vesuvio, Colosseo, skyline) in due piani, monti e città, anche per la Neve | `moduli/sfondi.js` (le cartoline le dipinge `moduli/panorami.js`) |
 | forme condivise (abete, roccia, rampa della neve, porta) | `moduli/geometria.js` |
 | i modelli e i colori di una città, le facciate, il traguardo | `moduli/citta.js` e `citta/<nome>.js` |
 | il modello del rider, la maglia, i capelli, pantaloni, casco e tavole, lo stemma, la posa | `moduli/rider.js` |

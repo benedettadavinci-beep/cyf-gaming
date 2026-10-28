@@ -137,6 +137,20 @@ export default {
       return json({ ok: true });
     }
 
+    // /api/fps (A-14, dalla 0.26.0): POST { id, fps, tel, q } una volta per pagina, dopo 45 s di gioco: la media degli fps
+    // veri del giocatore, telefono o PC, e il livello di qualità scelto in automatico (alta, media, bassa). Niente dati personali.
+    if (url.pathname === '/api/fps') {
+      if (request.method !== 'POST') return json({ error: 'Serve POST' }, { status: 405 });
+      const body = await request.text();
+      if (body.length > 200) return json({ error: 'Troppo grande' }, { status: 413 });
+      let b; try { b = JSON.parse(body); } catch (x) { return json({ error: 'JSON non valido' }, { status: 400 }); }
+      if (!cleanId(b && b.id)) return json({ error: 'id mancante' }, { status: 400 });
+      const fps = typeof b.fps === 'number' && Number.isFinite(b.fps) && b.fps > 0 && b.fps < 400 ? b.fps : 0;
+      if (!fps) return json({ error: 'fps mancanti' }, { status: 400 });
+      await board(env).fpsMisura(b.tel ? 1 : 0, fps, b.q);
+      return json({ ok: true });
+    }
+
     // /api/ritorni (R-232): quanti giocatori tornano dopo 1, 7 e 30 giorni, per giorno di prima visita.
     // "visite" = chi apre il gioco (dalla 0.16.1), "corse" = chi entra in una gara (dal 24/10), "fonti" = le visite divise
     // per la fonte della prima visita di ogni giocatore (R-246, dalla 0.24.0)
