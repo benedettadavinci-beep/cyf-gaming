@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- versione della pagina: deve essere uguale a public/config.js (R-011, controllata da tools/verifica/controlli.mjs C4) -->
-<meta name="cyf-versione" content="0.25.6">
+<meta name="cyf-versione" content="0.25.7">
 <title>Pista Nera · C-Y-F Gaming</title>
 <meta name="description" content="Sfida i tuoi amici in una discesa in 3D, in snowboard sulla neve o in skateboard per 12 città: stessa pista, stesso via, vince il tempo migliore.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -276,8 +276,19 @@
   .adlbl { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #6b7a8c; margin: 0 0 3px; }
   .adcontent { min-height: 60px; display: grid; place-items: center; }
   .adcontent ins { display: inline-block; }
-  .adprova { width: 100%; min-height: 72px; border: 2px dashed #b8c4d2; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; padding: 6px; box-sizing: border-box; }
-  .adprova b { font-size: 15px; } .adprova span { font-size: 12px; color: #6b7a8c; }
+  .adprova { width: 100%; min-height: 72px; border: 2px dashed #b8c4d2; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; text-align: left; padding: 4px 8px; box-sizing: border-box; overflow: hidden; }
+  .adtesto { display: flex; flex-direction: column; gap: 2px; } .adprova b { font-size: 14px; } .adprova span { font-size: 11px; color: #6b7a8c; }
+  /* il cagnolino di prova: salta, la coda scodinzola, l'orecchio svolazza; fermo se il telefono chiede meno movimento */
+  .adcane { flex: none; line-height: 0; } .adcane svg { overflow: visible; }
+  .adcane .salto { animation: cane-salto 1.1s cubic-bezier(.3,0,.2,1) infinite; transform-origin: 56px 54px; }
+  .adcane .ombra { animation: cane-ombra 1.1s cubic-bezier(.3,0,.2,1) infinite; transform-origin: 60px 59px; }
+  .adcane .coda { animation: cane-coda .35s ease-in-out infinite alternate; transform-origin: 22px 34px; }
+  .adcane .orecchio { animation: cane-orecchio 1.1s ease-in-out infinite; transform-origin: 82px 10px; }
+  @keyframes cane-salto { 0%, 100% { transform: translateY(0) scale(1.04, .94); } 15% { transform: translateY(-2px) scale(.96, 1.06); } 50% { transform: translateY(-16px) scale(1, 1); } 85% { transform: translateY(-2px) scale(1, 1); } }
+  @keyframes cane-ombra { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.7); opacity: .45; } }
+  @keyframes cane-coda { from { transform: rotate(-18deg); } to { transform: rotate(22deg); } }
+  @keyframes cane-orecchio { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(28deg); } }
+  @media (prefers-reduced-motion: reduce) { .adcane .salto, .adcane .ombra, .adcane .coda, .adcane .orecchio { animation: none; } }
   .adclose { position: absolute; top: 2px; right: 4px; border: 0; background: none; color: #6b7a8c; font-size: 16px; line-height: 1; padding: 2px 4px; cursor: pointer; }
   .adhome { display: flex; justify-content: center; }
   .adhome .adbox { box-shadow: 0 0 0 1px rgba(19,35,58,.12); }

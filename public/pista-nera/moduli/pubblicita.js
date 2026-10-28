@@ -21,6 +21,19 @@ PN.pubblicita = ({ diag }) => {
   const CHIAVE = 'cyf.pubblicita';
   const OGNI_S = Number(CFG.ogniS) >= 10 ? Number(CFG.ogniS) : 60;
   const LARGO = 300, ALTO = 100;   // misura del riquadro (il formato "banner mobile grande" degli annunci)
+  // cagnolino di prova: disegno originale, 120×64, il corpo salta (gruppo .salto), la coda e l'orecchio si muovono (CSS)
+  const CANE = '<svg viewBox="0 0 120 64" width="110" height="58" xmlns="http://www.w3.org/2000/svg">'
+    + '<ellipse class="ombra" cx="60" cy="59" rx="30" ry="3.5" fill="rgba(19,35,58,.18)"/>'
+    + '<g class="salto">'
+    + '<path class="coda" d="M22 34 Q10 26 14 16" fill="none" stroke="#b5702e" stroke-width="5" stroke-linecap="round"/>'
+    + '<rect x="30" y="38" width="7" height="16" rx="3.5" fill="#b5702e"/><rect x="42" y="38" width="7" height="16" rx="3.5" fill="#9e5f24"/>'
+    + '<rect x="66" y="38" width="7" height="16" rx="3.5" fill="#b5702e"/><rect x="78" y="38" width="7" height="16" rx="3.5" fill="#9e5f24"/>'
+    + '<ellipse cx="56" cy="36" rx="34" ry="15" fill="#c98540"/><ellipse cx="60" cy="42" rx="16" ry="7" fill="#f2d9b8"/>'
+    + '<circle cx="90" cy="26" r="14" fill="#c98540"/><ellipse cx="100" cy="31" rx="9" ry="6" fill="#f2d9b8"/>'
+    + '<ellipse class="orecchio" cx="80" cy="18" rx="6" ry="11" fill="#9e5f24" transform="rotate(-20 80 18)"/>'
+    + '<circle cx="93" cy="23" r="2.6" fill="#13233a"/><circle cx="93.8" cy="22.2" r=".9" fill="#fff"/>'
+    + '<circle cx="106" cy="29" r="3" fill="#13233a"/><path d="M99 34 q4 3 7 0" fill="none" stroke="#13233a" stroke-width="1.5" stroke-linecap="round"/>'
+    + '</g></svg>';
 
   // ---------- chi serve l'annuncio ----------
   let fornitore = '';
@@ -63,7 +76,9 @@ PN.pubblicita = ({ diag }) => {
   function riempi() {
     contenuto.innerHTML = '';
     if (fornitore === 'prova') {
-      contenuto.innerHTML = '<div class="adprova"><b>' + tr('adDemoTitle') + '</b><span>' + tr('adDemoText') + '</span></div>';
+      // riquadro di prova (richiesta di Luigi del 28/10 alle 20:09): un cagnolino disegnato qui che saltella, così si vede
+      // come viene un annuncio animato in quel posto; con "riduci il movimento" sta fermo (CSS)
+      contenuto.innerHTML = '<div class="adprova"><div class="adcane" aria-hidden="true">' + CANE + '</div><div class="adtesto"><b>' + tr('adDemoTitle') + '</b><span>' + tr('adDemoText') + '</span></div></div>';
       return true;
     }
     if (fornitore === 'google') {
