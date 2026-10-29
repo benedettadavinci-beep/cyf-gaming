@@ -15,6 +15,7 @@ import { MAX_PLAYERS, DURATIONS, lengthFor, CODE_RE, PUBLIC_ROOMS, json, board, 
 import { pistaDelGiorno } from './giorno.mjs';
 import { settimanaCorrente } from './settimana.mjs';
 import { granPremio, SALE_GP } from './granpremio.mjs';
+import { ordinaSaleOnline, ordinaSaleGp } from './sale.mjs';
 // le due classi dei Durable Objects devono uscire dal file principale (wrangler.jsonc)
 export { RaceRoom } from './stanza.mjs';
 export { Leaderboard } from './classifica.mjs';
@@ -54,36 +55,29 @@ export default {
       return json({ at: g.at, now: Date.now(), giorno: g.giorno, scena: g.scena, minuti: g.minuti, aperto: g.aperto, inCorso: g.inCorso, ...b });
     }
 
-    // /api/quick?gp=1 → la sala del Gran Premio in cui entrare (R-247): si riempie la prima, poi la seconda…
-    if (url.pathname === '/api/quick' && url.searchParams.get('gp') === '1') {
-      const g = granPremio();
-      if (!g.aperto) return json({ error: 'Il Gran Premio non è aperto', at: g.at }, { status: 409 });
-      let best = null;
-      for (let i = 1; i <= SALE_GP; i++) {
-        const code = 'GP' + String(i).padStart(2, '0');   // GP01…GP08: i codici delle stanze hanno almeno 4 caratteri
-        let info;
-        try { info = await env.RACE.get(env.RACE.idFromName(code)).info(); } catch (e) { continue; }
-        if (info.players >= MAX_PLAYERS) continue;
-        if (!best || info.players > best.players) best = { code, players: info.players };
-        if (best.players >= MAX_PLAYERS - 1) break;
-      }
-      return json(best ? { code: best.code, players: best.players } : { error: 'Tutte le sale sono piene' }, { status: best ? 200 : 503 });
-    }
-
-    // /api/quick → la stanza pubblica in cui entrare (modalità online)
+    // /api/quick?id=… → la sala pubblica in cui entrare (modalità online); con gp=1 la sala del Gran Premio (R-247): si riempie
+    // la prima, poi la seconda… Dalla 0.26.2 (B-04) la sala PRENOTA il posto prima di rispondere, contando presenti più prenotati:
+    // 50 persone che premono "Online" nello stesso istante finiscono in sale diverse invece di essere respinte dal saluto
     if (url.pathname === '/api/quick') {
-      let best = null;
-      for (let i = 1; i <= PUBLIC_ROOMS; i++) {
-        const code = 'ONLINE' + i;
-        let info;
-        try { info = await env.RACE.get(env.RACE.idFromName(code)).info(); } catch (e) { continue; }
-        if (info.players >= MAX_PLAYERS) continue;
-        // meglio una sala con gente che aspetta; altrimenti una con una gara in corso; altrimenti la prima vuota
-        const score = (info.phase === 'lobby' || info.phase === 'results') ? (info.players > 0 ? 3 : 1) : 2;
-        if (!best || score > best.score) best = { code, score, players: info.players };
-        if (score === 3) break;
+      const gp = url.searchParams.get('gp') === '1';
+      if (gp) { const g = granPremio(); if (!g.aperto) return json({ error: 'Il Gran Premio non è aperto', at: g.at }, { status: 409 }); }
+      const id = cleanId(url.searchParams.get('id')) || '';
+      const codici = gp ? Array.from({ length: SALE_GP }, (_, i) => 'GP' + String(i + 1).padStart(2, '0'))   // GP01…GP08: i codici hanno almeno 4 caratteri
+        : Array.from({ length: PUBLIC_ROOMS }, (_, i) => 'ONLINE' + (i + 1));
+      const sala = code => env.RACE.get(env.RACE.idFromName(code));
+      const infos = [];
+      for (let n = 0; n < codici.length; n++) {
+        let i; try { i = { code: codici[n], n, ...(await sala(codici[n]).info()) }; } catch (e) { continue; }
+        infos.push(i);
+        // sala online: una con gente che aspetta (anche solo prenotata) e un posto libero basta, non serve interrogare le altre
+        const posti = i.players + (i.prenotati || 0);
+        if (!gp && (i.phase === 'lobby' || i.phase === 'results') && posti > 0 && posti < MAX_PLAYERS) break;
       }
-      return json(best ? { code: best.code, players: best.players } : { error: 'Tutte le sale sono piene' }, { status: best ? 200 : 503 });
+      for (const c of (gp ? ordinaSaleGp : ordinaSaleOnline)(infos, MAX_PLAYERS)) {
+        let r; try { r = await sala(c.code).prenota(id); } catch (e) { continue; }
+        if (r.ok) return json({ code: c.code, players: r.players, prenotati: r.prenotati });
+      }
+      return json({ error: 'Tutte le sale sono piene' }, { status: 503 });
     }
 
     // /api/leaderboard?min=5 → migliori tempi per la durata scelta

@@ -7,6 +7,7 @@ import { pistaDelGiorno, pistaNumero } from './giorno.mjs';
 import { premioPerGara } from './settimana.mjs';
 import { granPremio, GP_RE } from './granpremio.mjs';
 import { stimaArrivo } from './avversari.mjs';
+import { pulisciPrenotazioni, prenotaPosto } from './sale.mjs';
 
 export class RaceRoom extends DurableObject {
   constructor(ctx, env) {
@@ -16,6 +17,7 @@ export class RaceRoom extends DurableObject {
     this.lastDrop = new Map();
     this.botUltimo = new Map();   // ultima posizione nota di ogni avversario del software (per il tempo stimato e per un nuovo pilota)
     this.botsAt = 0;              // quando il pilota ha mandato le posizioni l'ultima volta
+    this.prenotazioni = new Map();   // posti prenotati da /api/quick e non ancora consumati dal saluto (B-04): id → istante
     // i client mandano "ping" ogni 20 s: risponde il sistema senza svegliare la stanza
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
@@ -38,10 +40,21 @@ export class RaceRoom extends DurableObject {
   }
   save() { return this.ctx.storage.put('state', this.state); }
 
-  // RPC usata da /api/quick
+  // RPC usata da /api/quick: presenti, posti prenotati negli ultimi 10 s (B-04) e fase
   async info() {
     await this.load();
-    return { players: this.players().length, phase: this.state.phase };
+    return { players: this.players().length, prenotati: this.prenotati(), phase: this.state.phase };
+  }
+  // prenotazioni ancora valide: toglie quelle scadute e quelle di chi nel frattempo è entrato
+  prenotati() { return pulisciPrenotazioni(this.prenotazioni, new Set(this.players().map(p => p.id))); }
+  // RPC usata da /api/quick (B-04): prenota un posto se presenti + prenotati sono sotto il massimo. Una chiamata alla volta
+  // per stanza (input gate dei Durable Objects), quindi 50 richieste nello stesso istante ricevono 50 risposte coerenti
+  async prenota(id) {
+    await this.load();
+    const presenti = this.players().length;
+    this.prenotati();
+    const ok = prenotaPosto(this.prenotazioni, id, presenti, this.state.daily ? 1 : MAX_PLAYERS);
+    return { ok, players: presenti, prenotati: this.prenotazioni.size };
   }
 
   async fetch(request) {
@@ -305,6 +318,7 @@ export class RaceRoom extends DurableObject {
       if (others.length >= (st.daily ? 1 : MAX_PLAYERS)) { this.send(ws, { t: 'full' }); ws.close(1008, 'Stanza piena'); return; }
       const id = cleanId(m.id);
       if (!id) return;
+      this.prenotazioni.delete(id);   // il posto prenotato da /api/quick è occupato davvero (B-04)
       // stesso giocatore riconnesso da un'altra scheda: chiude la vecchia connessione
       for (const old of this.sockets(ws)) {
         const a = old.deserializeAttachment();

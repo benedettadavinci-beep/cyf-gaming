@@ -552,9 +552,7 @@
     const b = $('btnOnline');
     b.disabled = true;
     try {
-      const res = await fetch('/api/quick', { cache: 'no-store' });
-      const d = await res.json();
-      if (!res.ok || !d.code) throw new Error();
+      const d = await SALA.chiedi(0);   // il server prenota il posto (B-04)
       connect(d.code, true);
     } catch (e) { menuError(tr('errOnline')); }
     b.disabled = false;
@@ -566,12 +564,12 @@
     const b = $('btnGp');
     b.disabled = true;
     try {
-      const res = await fetch('/api/quick?gp=1', { cache: 'no-store' });
-      const d = await res.json();
-      if (res.status === 409) { menuError(tr('gpErr')); GP.carica(); return; }
-      if (!res.ok || !d.code) throw new Error();
+      const d = await SALA.chiedi(1);   // il server prenota il posto (B-04)
       connect(d.code, true, false, null, true);
-    } catch (e) { menuError(tr('errOnline')); b.disabled = false; }
+    } catch (e) {
+      if (e && e.status === 409) { menuError(tr('gpErr')); GP.carica(); return; }
+      menuError(tr('errOnline')); b.disabled = false;
+    }
   }
   function connect(code, pub, daily, sfida, gp) {
     initAudio();
@@ -619,8 +617,8 @@
       clearInterval(net.pingTimer);
       if (!net.want) return;
       if (ev.code === 1008) {
-        // sala pubblica piena: se ne cerca un'altra
-        if (net.pub) { net.want = false; $('btnOnline').click(); return; }
+        // sala pubblica (online o Gran Premio) piena: se ne chiede un'altra da soli, fino a 3 volte, senza errore (B-04)
+        if (net.pub) { net.want = false; const gp = net.gp; SALA.riprova(gp).then(d => { if (d) connect(d.code, true, false, null, !!gp); else { toMenu(); menuError(tr('errFull')); } }); return; }
         net.want = false; toMenu(); menuError(tr(net.daily ? 'dailyErr' : 'errFull')); return;
       }
       if (ev.code === 4000) { net.want = false; toMenu(); menuError(tr('errOtherTab')); return; }
@@ -725,7 +723,7 @@
     } else if (m.t === 'left') {
       removeRemote(m.id);
     } else if (m.t === 'full') {
-      menuError(tr('errFull'));
+      if (!net.pub) menuError(tr('errFull'));   // sala pubblica: la chiusura 1008 chiede un'altra sala da sola (B-04)
     } else if (m.t === 'aggiorna') {
       // il server parla una versione nuova del protocollo: questa pagina è vecchia (la chiusura 4001 porta al menu)
       say(tr('errAggiorna'), '#d8302a');
@@ -923,6 +921,7 @@
   const SETT = PN.settimana({ schermate: SCHERMATE, say, vaiInCitta: sc => { if (THEMES[sc] && !racing()) { selScena.value = sc; selScena.dispatchEvent(new Event('change')); } }, cambiato: () => PERS.mostra() });
   // Gran Premio delle 21 (R-247): riquadro con il conto alla rovescia nel menu; a fine gara la propria posizione nei risultati
   const GP = PN.granpremio({ myId, entra: entraGp, cambiato: () => { if (mode === 'results') renderResults(); } });
+  const SALA = PN.sala({ myId, diag });   // sala online o del Gran Premio con il posto prenotato e i nuovi tentativi (B-04)
 
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();

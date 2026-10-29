@@ -37,7 +37,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | File | Modulo (PN.…) | Righe | Dipende da (cosa usa) |
 |---|---|---|---|
 | `moduli/audio.js` | audio | 66 | base (store); lingua (tr) |
-| `moduli/avversari.js` | avversari | 141 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (jerseyOf, makeRider, bodyTurn, switchOf, lookBot) |
+| `moduli/avversari.js` | avversari | 147 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (jerseyOf, makeRider, bodyTurn, switchOf, lookBot) |
 | `moduli/base.js` | base | 41 | nessuno |
 | `moduli/bot.js` | bot | 419 | fisica (); base (TAU, clamp, mulberry32); lingua (tr); protocollo (COSTI, FERMO, NOMI_BOT); tracciato (dati); pista (center, hgt); oggetti (hazards, showThrow, addHazard, removeHazard); avversari (botUpdate, remotes, playThrow) |
 | `moduli/cielo.js` | cielo | 84 | base (HORIZON, reduceMotion) |
@@ -59,13 +59,14 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/pubblicita.js` | pubblicita | 142 | portale (attivo); lingua (tr) |
 | `moduli/qualita.js` | qualita | 71 | base (store) |
 | `moduli/rider.js` | rider | 572 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi) |
-| `moduli/schermate.js` | schermate | 312 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
+| `moduli/sala.js` | sala | 37 | nessuno |
+| `moduli/schermate.js` | schermate | 321 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
 | `moduli/settimana.js` | settimana | 62 | base (store); lingua (lang, tr, cityName); calendario (); schermate (js, giorno) |
 | `moduli/sfida.js` | sfida | 186 | base (fmtTime); lingua (lang, tr, ord); protocollo (SCENE); portale (link, titolo); schermate (cityName, giorno) |
 | `moduli/sfondi.js` | sfondi | 178 | panorami (dipingiPiani) |
-| `moduli/tracciato.js` | tracciato | 98 | base (TAU, clamp, mulberry32) |
+| `moduli/tracciato.js` | tracciato | 103 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 194 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr); portale (attivo) |
-| `game.js` | — | 1086 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio () |
+| `game.js` | — | 1086 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio (); sala () |
 | `diagnosi.js` | — | 177 | nessuno |
 | `i18n.js` | — | 395 | nessuno |
 | `shared/calendario.js` | calendario | 35 | nessuno |
@@ -98,6 +99,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | dove sono ostacoli, bonus, rampe e porte (la pista come dati, uguale per tutti) | `moduli/tracciato.js` (i modelli li costruisce `moduli/generazione.js`) |
 | gli avversari guidati dal computer: guida, salti, acrobazie, banane, pilota (R-234) | `moduli/bot.js` (il server in `src/worker.js` e `src/avversari.mjs`) |
 | i messaggi tra gioco e server | `shared/protocollo.js` |
+| la sala online o del Gran Premio: posto prenotato da `/api/quick` e nuovi tentativi se è piena (B-04) | `moduli/sala.js` (il server in `src/sale.mjs`, funzioni pure, e `src/stanza.mjs`, `prenota`) |
 | il calendario delle settimane (numero, città, maglia) | `shared/calendario.js` |
 | schermate (menu, stanza, risultati), avvisi, HUD, classifica del menu | `moduli/schermate.js` |
 | generazione della pista con il seme, palazzi, lati della strada | `moduli/generazione.js` |
