@@ -24,7 +24,9 @@ PN.garaLocale = ({ myId, onMsg, diag }) => {
   const CODICE = 'ALLENAMENTO';
   let st = null, timer = 0, timeoutT = 0, timeoutAt = 0, round = 0, chiuso = false;
   const log = m => { if (diag && diag.log) diag.log('rete', 'locale: ' + m); };
-  const manda = m => { if (!chiuso) onMsg(m); };
+  // i messaggi arrivano al gioco al giro successivo, come dalla rete: così "results" non interrompe a metà chi ha appena
+  // mandato "finish" (in game.js dopo l'invio si scrive ancora il banner "aspetta gli altri")
+  const manda = m => { if (!chiuso) setTimeout(() => { if (!chiuso) onMsg(m); }, 0); };
   const creaBot = (n, racers) => {
     const usati = new Set(racers.map(r => r.color)), nomi = new Set(racers.map(r => r.name.toLowerCase()));
     const liberi = NOMI_BOT.filter(x => !nomi.has(x.toLowerCase())).sort(() => Math.random() - 0.5);
