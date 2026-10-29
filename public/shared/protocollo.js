@@ -20,8 +20,9 @@ globalThis.CYF_PROTOCOLLO = (() => {
   const MAX_PLAYERS = 8;
   const DROP_KINDS = ['banana', 'bomb', 'bananone'];
   const THROW_KINDS = ['banana', 'bananone'];   // oggetti che si lanciano al giocatore davanti (R-224, R-231)
-  const COSTI = { banana: 50, bomb: 150 };     // punti della gara spesi per lasciare l'oggetto (R-113)
-  COSTI.bananone = COSTI.bomb * 10;            // bananone: 10 volte la bomba (R-231)
+  // punti della gara spesi per lasciare l'oggetto (R-113). Dalla 0.27.0 (R-520, R-521, 29/10): banana 1.500 (era 50),
+  // bomba 50 (era 150), così sulla pista si trovano soprattutto bombe; bananone 1.500 fisso (S-54, non più 10 volte la bomba)
+  const COSTI = { banana: 1500, bomb: 50, bananone: 1500 };
   const FERMO = { banana: 2, bomb: 4, bananone: 4 };   // secondi di fermo per chi viene colpito (R-223, R-224, R-231)
   // avversari guidati dal software (R-234, S-39): nomi comuni in più lingue, usati dal server (gare) e dal gioco (allenamento)
   const NOMI_BOT = ['Marco', 'Giulia', 'Luca', 'Sofia', 'Matteo', 'Chiara', 'Davide', 'Elena', 'Paolo', 'Sara', 'Andrea', 'Marta', 'Léa', 'Hugo', 'Chloé', 'Louis',

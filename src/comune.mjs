@@ -27,9 +27,10 @@ export const BOT_ATTESA_MS = 15000;                 // sala online: da soli per 
 export const BOT_SALA = 3, BOT_GIORNO = 3;          // quanti nella sala online vuota e nella pista del giorno (R-238)
 export const BOT_LIVELLI = ['forte', 'medio', 'lento', 'medio'];   // livelli misti
 export const BOT_PILOTA_MS = 3000;                 // se chi li guida non manda le loro posizioni per 3 s, li prende un'altra persona
-// misure (R-232): fasce dei punti fatti in una gara, allineate ai costi (sotto la banana, banana, bomba, bananone)
-// e fasce del tempo di caricamento della pagina del gioco (3 s è la soglia dello studio di Google sui siti da telefono)
-export const fasciaPunti = g => (g < PROTO.COSTI.banana ? 'pts_lt50' : g < PROTO.COSTI.bomb ? 'pts_50_149' : g < PROTO.COSTI.bananone ? 'pts_150_1499' : 'pts_1500');
+// misure (R-232): fasce dei punti fatti in una gara. Erano allineate ai costi del 26/10 (banana 50, bomba 150, bananone 1.500);
+// dalla 0.27.0 i costi sono cambiati (R-520, R-521) ma le fasce restano con i numeri fissi, così le misure di oggi si confrontano
+// con quelle dei giorni prima. Poi fasce del tempo di caricamento della pagina (3 s è la soglia dello studio di Google sui siti da telefono)
+export const fasciaPunti = g => (g < 50 ? 'pts_lt50' : g < 150 ? 'pts_50_149' : g < 1500 ? 'pts_150_1499' : 'pts_1500');
 export const fasciaCarico = ms => (ms < 3000 ? 'lt3' : ms < 6000 ? '3_6' : ms < 10000 ? '6_10' : 'gt10');
 // fasce degli fps veri dei giocatori (A-14): sotto 20 il gioco scatta, 20-40 passabile, 40-55 buono, oltre 55 pieno
 export const fasciaFps = f => (f < 20 ? 'lt20' : f < 40 ? '20_40' : f < 55 ? '40_55' : 'gt55');

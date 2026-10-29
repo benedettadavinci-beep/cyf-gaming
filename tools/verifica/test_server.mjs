@@ -275,7 +275,7 @@ console.log('T4 · banane e bombe (solo in gara, non più di una ogni 0,9 s)');
   A.send({ t: 'drop', kind: 'bananone', x: 1, z: -14, hid: 'h4' });
   const db = await B.wait(m => m.t === 'drop' && m.hid === 'h4', 2000);
   ok(db && db.kind === 'bananone', 'bananone sulla pista (nessuno davanti) inoltrato agli altri', db && JSON.stringify(db));
-  ok(PROTO.COSTI.bananone === PROTO.COSTI.bomb * 10 && PROTO.FERMO.bananone === 4, 'bananone: costa 10 volte la bomba e ferma 4 s', JSON.stringify(PROTO.COSTI));
+  ok(PROTO.COSTI.banana === 1500 && PROTO.COSTI.bomb === 50 && PROTO.COSTI.bananone === 1500 && PROTO.FERMO.bananone === 4, 'costi 0.27.0 (R-520, R-521, S-54): banana 1.500, bomba 50, bananone 1.500 fisso; il bananone ferma 4 s', JSON.stringify(PROTO.COSTI));
   A.close(); B.close();
 }
 
