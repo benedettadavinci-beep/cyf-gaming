@@ -1,5 +1,5 @@
 // modulo: sfondi
-// dipende da: panorami
+// dipende da: panorami, base
 // Sfondi lontani delle città (R-405, dalla 0.20.0): la veduta classica di ogni città dipinta come una cartolina in alta
 // risoluzione (moduli/panorami.js) e montata su mezzo cilindro intorno alla telecamera, con il monumento dritto in fondo
 // alla discesa (R-308). Sotto c'è un disco del colore del suolo lontano (o del mare). Prima (fino alla 0.19.0) erano
@@ -19,8 +19,32 @@ window.PN = window.PN || {};
 PN.sfondi = (() => {
   // dove sono i file dei moduli: servono al worker, che li ricarica per conto suo
   const QUI = document.currentScript ? document.currentScript.src : location.href;
+  // il suolo lontano delle città sull'acqua (R-513, punto 6, dalla 0.29.0): la stessa sfumatura, più un luccichio che
+  // scintilla piano verso il lato del sole. Celle piccole con una fase a caso: ognuna si accende e si spegne per conto suo
+  const VERTICE_ACQUA = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+  const FRAMMENTO_ACQUA = [
+    'uniform sampler2D map; uniform float time; uniform vec2 sole; uniform vec3 sunCol; varying vec2 vUv;',
+    'float hash(vec2 p){ vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }',
+    'void main(){',
+    '  vec4 base = texture2D(map, vUv);',
+    '  vec2 d = vUv - 0.5;',
+    '  float r = length(d) * 2.0;',
+    '  float acqua = smoothstep(0.42, 0.68, r) * (1.0 - smoothstep(0.96, 1.0, r));',   // solo nella parte del mare, non nella nebbia al centro
+    '  vec2 cella = floor(vUv * 380.0);',
+    '  float fase = hash(cella), c2 = hash(cella + 7.0);',
+    '  float lampo = pow(max(sin(time * (1.2 + fase * 1.6) + fase * 6.2832), 0.0), 28.0);',
+    '  float dove = step(0.955, c2);',   // una cella su venti luccica
+    '  float verso = 0.35 + 0.65 * smoothstep(-0.2, 1.0, dot(normalize(d + 1e-5), sole));',   // di più verso il sole
+    '  vec3 c = base.rgb + sunCol * lampo * dove * acqua * verso * 0.9;',
+    '  gl_FragColor = vec4(min(c, vec3(1.0)), 1.0);',
+    '}'
+  ].join('\n');
   return ({ scene, telefono }) => {
     const PAN = PN.panorami, G = PAN.GEOMETRIA;
+    const { reduceMotion } = PN.base;
+    // `?cielo=fermo` (le foto delle prove) e "riduci il movimento" tengono fermo anche il luccichio dell'acqua
+    const fermo = reduceMotion || new URLSearchParams(location.search).get('cielo') === 'fermo';
+    const acque = [];   // i suoli con il luccichio, per far scorrere il tempo
     const LARGHEZZA = telefono ? 2048 : 4096;   // pixel della tela su 180°: sul computer ~1 pixel della tela per pixel dello schermo
     const TENUTE = 2;
     const builtSky = {};   // città → gruppo (si svuota quando una città esce dalla memoria)
@@ -93,10 +117,18 @@ PN.sfondi = (() => {
       g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
       const tex = new THREE.CanvasTexture(c);
       tex.encoding = THREE.sRGBEncoding;
-      const disco = new THREE.Mesh(new THREE.CircleGeometry(1150, 64), new THREE.MeshBasicMaterial({ map: tex, fog: false }));
+      let mat;
+      if (PAN.acqua(name)) {
+        // il sole sta davanti a sinistra (moduli/cielo.js, SOLE): sul disco visto dall'alto, con la rotazione di -90° su x,
+        // uv.x cresce verso +x e uv.y verso -z (davanti), quindi la direzione del sole in uv è (-0.6, 0.8)
+        mat = new THREE.ShaderMaterial({ fog: false, uniforms: { map: { value: tex }, time: { value: 0 }, sole: { value: new THREE.Vector2(-0.6, 0.8) }, sunCol: { value: new THREE.Color(cielo.sole || '#fff4dc') } }, vertexShader: VERTICE_ACQUA, fragmentShader: FRAMMENTO_ACQUA });
+        acque.push(mat);
+      } else mat = new THREE.MeshBasicMaterial({ map: tex, fog: false });
+      const disco = new THREE.Mesh(new THREE.CircleGeometry(1150, 64), mat);
       disco.rotation.x = -Math.PI / 2;
       disco.position.y = G.basso;
       disco.name = 'suolo';
+      disco.userData.acqua = !!PAN.acqua(name);
       return disco;
     }
 
@@ -130,7 +162,12 @@ PN.sfondi = (() => {
     function butta(o) {
       o.traverse(x => {
         if (x.geometry) x.geometry.dispose();
-        if (x.material) { const m = x.material.map; if (m) { if (m.image && m.image.close) m.image.close(); m.dispose(); } x.material.dispose(); }
+        if (x.material) {
+          const i = acque.indexOf(x.material); if (i >= 0) acque.splice(i, 1);
+          const m = x.material.map || (x.material.uniforms && x.material.uniforms.map && x.material.uniforms.map.value);
+          if (m) { if (m.image && m.image.close) m.image.close(); m.dispose(); }
+          x.material.dispose();
+        }
       });
     }
     function libera(name) {
@@ -168,6 +205,7 @@ PN.sfondi = (() => {
       if (gL) gL.position.copy(camera.position);
       g.position.copy(camera.position);
       if (typeof xStrada === 'number' && isFinite(xStrada)) g.position.x = xStrada;
+      if (!fermo) for (const m of acque) m.uniforms.time.value = performance.now() / 1000;   // il luccichio dell'acqua scorre
     }
 
     // chi dipinge le cartoline: 'worker', 'pagina' o '-' se non se n'è ancora dipinta nessuna (per la diagnosi)

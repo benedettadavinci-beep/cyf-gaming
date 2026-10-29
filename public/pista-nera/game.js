@@ -116,7 +116,7 @@
     groundMat.needsUpdate = true;
     PISTA.resetGround();
     // la cartolina dello scenario (città, e dalla 0.26.0 anche la Neve: i coni 3D restano solo se la Neve non ha la sua)
-    const sg = SFONDI.ha(theme) ? skylineFor(theme, { orizzonte: T.sky[2], nebbia: T.fog }) : null;
+    const sg = SFONDI.ha(theme) ? skylineFor(theme, { orizzonte: T.sky[2], nebbia: T.fog, sole: T.sun }) : null;
     ranges.visible = theme === 'neve' && !sg;
     SFONDI.mostra(sg ? theme : null);
     PART = T.part || null;
@@ -990,6 +990,7 @@
     v3.set(P.x, gH, P.z); world.localToWorld(v3);
     sun.target.position.copy(v3);
     sun.position.copy(v3).add(SUN_OFFSET);
+    CIELO.uccelliVisibili(QUALITA.livello !== 'bassa');   // nella qualità bassa niente uccelli (R-513, punto 6)
     CIELO.aggiorna(dt, camera);
     ranges.position.copy(camera.position);
     SFONDI.segui(theme, camera, center(P.z));   // la città ferma sull'asse della strada, i monti con la telecamera (R-513)

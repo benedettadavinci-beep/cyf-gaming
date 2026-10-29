@@ -64,6 +64,42 @@ PN.cielo = (() => {
     mesh.name = 'cielo';
     scene.add(mesh);
 
+    // uccelli lontani (R-513, punto 6, dalla 0.29.0): uno stormo di poche linee scure a "V" che attraversa piano il cielo
+    // a ~450 m, battendo le ali ognuno con il suo ritmo. Seguono la telecamera come il cielo, quindi restano lontani.
+    // Fermi con ?cielo=fermo e con "riduci il movimento" (le foto delle prove). Costo: 4-6 linee di 3 punti.
+    const N_UCCELLI = telefono ? 4 : 6, RAGGIO_UCCELLI = 450;
+    const stormo = new THREE.Group();
+    stormo.name = 'uccelli';
+    const uccelli = [];
+    const matUccello = new THREE.LineBasicMaterial({ color: '#2b3340', transparent: true, opacity: 0.7, fog: false, depthWrite: false });
+    for (let i = 0; i < N_UCCELLI; i++) {
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array([-2.6, 0, 0, 0, 0.35, 0, 2.6, 0, 0]);
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const linea = new THREE.Line(geo, matUccello);
+      linea.renderOrder = -1;
+      stormo.add(linea);
+      // posto nello stormo (a V larga), fase e ritmo del battito propri
+      uccelli.push({ linea, dx: (i - (N_UCCELLI - 1) / 2) * 9, dz: -Math.abs(i - (N_UCCELLI - 1) / 2) * 7, dy: (i % 2) * 2.5, fase: i * 1.7, ritmo: 2.6 + (i % 3) * 0.5 });
+    }
+    let angolo = 0.55, quota = 118;   // dove sta lo stormo: angolo rispetto a davanti (radianti, cresce verso sinistra) e altezza
+    const stormoVisibile = { value: true };
+    scene.add(stormo);
+    function posizionaStormo() {
+      const sx = Math.sin(angolo) * RAGGIO_UCCELLI, sz = -Math.cos(angolo) * RAGGIO_UCCELLI;
+      stormo.position.set(mesh.position.x + sx, mesh.position.y + quota, mesh.position.z + sz);
+      stormo.rotation.y = angolo;   // lo stormo guarda di traverso rispetto a chi lo vede
+    }
+    function battito(time) {
+      for (const u of uccelli) {
+        const a = Math.sin(time * u.ritmo + u.fase) * 1.4;
+        const p = u.linea.geometry.attributes.position;
+        p.setY(0, a); p.setY(2, a);
+        p.needsUpdate = true;
+        u.linea.position.set(u.dx, u.dy + Math.sin(time * 0.7 + u.fase) * 1.2, u.dz);
+      }
+    }
+
     // i colori dello scenario: T.sky = [zenit, mezzo, orizzonte]; T.nuvole (0-1) se lo scenario vuole più o meno nuvole
     function applica(nome, T) {
       uniforms.top.value.set(T.sky[0]); uniforms.mid.value.set(T.sky[1]); uniforms.horizon.value.set(T.sky[2]);
@@ -76,8 +112,17 @@ PN.cielo = (() => {
     // se l'indirizzo ha ?cielo=fermo)
     function aggiorna(dt, camera) {
       mesh.position.copy(camera.position);
-      if (!fermo) uniforms.time.value += dt;
+      if (!fermo) {
+        uniforms.time.value += dt;
+        angolo += dt * 0.011;   // un giro completo del cielo in ~10 minuti; passa davanti, poi sparisce dietro e ritorna
+        if (angolo > Math.PI) angolo -= 2 * Math.PI;
+        battito(uniforms.time.value);
+      }
+      stormo.visible = stormoVisibile.value && Math.abs(angolo) < 1.45;   // dietro la telecamera non si disegnano
+      posizionaStormo();
     }
-    return { mesh, SOLE, applica, aggiorna };
+    // lo stormo si spegne nella qualità bassa (nessuna linea in più) o se uno scenario non lo vuole
+    function uccelliVisibili(v) { stormoVisibile.value = !!v; }
+    return { mesh, SOLE, applica, aggiorna, uccelliVisibili, stormo };
   };
 })();

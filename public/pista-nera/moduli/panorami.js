@@ -1151,5 +1151,7 @@ PN.panorami = (() => {
     if (!Rc) return null;
     return Rc.terra ? mix(Rc.terra, nebbia || Rc.nebbia, 0.15) : (nebbia || Rc.nebbia);
   }
-  return { GEOMETRIA, citta: Object.keys(RICETTE), dipingi, dipingiPiani, terra };
+  // la città ha l'acqua davanti (mare o fiume: Napoli, Londra, Lisbona, New York)? Serve al luccichio del suolo lontano (R-513, punto 6)
+  const haAcqua = nome => !!(RICETTE[nome] && RICETTE[nome].terra);
+  return { GEOMETRIA, citta: Object.keys(RICETTE), dipingi, dipingiPiani, terra, acqua: haAcqua };
 })();
