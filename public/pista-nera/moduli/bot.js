@@ -50,6 +50,7 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
     const d = Math.max(0, -b.z);
     const vmax = F.vmax(d);
     if (b.inv > 0) b.inv -= dt;
+    b.sterzo = 0;   // quanto sterza in questo passo (R-522): resta 0 se è fermo, caduto o in aria
     if (b.stopUntil > amb.ora) { b.speed = 0; if (b.crash > 0) b.crash -= dt; }   // fermo dopo una banana o una bomba
     else if (b.crash > 0) { b.crash -= dt; b.speed = Math.max(2, b.speed - 14 * dt); }
     else if (!b.air) {
