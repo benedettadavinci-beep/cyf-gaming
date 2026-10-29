@@ -2,7 +2,7 @@
 // stanze della pista del giorno. WebSocket con i giocatori, attesa e conto alla rovescia, stesso seme per tutti,
 // inoltro di posizioni, banane, bombe e vocali, tempi misurati dal server, punti, avversari del computer (R-234).
 import { DurableObject } from 'cloudflare:workers';
-import { PROTO, MAX_PLAYERS, DURATIONS, lengthFor, MAX_SPEED_MS, COUNTDOWN_MS, GATHER_MAX_MS, ATTESA_SFIDA_MS, PUBLIC_RE, AUTO_START_MS, VOICE_COOLDOWN_MS, VOICE_MAX_CHARS, VOICE_MIME, DROP_KINDS, cleanScena, PLACE_POINTS, BOT_ATTESA_MS, BOT_SALA, BOT_LIVELLI, BOT_PILOTA_MS, fasciaPunti, board, cleanId, cleanHair, cleanGear, cleanJersey, cleanName, num, BOT_GIORNO } from './comune.mjs';
+import { PROTO, MAX_PLAYERS, DURATIONS, lengthFor, MAX_SPEED_MS, COUNTDOWN_MS, GATHER_MAX_MS, ATTESA_SFIDA_MS, PUBLIC_RE, AUTO_START_MS, VOICE_COOLDOWN_MS, VOICE_MAX_CHARS, VOICE_MIME, DROP_KINDS, cleanScena, BOT_ATTESA_MS, BOT_SALA, BOT_LIVELLI, BOT_PILOTA_MS, fasciaPunti, board, cleanId, cleanHair, cleanGear, cleanJersey, cleanName, num, BOT_GIORNO, GARA } from './comune.mjs';
 import { pistaDelGiorno, pistaNumero } from './giorno.mjs';
 import { premioPerGara } from './settimana.mjs';
 import { granPremio, GP_RE } from './granpremio.mjs';
@@ -583,21 +583,9 @@ export class RaceRoom extends DurableObject {
       const ms = u && st.startAt ? stimaArrivo(u.z, now - st.startAt, lengthFor(st.minutes), minMs, st.minutes * 2 * 60 * 1000) : null;
       st.results.push({ id: r.id, name: r.name, color: r.color, ms, dnf: ms == null, top: s.top, tk: s.tk, p: s.p, ...(r.bot ? { bot: 1 } : {}) });
     }
-    st.results.sort((a, b) => (a.ms ?? Infinity) - (b.ms ?? Infinity));
-    // punti: posizione in classifica + punti rimasti dalla gara (acrobazie, bonus, meno quelli spesi)
-    let place = 0;
-    for (const r of st.results) {
-      const pos = r.ms != null ? place++ : -1;
-      r.earned = (pos < 0 || st.daily ? 0 : (PLACE_POINTS[pos] ?? 30)) + (r.p || 0);   // pista del giorno: da soli, niente punti del piazzamento (S-40)
-      r.won = pos === 0;
-      if (r.bot) r.earned = null;   // gli avversari del software non prendono punti (S-39); il piazzamento delle persone li conta
-    }
-    const best = (key) => st.results.reduce((a, r) => (r[key] > (a ? a[key] : 0) ? r : a), null);
-    const fast = best('top'), tricks = best('tk');
-    st.awards = {
-      fastest: fast ? { id: fast.id, name: fast.name, color: fast.color, top: fast.top, bot: fast.bot ? 1 : 0 } : null,
-      tricks: tricks ? { id: tricks.id, name: tricks.name, color: tricks.color, tk: tricks.tk, bot: tricks.bot ? 1 : 0 } : null
-    };
+    // ordine, punti (posizione in classifica + punti rimasti dalla gara; pista del giorno senza punti del piazzamento, S-40;
+    // gli avversari del software non prendono punti, S-39) e premi: regola condivisa con il gioco in shared/gara.js (dalla 0.28.0)
+    st.awards = GARA.classifica(st.results, { daily: !!st.daily }).awards;
     try {
       const totals = await board(this.env).addPoints(st.results.filter(r => !r.bot).map(r => ({ id: r.id, name: r.name, earned: r.earned, won: r.won })));
       for (const r of st.results) r.total = totals[r.id] ?? null;

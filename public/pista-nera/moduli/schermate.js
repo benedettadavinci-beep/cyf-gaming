@@ -151,6 +151,7 @@ PN.schermate = ({ diag, stato: S }) => {
     const G = S.net.daily && S.net.giorno;
     const GP = S.net.gpRes;   // Gran Premio (R-247): la classifica della sera arriva con i risultati
     $('resRound').textContent = G ? tr('dailyTitle', { n: G.n, city: cityName(G.scena) }) + ' · ' + (S.net.minutes || 5) + ' min'
+      : S.net.locale ? tr('trainTitle') + ' · ' + cityName(S.net.scena) + ' · ' + tr('raceN', { n: S.net.round || 1 })   // allenamento-gara (R-519)
       : GP ? tr('gpRound', { city: cityName(GP.scena) }) + ' · ' + (S.net.minutes || 5) + ' min'
       : (S.net.pub ? tr('onlineBrand') : tr('challenge') + ' ' + (S.net.code || '')) + ' · ' + tr('raceN', { n: S.net.round || 1 }) + ' · ' + (S.net.minutes || 5) + ' min';
     const ul = $('resList');
@@ -186,8 +187,8 @@ PN.schermate = ({ diag, stato: S }) => {
     $('resMine').hidden = !mine || mine.earned == null;
     if (mine && mine.earned != null) $('resMine').innerHTML = tr('earnedLine', { e: '<span>' + fmt(mine.earned) + '</span>', t: fmt(mine.total ?? S.myTotal) });
     const isHost = !S.net.pub && S.net.hostId === S.myId;
-    $('btnRematch').hidden = !isHost && !S.net.daily;   // pista del giorno: Riprova c'è sempre (si è da soli)
-    $('btnRematch').textContent = tr(S.net.daily ? 'dailyRetry' : 'rematch');
+    $('btnRematch').hidden = !isHost && !S.net.daily;   // pista del giorno: Riprova c'è sempre (si è da soli); allenamento: Ricomincia (R-519)
+    $('btnRematch').textContent = tr(S.net.daily ? 'dailyRetry' : S.net.locale ? 'trainAgain' : 'rematch');
     renderDayResults(G);
     renderResultsStatus();
     if (S.sfida) S.sfida.risultati();   // "batti il mio tempo": esito della sfida e immagine pronta (R-236)
@@ -224,6 +225,7 @@ PN.schermate = ({ diag, stato: S }) => {
   function renderResultsStatus() {
     let txt;
     if (S.net.daily) txt = tr('dailyHint');
+    else if (S.net.locale) txt = tr('trainHint');   // allenamento-gara (R-519)
     else if (S.net.pub) {
       const left = S.net.autoAt ? Math.max(0, Math.ceil((S.net.autoAt - S.serverNow()) / 1000)) : 0;
       txt = S.net.players.length < 2 ? (S.net.autoBot && left ? tr('pubBots', { s: left }) : tr('pubWaiting')) : (left ? tr('nextRaceIn', { s: left }) : tr('pubStarting', { n: S.net.players.length }));

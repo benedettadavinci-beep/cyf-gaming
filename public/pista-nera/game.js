@@ -214,16 +214,21 @@
   const SCHERMATE = PN.schermate({ diag, stato });
   const { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard } = SCHERMATE;
   const PUB = PN.pubblicita({ diag });   // riquadro pubblicitario nei momenti di attesa (R-517): spento se config.js non dice altro
-  // ---------- solo ----------
+  // ---------- allenamento ----------
+  // Dalla 0.28.0 l'allenamento è una gara vera contro 3 avversari del computer (R-519): stesso codice della gara online, con
+  // un "server finto" sul dispositivo (moduli/gara_locale.js) al posto del WebSocket; via 3-2-1, traguardo a 2 km, risultati
+  // con Ricomincia; niente vite né punti collezionati (S-53, ripiego). La discesa senza fine con le 3 vite (mode 'solo') non
+  // parte più dal menu: resta nel codice finché Luigi non decide S-53
   function startSolo() {
     initAudio();
     net.close();
-    mode = 'solo';
-    me.setColor(PALETTE[0], myJersey());
-    reset((Math.random() * 2 ** 31) | 0, null, false);
-    BOT.allenamento(lastSeed);   // 3 avversari guidati dal software (R-239)
-    hudLabels();
-    show(null); setBanner('');
+    net.want = false; net.code = GL.codice; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map();
+    net.pub = false; net.daily = false; net.gp = 0; net.gpRes = null; net.sfida = null; net.giorno = null; net.autoAt = 0; net.awards = null;
+    net.hostId = myId; net.players = []; net.myColor = 0; net.offset = 0; net.locale = true;
+    net.ws = GL.ws();
+    history.replaceState(null, '', location.pathname);
+    mode = 'lobby';
+    GL.avvia({ me: { name: inName.value.trim() || 'Rider', color: 0, ...aspetto() }, scena: selScena.value });
   }
   function togglePause() {
     if (mode === 'solo') { mode = 'pause'; show('pause'); keys.left = keys.right = false; soundLevels(0, 0, false); }
@@ -576,7 +581,7 @@
     initAudio();
     net.close();
     net.sfida = daily && sfida ? sfida : null;   // R-236: numero della pista del giorno da correre (?n=) e arrivo da un link (?b=1)
-    net.want = true; net.code = code; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map();
+    net.want = true; net.code = code; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map(); net.locale = false;
     net.pub = !!pub || /^ONLINE\d+$/.test(code) || /^GP\d+$/.test(code); net.autoAt = 0; net.awards = null;
     net.gp = gp ? 1 : 0; net.gpRes = null;   // sala del Gran Premio (R-247): 1 finché si aspetta il via delle 21
     net.daily = !!daily; net.giorno = null;
@@ -803,7 +808,7 @@
       // rientro durante la gara: si riparte dal via, il tempo corre già
       mode = 'race';
     }
-    say(tr('raceLength', { m: net.minutes || 5, d: fmtLen(raceLen) }), '#13233a');
+    say(net.locale ? tr('trainRace', { d: fmtLen(raceLen) }) : tr('raceLength', { m: net.minutes || 5, d: fmtLen(raceLen) }), '#13233a');
     clearInterval(net.posTimer);
     net.posTimer = setInterval(() => {
       if (!racing()) return;
@@ -830,6 +835,7 @@
   function raceClock() {
     const cnt = $('count');
     if (mode === 'countdown' && !net.startAt) {
+      if (net.locale) { cnt.hidden = true; showPronto(false); return; }   // allenamento-gara: niente attesa della sala, il 3-2-1 parte appena la pista è pronta (R-519)
       // attesa prima del via (R-119). Sfida: 25 s (prima, se tutti sono pronti), così chi ha l'invito fa in tempo a entrare.
       // Sala online: il conto alla rovescia parte quando tutti hanno caricato la gara, al massimo dopo 25 s.
       const s = Math.max(0, Math.ceil((net.gatherUntil - serverNow()) / 1000));
@@ -897,7 +903,7 @@
   }
 
   // nella pista del giorno si corre da soli: il microfono è grigio come in allenamento (S-40)
-  const VOCALI = PN.vocali({ net, audio: AUDIO, say, isOnline: () => !net.daily && !!(net.ws && net.ws.readyState === 1) && (mode === 'lobby' || mode === 'results' || racing()), isTraining: () => mode === 'solo' || mode === 'pause' || !!net.daily, serverNow });
+  const VOCALI = PN.vocali({ net, audio: AUDIO, say, isOnline: () => !net.daily && !net.locale && !!(net.ws && net.ws.readyState === 1) && (mode === 'lobby' || mode === 'results' || racing()), isTraining: () => mode === 'solo' || mode === 'pause' || !!net.daily || !!net.locale, serverNow });
   const { voice, fmtWait, updateVoiceBtn, voiceButton, stopVoice, playVoice, mutedIds } = VOCALI;
   // ---------- donazioni ----------
   // sul portale (R-244, S-46) niente donazioni e il titolo non è un link: il portale vieta i link verso l'esterno
@@ -923,6 +929,7 @@
   // Gran Premio delle 21 (R-247): riquadro con il conto alla rovescia nel menu; a fine gara la propria posizione nei risultati
   const GP = PN.granpremio({ myId, entra: entraGp, cambiato: () => { if (mode === 'results') renderResults(); } });
   const SALA = PN.sala({ myId, diag });   // sala online o del Gran Premio con il posto prenotato e i nuovi tentativi (B-04)
+  const GL = PN.garaLocale({ myId, onMsg, diag });   // allenamento uguale alla gara: il "server finto" sul dispositivo (R-519)
 
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();

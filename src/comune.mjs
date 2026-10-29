@@ -1,13 +1,15 @@
 // Costanti e funzioni in comune tra le parti del server (A-20): durate e lunghezze delle gare, limiti, pulizia dei dati
 // che arrivano dai giocatori, risposte JSON, accesso alla classifica. Nessuno stato.
 import '../public/shared/protocollo.js';
+import '../public/shared/gara.js';
 export const PROTO = globalThis.CYF_PROTOCOLLO;
+export const GARA = globalThis.CYF_GARA;          // regole di fine gara condivise con il gioco (R-519, dalla 0.28.0)
 
 export const MAX_PLAYERS = PROTO.MAX_PLAYERS;
 export const AVG_SPEED_MS = 14;                     // velocità media di un giocatore medio: serve a trasformare minuti in metri
 export const DURATIONS = PROTO.DURATIONS;            // minuti
 export const lengthFor = min => min * 60 * AVG_SPEED_MS;
-export const MAX_SPEED_MS = 24;                     // velocità massima possibile nel gioco (m/s), con margine
+export const MAX_SPEED_MS = GARA.VEL_MAX_MS;        // velocità massima possibile nel gioco (m/s), con margine (shared/gara.js)
 export const COUNTDOWN_MS = 5000;
 export const GATHER_MAX_MS = 40000;                 // sala online: dopo l'avvio si aspetta che tutti abbiano caricato la gara, al massimo 40 s (R-119)
 export const ATTESA_SFIDA_MS = 25000;               // sfida con gli amici: dopo "Parti" si aspettano 25 s, così chi ha l'invito fa in tempo a entrare (R-119); prima se tutti sono pronti (R-222)
@@ -21,7 +23,7 @@ export const VOICE_MIME = ['audio/wav', 'audio/x-wav', 'audio/webm;codecs=opus',
 export const DROP_KINDS = PROTO.DROP_KINDS;
 // scenari: ogni città ha la sua pista, quindi in una gara tutti corrono nella stessa città (R-118, R-312)
 export const cleanScena = PROTO.cleanScena;
-export const PLACE_POINTS = [100, 70, 50];          // punti per 1°, 2°, 3°; chi arriva dopo ne prende 30
+export const PLACE_POINTS = GARA.PUNTI_POSTO;       // punti per 1°, 2°, 3°; chi arriva dopo ne prende 30 (shared/gara.js)
 // avversari guidati dal software (R-234…R-238, S-39)
 export const BOT_ATTESA_MS = 15000;                 // sala online: da soli per 15 s, poi si parte con gli avversari (R-235)
 export const BOT_SALA = 3, BOT_GIORNO = 3;          // quanti nella sala online vuota e nella pista del giorno (R-238)
