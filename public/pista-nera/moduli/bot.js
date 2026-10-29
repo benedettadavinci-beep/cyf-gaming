@@ -56,6 +56,7 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
       let steer;
       if (b.arrivato) steer = clamp((center(b.z - 10) - b.x) * 0.15, -0.5, 0.5);
       else { pianifica(b, dt, amb); steer = guida(b); }
+      b.sterzo = steer;   // quanto sta sterzando in questo passo: se è oltre 0,3 schiva banana e bananone lanciati (R-522)
       b.ang += steer * F.STERZO * dt;
       b.ang = clamp(b.ang, -F.ANGOLO, F.ANGOLO);
       const ax = b.x + Math.sin(b.ang) * 2, az = b.z - Math.cos(b.ang) * 2;
@@ -396,18 +397,23 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
     }
   }
   // banana o bananone lanciati (da un avversario del software o da una persona): chi è colpito si ferma dopo il volo.
-  // Regola R-241: chi in quel momento è in aria (salto, rampa, trampolino) non viene colpito, persone e avversari
+  // Regola R-241: chi in quel momento è in aria (salto, rampa, trampolino) non viene colpito, persone e avversari.
+  // Regola R-522 (dalla 0.27.0): nemmeno chi in quel momento sta curvando (← o → o A/D premuti, rotellina spostata di lato
+  // oltre la zona morta: `stato.sterza`; per gli avversari `b.sterzo` oltre 0,3). Banane, bananoni e bombe A TERRA colpiscono
+  // anche curvando (oggetti.js): sono come la bomba; in aria si saltano come prima
+  const STERZO_SCHIVA = 0.3;
   function colpo(bersaglio, kind, chi) {
     const big = kind === 'bananone';
     setTimeout(() => {
       if (!stato.racing() && !(stato.mode === 'solo' && modo === 'allenamento')) return;
       if (bersaglio === stato.myId) {
         if (stato.P.air) { say(tr('dodgedAir'), '#1f8a4c'); return; }
+        if (stato.sterza) { say(tr('dodgedSteer'), '#1f8a4c'); return; }
         crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: chi || tr('someone') }), FERMO[big ? 'bananone' : 'banana'], true);
         return;
       }
       const b = lista.find(x => x.id === bersaglio);
-      if (b && !b.air) cade(b, FERMO[big ? 'bananone' : 'banana']);
+      if (b && !b.air && Math.abs(b.sterzo || 0) <= STERZO_SCHIVA) cade(b, FERMO[big ? 'bananone' : 'banana']);
     }, 450);
   }
   const guida_ = id => lista.some(b => b.id === id);

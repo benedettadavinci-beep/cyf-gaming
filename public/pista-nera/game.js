@@ -167,6 +167,7 @@
     colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); },
     // allenamento con gli avversari del computer (R-515): banane, bombe e bananoni come in gara, simulati su questo dispositivo
     get allenaConAvversari() { return mode === 'solo' && BOT.modo === 'allenamento' && BOT.lista.length > 0; },
+    get sterza() { return inSteer() !== 0; },   // sta curvando (← → o A/D premuti, rotellina di lato oltre la zona morta): schiva banana e bananone lanciati (R-522)
     nome: () => inName.value.trim() || 'Rider',
     get sfida() { return SFIDA; },   // "batti il mio tempo" (R-236): le schermate gli passano risultati e menu
     get settimana() { return SETT; },   // città della settimana (R-245): riquadro nel menu quando arriva /api/giorno
