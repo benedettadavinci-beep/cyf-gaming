@@ -323,7 +323,7 @@
       P.speed = F.limita(P.speed);   // mai oltre 80 km/h (R-242)
       if (Math.abs(P.ang) > 0.6 && Math.random() < 0.8) spray(P.x, 0, P.z, 2, 1.6, 2.4, Math.cos(P.ang) * Math.sign(P.ang) * 3);
     } else {
-      const flipIn = (keys.down || stick.y < -0.35 ? 1 : 0) - (keys.up || stick.y > 0.35 ? 1 : 0);
+      const flipIn = (keys.down || stick.y > 0.35 ? 1 : 0) - (keys.up || stick.y < -0.35 ? 1 : 0);   // in aria: giù (freccia o rotellina in basso) e su fanno lo stesso salto mortale (R-523)
       P.airT += dt;
       P.spin += steer * 9 * dt;
       P.flip += flipIn * 8.5 * dt;

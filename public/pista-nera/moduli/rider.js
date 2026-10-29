@@ -478,12 +478,15 @@ PN.rider = (() => {
     // hand: 0..1 mano destra alzata ("Sono pronto", R-222); thr: 0..1 avanzamento del lancio della banana (R-224):
     // fino a 0,4 il braccio va indietro e in alto, poi si distende in avanti verso dove si va (-z)
     const JR = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => JR[k] = new THREE.Vector3());
-    function pose(k, arms, twist, grab = 0, fwd = 0, sw = 0, hand = 0, thr = 0) {
+    function pose(k0, arms, twist, grab = 0, fwd = 0, sw = 0, hand = 0, thr = 0) {
       const fz = -fwd * 0.09;   // il davanti della tavola è verso -z
+      // frenata (R-523, dalla 0.27.0): il rider si alza un po', le ginocchia si piegano meno e le anche salgono di almeno 5 cm
+      // rispetto alla corsa normale (prima con la frenata spostava solo il peso in avanti)
+      const k = k0 * (1 - fwd * 0.5);
       J.ankL.set(0.02, 0.17, 0.26); J.ankR.set(0.02, 0.17, -0.26);
-      const kneeX = 0.1 + k * 0.17, kneeY = 0.55 - k * 0.13;
+      const kneeX = 0.1 + k * 0.17, kneeY = 0.55 - k * 0.13 + fwd * 0.03;
       J.kneeL.set(kneeX, kneeY, 0.24 + fz * 0.5); J.kneeR.set(kneeX, kneeY, -0.24 + fz * 0.5);
-      const hipX = -0.04 - k * 0.12, hipY = 0.93 - k * 0.25 + fwd * 0.03;
+      const hipX = -0.04 - k * 0.12, hipY = 0.93 - k * 0.25 + fwd * 0.06;
       J.hipL.set(hipX, hipY, 0.11 + fz); J.hipR.set(hipX, hipY, -0.11 + fz);
       const lean = 0.25 + k * 0.35;
       const tilt = -fwd * 0.22;                 // busto inclinato verso il davanti della tavola
