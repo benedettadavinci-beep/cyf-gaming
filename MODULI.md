@@ -37,37 +37,42 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | File | Modulo (PN.…) | Righe | Dipende da (cosa usa) |
 |---|---|---|---|
 | `moduli/audio.js` | audio | 66 | base (store); lingua (tr) |
-| `moduli/avversari.js` | avversari | 141 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (jerseyOf, makeRider, bodyTurn, switchOf, lookBot) |
+| `moduli/avversari.js` | avversari | 147 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (jerseyOf, makeRider, bodyTurn, switchOf, lookBot) |
 | `moduli/base.js` | base | 41 | nessuno |
-| `moduli/bot.js` | bot | 419 | fisica (); base (TAU, clamp, mulberry32); lingua (tr); protocollo (COSTI, FERMO, NOMI_BOT); tracciato (dati); pista (center, hgt); oggetti (hazards, showThrow, addHazard, removeHazard); avversari (botUpdate, remotes, playThrow) |
+| `moduli/bot.js` | bot | 430 | fisica (); base (TAU, clamp, mulberry32); lingua (tr); protocollo (VOLO, COSTI, FERMO, NOMI_BOT); tracciato (dati); pista (center, hgt); oggetti (hazards, showThrow, addHazard, removeHazard, js); avversari (botUpdate, remotes, playThrow) |
+| `moduli/cielo.js` | cielo | 129 | base (HORIZON, reduceMotion) |
 | `moduli/citta.js` | citta | 881 | pista (center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_MAKE); base (TAU, lin, mulberry32); lingua (tr, fmtLen); geometria (merge, lumpy, vcMat, GEO, gateGeo) |
-| `moduli/comandi.js` | comandi | 105 | base (clamp); audio (initAudio, muted) |
+| `moduli/comandi.js` | comandi | 106 | base (clamp); audio (initAudio, muted) |
 | `moduli/effetti.js` | effetti | 132 | base (isPhone, lin, rand, reduceMotion) |
 | `moduli/fisica.js` | fisica | 84 | base (TAU, clamp) |
+| `moduli/gara_locale.js` | gara_locale | 114 | protocollo (MAX_PLAYERS, NOMI_BOT); gara () |
 | `moduli/generazione.js` | generazione | 388 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/granpremio.js` | granpremio | 86 | base (fmtTime); lingua (lang, tr, ord, cityName) |
 | `moduli/lingua.js` | lingua | 41 | base (store) |
 | `moduli/missioni.js` | missioni | 129 | base (store); lingua (lang, tr) |
-| `moduli/oggetti.js` | oggetti | 181 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
-| `moduli/panorami.js` | panorami | 1110 | base (mulberry32) |
+| `moduli/oggetti.js` | oggetti | 182 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, VOLO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
+| `moduli/panorami.js` | panorami | 1158 | base (mulberry32) |
 | `moduli/personaggio.js` | personaggio | 123 | base (store, lin); lingua (tr, cityName); rider (jerseyOf, myJersey, myHair, myGear, makeRider); calendario (numeroDelPremio, scenaDi) |
-| `moduli/pista.js` | pista | 176 | base (TAU, clamp, isPhone, lin, mulberry32) |
+| `moduli/pista.js` | pista | 182 | base (TAU, clamp, isPhone, lin, mulberry32) |
 | `moduli/portale.js` | portale | 44 | nessuno |
 | `moduli/profilo.js` | profilo | 101 | base (store); lingua (tr) |
-| `moduli/pubblicita.js` | pubblicita | 127 | portale (attivo); lingua (tr) |
-| `moduli/rider.js` | rider | 572 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi) |
-| `moduli/schermate.js` | schermate | 312 | base (PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
+| `moduli/pubblicita.js` | pubblicita | 142 | portale (attivo); lingua (tr) |
+| `moduli/qualita.js` | qualita | 87 | base (store) |
+| `moduli/rider.js` | rider | 587 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi) |
+| `moduli/sala.js` | sala | 37 | nessuno |
+| `moduli/schermate.js` | schermate | 350 | base (isPhone, PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
 | `moduli/settimana.js` | settimana | 62 | base (store); lingua (lang, tr, cityName); calendario (); schermate (js, giorno) |
 | `moduli/sfida.js` | sfida | 186 | base (fmtTime); lingua (lang, tr, ord); protocollo (SCENE); portale (link, titolo); schermate (cityName, giorno) |
-| `moduli/sfondi.js` | sfondi | 119 | base (lin); panorami (dipingi) |
-| `moduli/tracciato.js` | tracciato | 98 | base (TAU, clamp, mulberry32) |
+| `moduli/sfondi.js` | sfondi | 216 | panorami (dipingiPiani); base (reduceMotion) |
+| `moduli/tracciato.js` | tracciato | 103 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 194 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr); portale (attivo) |
-| `game.js` | — | 1105 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio () |
+| `game.js` | — | 1105 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio (); sala () |
 | `diagnosi.js` | — | 177 | nessuno |
-| `i18n.js` | — | 395 | nessuno |
+| `i18n.js` | — | 399 | nessuno |
 | `shared/calendario.js` | calendario | 35 | nessuno |
-| `shared/protocollo.js` | protocollo | 94 | nessuno |
+| `shared/gara.js` | gara | 51 | nessuno |
+| `shared/protocollo.js` | protocollo | 98 | nessuno |
 <!-- /matrice -->
 
 ## Dove sta cosa
@@ -96,6 +101,9 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | dove sono ostacoli, bonus, rampe e porte (la pista come dati, uguale per tutti) | `moduli/tracciato.js` (i modelli li costruisce `moduli/generazione.js`) |
 | gli avversari guidati dal computer: guida, salti, acrobazie, banane, pilota (R-234) | `moduli/bot.js` (il server in `src/worker.js` e `src/avversari.mjs`) |
 | i messaggi tra gioco e server | `shared/protocollo.js` |
+| l'allenamento come gara vera sul dispositivo, senza server: il "server finto" che parla il protocollo (R-519) | `moduli/gara_locale.js` |
+| le regole di fine gara (tempo minimo, tempo stimato degli avversari, classifica, punti del piazzamento, premi), uguali per server e gioco | `shared/gara.js` (lo importano `src/comune.mjs`, `src/avversari.mjs`, `src/stanza.mjs`) |
+| la sala online o del Gran Premio: posto prenotato da `/api/quick` e nuovi tentativi se è piena (B-04) | `moduli/sala.js` (il server in `src/sale.mjs`, funzioni pure, e `src/stanza.mjs`, `prenota`) |
 | il calendario delle settimane (numero, città, maglia) | `shared/calendario.js` |
 | schermate (menu, stanza, risultati), avvisi, HUD, classifica del menu | `moduli/schermate.js` |
 | generazione della pista con il seme, palazzi, lati della strada | `moduli/generazione.js` |

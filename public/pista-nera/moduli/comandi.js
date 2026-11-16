@@ -11,11 +11,12 @@ PN.comandi = ({ audio: AUDIO, azioni, stato }) => {
   const $ = id => document.getElementById(id);
   // ---------- input ----------
   const keys = { left: false, right: false, up: false, down: false };
-  // rotellina sul telefono: x da -1 (sinistra) a 1 (destra), y da -1 (su = accelera) a 1 (giù = frena)
+  // rotellina sul telefono: x da -1 (sinistra) a 1 (destra), y da -1 (dito in alto) a 1 (dito in basso).
+  // Dalla 0.27.0 (R-523) come la tastiera: in alto = frena (freccia su), in basso = accelera (freccia giù); fino alla 0.26.x era il contrario (S-20)
   const stick = { x: 0, y: 0, on: false };
   const inSteer = () => clamp((keys.right ? 1 : 0) - (keys.left ? 1 : 0) + stick.x, -1, 1);
-  const inFast = () => (keys.down && !keys.up) || stick.y < -0.35;   // posizione raccolta, più veloce
-  const inSlow = () => keys.up || stick.y > 0.35;                    // peso in avanti, frena
+  const inFast = () => (keys.down && !keys.up) || stick.y > 0.35;    // posizione raccolta, più veloce: freccia giù o rotellina in basso
+  const inSlow = () => keys.up || stick.y < -0.35;                   // peso in avanti, frena: freccia su o rotellina in alto
   window.addEventListener('keydown', e => {
     if (e.target && e.target.tagName === 'INPUT') { if (e.key === 'Enter') azioni.enterInInput(); return; }
     const mode = stato.mode;

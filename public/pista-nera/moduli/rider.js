@@ -74,8 +74,12 @@ PN.rider = (() => {
     // arti modellati (y da -0,5 a 0,5, poi allungati fino alla lunghezza giusta): pantaloni larghi, maniche morbide
     thigh: lathe([[0.001, -0.5], [0.078, -0.5], [0.083, -0.36], [0.092, -0.08], [0.099, 0.22], [0.097, 0.44], [0.001, 0.5]], 18),
     shin: lathe([[0.001, -0.5], [0.09, -0.5], [0.086, -0.4], [0.077, -0.12], [0.081, 0.18], [0.08, 0.42], [0.001, 0.5]], 18),
-    uarm: lathe([[0.001, -0.5], [0.066, -0.48], [0.068, -0.22], [0.063, 0.18], [0.058, 0.5], [0.001, 0.5]], 16),
-    farm: lathe([[0.001, -0.5], [0.057, -0.5], [0.056, -0.22], [0.05, 0.22], [0.06, 0.38], [0.062, 0.5], [0.001, 0.5]], 16),
+    // R-528 (dalla 0.30.0): braccia umane, non più tubi. Braccio dalla spalla (-0,5) al gomito (+0,5): deltoide, bicipite,
+    // gomito più stretto; avambraccio dal gomito (-0,5) al polso (+0,5): muscoli larghi in alto, polso sottile.
+    // Sezione un po' ovale (0,84) come un braccio vero
+    uarm: lathe([[0.001, -0.5], [0.048, -0.49], [0.068, -0.43], [0.073, -0.32], [0.066, -0.18], [0.068, -0.04], [0.064, 0.12], [0.055, 0.28], [0.049, 0.41], [0.05, 0.47], [0.001, 0.5]], 20).scale(1, 1, 0.84),
+    farm: lathe([[0.001, -0.5], [0.047, -0.49], [0.055, -0.39], [0.058, -0.24], [0.053, -0.06], [0.045, 0.14], [0.037, 0.32], [0.034, 0.44], [0.036, 0.49], [0.001, 0.5]], 20).scale(1, 1, 0.84),
+    finger: new THREE.SphereGeometry(0.012, 10, 8).scale(1, 2.3, 1),
     // muffola con il pollice
     glove: new THREE.SphereGeometry(0.06, 16, 12).scale(0.85, 1.25, 0.95),
     thumb: new THREE.SphereGeometry(0.026, 10, 8).scale(1, 1.5, 1),
@@ -98,7 +102,7 @@ PN.rider = (() => {
     sole: roundedSlab(0.1, 0.258, 0.045, 0.02),
     shoe: lathe([[0.001, 0], [0.052, 0], [0.056, 0.03], [0.05, 0.06], [0.034, 0.075], [0.001, 0.08]], 20).scale(2.35, 1, 0.92),
     lace: new THREE.BoxGeometry(0.06, 0.006, 0.05),
-    hand: new THREE.SphereGeometry(0.052, 16, 12).scale(0.75, 1.25, 0.95)
+    hand: new THREE.SphereGeometry(0.05, 16, 12).scale(0.62, 1.1, 0.98)   // palmo più piatto, con le dita (R-528)
   };
   // maglie delle città: solo i colori tradizionali, senza nomi o stemmi delle squadre
   // ---------- capelli (R-220): niente casco, sei acconciature, tre maschili e tre femminili ----------
@@ -391,6 +395,8 @@ PN.rider = (() => {
       for (const m of snowOnly) m.visible = !city;
       for (const m of streetOnly) m.visible = city;
       setHands(city);
+      // R-528: in città maglia a maniche corte, avambracci e gomiti nudi; sulla neve tutto coperto dalla giacca
+      for (const m of [L.farmL, L.farmR, JM.elL, JM.elR]) m.material = city ? SHARED.skin : sleeve;
     }
     const limb = (r, mat) => mesh(G.limb(r), mat);
     const joint = (r, mat) => mesh(G.joint(r), mat);
@@ -400,7 +406,7 @@ PN.rider = (() => {
     };
     const JM = {
       kneeL: joint(0.085, pants), kneeR: joint(0.085, pants), hipL: joint(0.098, pants), hipR: joint(0.098, pants),
-      shL: joint(0.074, sleeve), shR: joint(0.074, sleeve), elL: joint(0.062, sleeve), elR: joint(0.062, sleeve)
+      shL: joint(0.066, sleeve), shR: joint(0.066, sleeve), elL: joint(0.05, sleeve), elR: joint(0.05, sleeve)   // giunti più piccoli: si fondono con braccio e avambraccio (R-528)
     };
     const pelvis = mesh(G.pelvis, pants);
     const torso = mesh(G.torso, jacket);
@@ -459,7 +465,13 @@ PN.rider = (() => {
       gl.userData = { th, cuff };
     }
     const handL = mesh(G.hand, SHARED.skin, gloveL), handR = mesh(G.hand, SHARED.skin, gloveR);
-    for (const [h, s] of [[handL, 1], [handR, -1]]) { const th = mesh(G.thumb, SHARED.skin, h); th.scale.setScalar(0.85); th.position.set(0.04, 0.012, -s * 0.018); th.rotation.z = -0.5; }
+    for (const [h, s] of [[handL, 1], [handR, -1]]) {
+      const th = mesh(G.thumb, SHARED.skin, h); th.scale.setScalar(0.85); th.position.set(0.034, 0.008, -s * 0.02); th.rotation.z = -0.5;
+      // R-528: quattro dita leggermente piegate verso il palmo, il medio più lungo
+      [[-0.021, 0.92], [-0.007, 1], [0.007, 0.97], [0.02, 0.82]].forEach(([dz, l]) => {
+        const f = mesh(G.finger, SHARED.skin, h); f.position.set(0.006, 0.058 * l + 0.004, dz * -s); f.scale.set(1, l, 1); f.rotation.z = 0.35;
+      });
+    }
     streetOnly.push(handL, handR);
     // in città il guanto resta come "mano" invisibile: si nasconde solo il suo aspetto (materiale), così pose() non cambia
     const GLOVE_HIDDEN = new THREE.MeshBasicMaterial({ visible: false });
@@ -478,12 +490,15 @@ PN.rider = (() => {
     // hand: 0..1 mano destra alzata ("Sono pronto", R-222); thr: 0..1 avanzamento del lancio della banana (R-224):
     // fino a 0,4 il braccio va indietro e in alto, poi si distende in avanti verso dove si va (-z)
     const JR = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => JR[k] = new THREE.Vector3());
-    function pose(k, arms, twist, grab = 0, fwd = 0, sw = 0, hand = 0, thr = 0) {
+    function pose(k0, arms, twist, grab = 0, fwd = 0, sw = 0, hand = 0, thr = 0) {
       const fz = -fwd * 0.09;   // il davanti della tavola è verso -z
+      // frenata (R-523, dalla 0.27.0): il rider si alza un po', le ginocchia si piegano meno e le anche salgono di almeno 5 cm
+      // rispetto alla corsa normale (prima con la frenata spostava solo il peso in avanti)
+      const k = k0 * (1 - fwd * 0.5);
       J.ankL.set(0.02, 0.17, 0.26); J.ankR.set(0.02, 0.17, -0.26);
-      const kneeX = 0.1 + k * 0.17, kneeY = 0.55 - k * 0.13;
+      const kneeX = 0.1 + k * 0.17, kneeY = 0.55 - k * 0.13 + fwd * 0.03;
       J.kneeL.set(kneeX, kneeY, 0.24 + fz * 0.5); J.kneeR.set(kneeX, kneeY, -0.24 + fz * 0.5);
-      const hipX = -0.04 - k * 0.12, hipY = 0.93 - k * 0.25 + fwd * 0.03;
+      const hipX = -0.04 - k * 0.12, hipY = 0.93 - k * 0.25 + fwd * 0.06;
       J.hipL.set(hipX, hipY, 0.11 + fz); J.hipR.set(hipX, hipY, -0.11 + fz);
       const lean = 0.25 + k * 0.35;
       const tilt = -fwd * 0.22;                 // busto inclinato verso il davanti della tavola

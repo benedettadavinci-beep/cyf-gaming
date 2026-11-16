@@ -275,7 +275,7 @@ console.log('T4 · banane e bombe (solo in gara, non più di una ogni 0,9 s)');
   A.send({ t: 'drop', kind: 'bananone', x: 1, z: -14, hid: 'h4' });
   const db = await B.wait(m => m.t === 'drop' && m.hid === 'h4', 2000);
   ok(db && db.kind === 'bananone', 'bananone sulla pista (nessuno davanti) inoltrato agli altri', db && JSON.stringify(db));
-  ok(PROTO.COSTI.bananone === PROTO.COSTI.bomb * 10 && PROTO.FERMO.bananone === 4, 'bananone: costa 10 volte la bomba e ferma 4 s', JSON.stringify(PROTO.COSTI));
+  ok(PROTO.COSTI.banana === 1500 && PROTO.COSTI.bomb === 50 && PROTO.COSTI.bananone === 1500 && PROTO.FERMO.bananone === 4, 'costi 0.27.0 (R-520, R-521, S-54): banana 1.500, bomba 50, bananone 1.500 fisso; il bananone ferma 4 s', JSON.stringify(PROTO.COSTI));
   A.close(); B.close();
 }
 
@@ -413,8 +413,8 @@ console.log('T11 · misure (R-232): punti fatti per gara, oggetti usati, visite,
   await sleep(600);
   const dopo = await giorno();
   const d = k => (dopo[k] || 0) - (prima[k] || 0);
-  ok(d('pts_n') === 2 && d('pts_1500') === 1 && d('pts_lt50') === 1 && d('pts_sum') === 1610,
-    'punti fatti in gara = rimasti + spesi, contati in fasce (1.600 → fascia del bananone, 10 → sotto la banana)',
+  ok(d('pts_n') === 2 && d('pts_1500') === 1 && d('pts_lt50') === 1 && d('pts_sum') === 2960,
+    'punti fatti in gara = rimasti + spesi, contati in fasce (1.400 rimasti + 1.550 spesi con banana 1.500 e bomba 50 = 2.950 → fascia 1.500, 10 → sotto i 50)',
     JSON.stringify({ n: d('pts_n'), f1500: d('pts_1500'), lt50: d('pts_lt50'), somma: d('pts_sum') }));
   ok(d('use_banana') === 1 && d('use_bomb') === 1, 'oggetti usati contati per tipo', JSON.stringify({ banana: d('use_banana'), bomba: d('use_bomb') }));
   A.close(); B.close();

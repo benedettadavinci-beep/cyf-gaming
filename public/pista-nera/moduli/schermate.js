@@ -21,15 +21,15 @@ PN.schermate = ({ diag, stato: S }) => {
   function setBanner(text) { banner.hidden = !text; banner.textContent = text || ''; if (!text) banner.classList.remove('wait'); }
 
   function hudLabels() {
-    const race = S.racing();
+    const race = S.racing(), allena = S.allenaConAvversari;   // allenamento con gli avversari: posizione e classifica come in gara (B-05, R-519)
     $('k1').textContent = race ? tr('hudTime') : tr('hudPoints');
-    $('k2').textContent = race ? tr('hudPlace') : tr('hudDistance');
+    $('k2').textContent = race || allena ? tr('hudPlace') : tr('hudDistance');
     $('kSpeed').textContent = tr('hudSpeed');
-    $('k4').textContent = race ? tr('hudLeft') : tr('hudAltitude');
+    $('k4').textContent = race ? tr('hudLeft') : allena ? tr('hudDistance') : tr('hudAltitude');
     $('k5').textContent = tr('hudPoints');
     $('hLives').hidden = race;
     $('sPts').hidden = !race;
-    $('live').hidden = !race;
+    $('live').hidden = !(race || allena);
     $('items').hidden = !(race || S.allenaConAvversari) || !!S.net.daily;   // pista del giorno: niente banane e bombe (S-40); in allenamento con gli avversari sì (R-515)
   }
 
@@ -40,6 +40,33 @@ PN.schermate = ({ diag, stato: S }) => {
     toasts.appendChild(el);
     setTimeout(() => el.remove(), 1150);
     while (toasts.children.length > 3) toasts.firstChild.remove();
+  }
+
+  // R-525 (dalla 0.30.0): popup piccolo "banana in arrivo". arriva(chi, big, durata in s) lo mostra con la barra che si
+  // accorcia fino all'arrivo; arrivata(true | false | null) lo colora (schivata / presa) e lo chiude poco dopo
+  let arrivoT = 0;
+  function arriva(chi, big, durata) {
+    const el = $('arrivo'), fill = $('arrivoFill');
+    clearTimeout(arrivoT);
+    el.className = 'arrivo' + (big ? ' big' : '');
+    $('arrivoTit').textContent = tr(big ? 'incomingBig' : 'incoming', { n: chi });
+    $('arrivoTip').textContent = tr(PN.base.isPhone ? 'incomingTipPhone' : 'incomingTip');
+    el.hidden = false;
+    fill.style.transition = 'none'; fill.style.transform = 'scaleX(1)';
+    void fill.offsetWidth;   // riparte l'animazione della barra
+    fill.style.transition = 'transform ' + durata + 's linear'; fill.style.transform = 'scaleX(0)';
+    arrivoT = setTimeout(() => { el.hidden = true; }, durata * 1000 + 1500);   // rete di sicurezza se arrivata() non viene chiamata
+  }
+  function arrivata(schivata) {
+    const el = $('arrivo');
+    if (el.hidden) return;
+    clearTimeout(arrivoT);
+    if (schivata === null) { el.hidden = true; return; }
+    el.classList.add(schivata ? 'ok' : 'ko');
+    $('arrivoIco').textContent = schivata ? '✅' : '💥';
+    $('arrivoTip').textContent = '';
+    $('arrivoTit').textContent = tr(schivata ? 'incomingDodged' : 'incomingHit');
+    arrivoT = setTimeout(() => { el.hidden = true; $('arrivoIco').textContent = '🍌'; }, 700);
   }
 
   function renderLobby() {
@@ -151,6 +178,7 @@ PN.schermate = ({ diag, stato: S }) => {
     const G = S.net.daily && S.net.giorno;
     const GP = S.net.gpRes;   // Gran Premio (R-247): la classifica della sera arriva con i risultati
     $('resRound').textContent = G ? tr('dailyTitle', { n: G.n, city: cityName(G.scena) }) + ' · ' + (S.net.minutes || 5) + ' min'
+      : S.net.locale ? tr('trainTitle') + ' · ' + cityName(S.net.scena) + ' · ' + tr('raceN', { n: S.net.round || 1 })   // allenamento-gara (R-519)
       : GP ? tr('gpRound', { city: cityName(GP.scena) }) + ' · ' + (S.net.minutes || 5) + ' min'
       : (S.net.pub ? tr('onlineBrand') : tr('challenge') + ' ' + (S.net.code || '')) + ' · ' + tr('raceN', { n: S.net.round || 1 }) + ' · ' + (S.net.minutes || 5) + ' min';
     const ul = $('resList');
@@ -186,8 +214,8 @@ PN.schermate = ({ diag, stato: S }) => {
     $('resMine').hidden = !mine || mine.earned == null;
     if (mine && mine.earned != null) $('resMine').innerHTML = tr('earnedLine', { e: '<span>' + fmt(mine.earned) + '</span>', t: fmt(mine.total ?? S.myTotal) });
     const isHost = !S.net.pub && S.net.hostId === S.myId;
-    $('btnRematch').hidden = !isHost && !S.net.daily;   // pista del giorno: Riprova c'è sempre (si è da soli)
-    $('btnRematch').textContent = tr(S.net.daily ? 'dailyRetry' : 'rematch');
+    $('btnRematch').hidden = !isHost && !S.net.daily;   // pista del giorno: Riprova c'è sempre (si è da soli); allenamento: Ricomincia (R-519)
+    $('btnRematch').textContent = tr(S.net.daily ? 'dailyRetry' : S.net.locale ? 'trainAgain' : 'rematch');
     renderDayResults(G);
     renderResultsStatus();
     if (S.sfida) S.sfida.risultati();   // "batti il mio tempo": esito della sfida e immagine pronta (R-236)
@@ -224,6 +252,7 @@ PN.schermate = ({ diag, stato: S }) => {
   function renderResultsStatus() {
     let txt;
     if (S.net.daily) txt = tr('dailyHint');
+    else if (S.net.locale) txt = tr('trainHint');   // allenamento-gara (R-519)
     else if (S.net.pub) {
       const left = S.net.autoAt ? Math.max(0, Math.ceil((S.net.autoAt - S.serverNow()) / 1000)) : 0;
       txt = S.net.players.length < 2 ? (S.net.autoBot && left ? tr('pubBots', { s: left }) : tr('pubWaiting')) : (left ? tr('nextRaceIn', { s: left }) : tr('pubStarting', { n: S.net.players.length }));
@@ -255,8 +284,17 @@ PN.schermate = ({ diag, stato: S }) => {
     } else {
       if (S.allenaConAvversari) for (const [id, k] of [['btnBanana', 'banana'], ['btnBomb', 'bomb'], ['btnBananone', 'bananone']]) { const b = $(id); b.disabled = S.mode !== 'solo'; b.classList.toggle('short', S.bonus < PN.protocollo.COSTI[k]); }   // R-515
       $('v1').textContent = fmt(S.score());
-      $('v2').textContent = fmt(Math.floor(S.distM())) + ' m';
-      $('v4').textContent = fmt(Math.max(0, START_ALT - S.distM() * Math.sin(SLOPE))) + ' m';
+      if (S.allenaConAvversari) {
+        // come in gara: posizione tra gli avversari e classifica dal vivo (B-05, R-519); la distanza va al posto della quota
+        const pl = S.racePlace();
+        $('v2').textContent = tr('placeOf', { p: ord(pl.place), n: pl.of });
+        $('v4').textContent = fmt(Math.floor(S.distM())) + ' m';
+        liveT += 0.08;
+        if (liveT > 0.25) { liveT = 0; S.renderLive(pl.list); }
+      } else {
+        $('v2').textContent = fmt(Math.floor(S.distM())) + ' m';
+        $('v4').textContent = fmt(Math.max(0, START_ALT - S.distM() * Math.sin(SLOPE))) + ' m';
+      }
     }
   }
   function renderLives() {
@@ -307,5 +345,5 @@ PN.schermate = ({ diag, stato: S }) => {
     } catch (e) { $('boardBox').hidden = true; }
   }
 
-  return { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard, renderDaily, cityName, get giorno() { return giorno; } };
+  return { show, banner, setBanner, hudLabels, say, arriva, arrivata, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard, renderDaily, cityName, get giorno() { return giorno; } };
 };

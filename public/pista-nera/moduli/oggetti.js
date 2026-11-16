@@ -49,9 +49,9 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
   }
   function placeHazard(h) {
     if (h.chase) {   // banana lanciata a un giocatore (R-224): segue il bersaglio e sparisce quando lo raggiunge
-      const tg = h.chase(), k = Math.min(1, h.t / 0.45);
+      const tg = h.chase(), k = Math.min(1, h.t / h.volo);   // durata del volo uguale al colpo (R-525, VOLO)
       const x = h.fly.x0 + (tg.x - h.fly.x0) * k, z = h.fly.z0 + (tg.z - h.fly.z0) * k;
-      h.mesh.position.set(x, hgt(x, z) + h.fly.y0 * (1 - k) + 0.8 * k + Math.sin(k * Math.PI) * 2.5, z);
+      h.mesh.position.set(x, hgt(x, z) + h.fly.y0 * (1 - k) + 0.8 * k + Math.sin(k * Math.PI) * 4.5, z);   // arco più alto: il volo dura di più e si vede arrivare
       h.mesh.rotation.y += 0.5;
       if (k >= 1) removeHazard(h.hid);
       return;
@@ -115,7 +115,8 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
     const pos = id => { if (id === myId) return { x: P.x, z: P.z, y: P.y }; const r = stato.remotes.get(id); return r ? { x: r.x, z: r.z, y: r.y } : null; };
     const a = pos(fromId), b = pos(toId);
     if (!a || !b || hazards.has(hid)) return;
-    const h = { hid, owner: fromId, kind: kind === 'bananone' ? 'bananone' : 'banana', x: b.x, z: b.z, chase: () => pos(toId) || b };
+    const k2 = kind === 'bananone' ? 'bananone' : 'banana';
+    const h = { hid, owner: fromId, kind: k2, x: b.x, z: b.z, chase: () => pos(toId) || b, volo: (PN.protocollo.VOLO || {})[k2] || 1.1 };
     addHazard(h, { x: a.x, z: a.z, y: a.y + 1.4 });
   }
   // bomba: si lascia dietro di sé. Banana: si lancia sempre, dal pulsante, dal tasto B o con il doppio tocco (R-224, R-230);

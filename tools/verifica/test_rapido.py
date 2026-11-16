@@ -43,7 +43,7 @@ with sync_playwright() as p:
         except Exception: pass
         st = pg.evaluate('window.CYFDiag.state()')
         if sc == 'napoli': check(st['pittore'] == 'worker', 'le cartoline le dipinge il worker (A-22)', st['pittore'])
-        check(not errs and st['scena'] == sc and st['modo'] == 'solo' and st['dist'] > 0.5,
+        check(not errs and st['scena'] == sc and st['modo'] in ('solo', 'race') and st['dist'] > 0.5,
               f'{sc}: nessun errore, allenamento partito, {st["dist"]:.1f} m percorsi', '; '.join(errs)[:200])
         pg.evaluate("document.getElementById('btnMenu').click()")
         check(pg.evaluate('window.CYFDiag.state().modo') == 'menu', f'{sc}: ritorno al menu') if sc == SCENE[-1] else None

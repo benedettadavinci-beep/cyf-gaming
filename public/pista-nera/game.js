@@ -31,12 +31,14 @@
 
   // ---------- renderer & scene ----------
   let renderer;
-  try { renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: true }); }
+  // R-524: sul telefono niente antialias (con lo schermo ad alta densità costa molto e si vede poco) e la GPU più veloce
+  try { renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: !isPhone, powerPreference: 'high-performance' }); }
   catch (e) { $('glErr').hidden = false; return; }
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));   // poi la qualità automatica (A-14) la regola
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = isPhone ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;   // R-524: ombre più leggere sul telefono
+  if (isPhone) renderer.shadowMap.autoUpdate = false;   // R-524: sul telefono le ombre si ridisegnano a fotogrammi alterni (frame)
   const ANISO = renderer.capabilities.getMaxAnisotropy();
   const TEX = isPhone ? 512 : 1024;   // risoluzione delle texture del terreno
 
@@ -49,43 +51,22 @@
   scene.add(world);
   world.updateMatrixWorld(true);
 
-  const SUN_OFFSET = new THREE.Vector3(-26, 30, -34);
-  const sunDir = SUN_OFFSET.clone().normalize();
-  const sky = new THREE.Mesh(
-    new THREE.SphereGeometry(900, 32, 16),
-    new THREE.ShaderMaterial({
-      side: THREE.BackSide, depthWrite: false,
-      uniforms: {
-        top: { value: new THREE.Color('#3f7fc4') }, mid: { value: new THREE.Color('#9cc5e6') },
-        horizon: { value: new THREE.Color(HORIZON) }, sunDir: { value: sunDir }, sunCol: { value: new THREE.Color('#fff4dc') }
-      },
-      vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
-      fragmentShader: [
-        'uniform vec3 top; uniform vec3 mid; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 sunCol; varying vec3 vW;',
-        'void main(){',
-        '  vec3 d = normalize(vW - cameraPosition);',
-        '  float h = d.y;',
-        '  vec3 c = h > 0.0 ? mix(mix(horizon, mid, smoothstep(0.0, 0.18, h)), top, smoothstep(0.15, 0.75, h)) : horizon;',
-        '  float s = max(dot(d, normalize(sunDir)), 0.0);',
-        '  c += sunCol * (pow(s, 900.0) * 2.0 + pow(s, 40.0) * 0.18 + pow(s, 6.0) * 0.08);',
-        '  gl_FragColor = vec4(min(c, vec3(1.0)), 1.0);',
-        '}'
-      ].join('\n')
-    })
-  );
-  sky.renderOrder = -2;
-  scene.add(sky);
+  // il cielo con il sole e le nuvole (moduli/cielo.js, R-513): la direzione del sole è una sola per cielo, luce e cartoline
+  const CIELO = PN.cielo({ scene, telefono: isPhone });
+  const SUN_OFFSET = CIELO.SOLE;
 
   const hemi = new THREE.HemisphereLight(lin('#cfe4f7'), lin('#aebfd0'), 0.55);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(lin('#fff0d6'), 0.9);
   sun.castShadow = true;
-  const sm = isPhone ? 1024 : 2048;
-  sun.shadow.mapSize.set(sm, sm);
   Object.assign(sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 140 });
   sun.shadow.bias = -0.0006;
   sun.shadow.normalBias = 0.02;
   scene.add(sun, sun.target);
+  // qualità scelta in automatico (A-14): pixel per pixel dello schermo e misura delle ombre (prima: 2 e 2048/1024 fissi);
+  // misura gli fps veri mentre si gioca e li manda una volta a /api/fps
+  let avviato = false;
+  const QUALITA = PN.qualita({ renderer, ombra: sun.shadow, telefono: isPhone, dopoCambio: () => { if (avviato) resize(); } });
 
   const PISTA = PN.pista({ scene, world, ANISO, TEX });
   const { TRACKS, center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_TEX, GROUND_MAKE, groundMat, ground, updateGround, ranges } = PISTA;
@@ -125,8 +106,7 @@
     if (!temp) store.set('cyf.scena', theme);
     PISTA.setTrack(theme);
     const T = THEMES[theme];
-    const u = sky.material.uniforms;
-    u.top.value.set(T.sky[0]); u.mid.value.set(T.sky[1]); u.horizon.value.set(T.sky[2]);
+    CIELO.applica(theme, T);
     scene.fog.color.copy(lin(T.fog));
     scene.fog.near = T.fogN || 60;
     scene.fog.far = T.fogF || 200;
@@ -137,10 +117,10 @@
     groundMat.roughness = T.rough || 0.9;
     groundMat.needsUpdate = true;
     PISTA.resetGround();
-    ranges.visible = theme === 'neve';
-    for (const k in builtSky) builtSky[k].visible = false;
-    const sg = T.city ? skylineFor(theme, { orizzonte: T.sky[2], nebbia: T.fog }) : null;
-    if (sg) sg.visible = true;
+    // la cartolina dello scenario (città, e dalla 0.26.0 anche la Neve: i coni 3D restano solo se la Neve non ha la sua)
+    const sg = SFONDI.ha(theme) ? skylineFor(theme, { orizzonte: T.sky[2], nebbia: T.fog, sole: T.sun }) : null;
+    ranges.visible = theme === 'neve' && !sg;
+    SFONDI.mostra(sg ? theme : null);
     PART = T.part || null;
     flakes.visible = !!PART && !reduceMotion;
     if (PART) { flakes.material.color.copy(lin(PART.col)); flakes.material.size = PART.size; flakes.material.opacity = PART.op; }
@@ -189,6 +169,9 @@
     colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); },
     // allenamento con gli avversari del computer (R-515): banane, bombe e bananoni come in gara, simulati su questo dispositivo
     get allenaConAvversari() { return mode === 'solo' && BOT.modo === 'allenamento' && BOT.lista.length > 0; },
+    get sterza() { return inSteer() !== 0; },
+    arriva: (chi, big, durata) => SCHERMATE.arriva(chi, big, durata),   // R-525: popup "banana in arrivo"
+    arrivata: schivata => SCHERMATE.arrivata(schivata),   // sta curvando (← → o A/D premuti, rotellina di lato oltre la zona morta): schiva banana e bananone lanciati (R-522)
     nome: () => inName.value.trim() || 'Rider',
     get sfida() { return SFIDA; },   // "batti il mio tempo" (R-236): le schermate gli passano risultati e menu
     get settimana() { return SETT; },   // città della settimana (R-245): riquadro nel menu quando arriva /api/giorno
@@ -235,16 +218,21 @@
   const SCHERMATE = PN.schermate({ diag, stato });
   const { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard } = SCHERMATE;
   const PUB = PN.pubblicita({ diag });   // riquadro pubblicitario nei momenti di attesa (R-517): spento se config.js non dice altro
-  // ---------- solo ----------
+  // ---------- allenamento ----------
+  // Dalla 0.28.0 l'allenamento è una gara vera contro 3 avversari del computer (R-519): stesso codice della gara online, con
+  // un "server finto" sul dispositivo (moduli/gara_locale.js) al posto del WebSocket; via 3-2-1, traguardo a 2 km, risultati
+  // con Ricomincia; niente vite né punti collezionati (S-53, ripiego). La discesa senza fine con le 3 vite (mode 'solo') non
+  // parte più dal menu: resta nel codice finché Luigi non decide S-53
   function startSolo() {
     initAudio();
     net.close();
-    mode = 'solo';
-    me.setColor(PALETTE[0], myJersey());
-    reset((Math.random() * 2 ** 31) | 0, null, false);
-    BOT.allenamento(lastSeed);   // 3 avversari guidati dal software (R-239)
-    hudLabels();
-    show(null); setBanner('');
+    net.want = false; net.code = GL.codice; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map();
+    net.pub = false; net.daily = false; net.gp = 0; net.gpRes = null; net.sfida = null; net.giorno = null; net.autoAt = 0; net.awards = null;
+    net.hostId = myId; net.players = []; net.myColor = 0; net.offset = 0; net.locale = true;
+    net.ws = GL.ws();
+    history.replaceState(null, '', location.pathname);
+    mode = 'lobby';
+    GL.avvia({ me: { name: inName.value.trim() || 'Rider', color: 0, ...aspetto() }, scena: selScena.value });
   }
   function togglePause() {
     if (mode === 'solo') { mode = 'pause'; show('pause'); keys.left = keys.right = false; soundLevels(0, 0, false); }
@@ -344,7 +332,7 @@
       P.speed = F.limita(P.speed);   // mai oltre 80 km/h (R-242)
       if (Math.abs(P.ang) > 0.6 && Math.random() < 0.8) spray(P.x, 0, P.z, 2, 1.6, 2.4, Math.cos(P.ang) * Math.sign(P.ang) * 3);
     } else {
-      const flipIn = (keys.down || stick.y < -0.35 ? 1 : 0) - (keys.up || stick.y > 0.35 ? 1 : 0);
+      const flipIn = (keys.down || stick.y > 0.35 ? 1 : 0) - (keys.up || stick.y < -0.35 ? 1 : 0);   // in aria: giù (freccia o rotellina in basso) e su fanno lo stesso salto mortale (R-523)
       P.airT += dt;
       P.spin += steer * 9 * dt;
       P.flip += flipIn * 8.5 * dt;
@@ -472,6 +460,7 @@
 
   function soloOver() {
     mode = 'over';
+    hudLabels();   // via la classifica dal vivo dell'allenamento (B-05)
     MISS.salva();
     soundLevels(0, 0, false);
     const s = score(), isBest = s > best;
@@ -573,9 +562,7 @@
     const b = $('btnOnline');
     b.disabled = true;
     try {
-      const res = await fetch('/api/quick', { cache: 'no-store' });
-      const d = await res.json();
-      if (!res.ok || !d.code) throw new Error();
+      const d = await SALA.chiedi(0);   // il server prenota il posto (B-04)
       connect(d.code, true);
     } catch (e) { menuError(tr('errOnline')); }
     b.disabled = false;
@@ -587,18 +574,18 @@
     const b = $('btnGp');
     b.disabled = true;
     try {
-      const res = await fetch('/api/quick?gp=1', { cache: 'no-store' });
-      const d = await res.json();
-      if (res.status === 409) { menuError(tr('gpErr')); GP.carica(); return; }
-      if (!res.ok || !d.code) throw new Error();
+      const d = await SALA.chiedi(1);   // il server prenota il posto (B-04)
       connect(d.code, true, false, null, true);
-    } catch (e) { menuError(tr('errOnline')); b.disabled = false; }
+    } catch (e) {
+      if (e && e.status === 409) { menuError(tr('gpErr')); GP.carica(); return; }
+      menuError(tr('errOnline')); b.disabled = false;
+    }
   }
   function connect(code, pub, daily, sfida, gp) {
     initAudio();
     net.close();
     net.sfida = daily && sfida ? sfida : null;   // R-236: numero della pista del giorno da correre (?n=) e arrivo da un link (?b=1)
-    net.want = true; net.code = code; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map();
+    net.want = true; net.code = code; net.retries = 0; net.phase = 'lobby'; net.results = []; net.finished = new Map(); net.locale = false;
     net.pub = !!pub || /^ONLINE\d+$/.test(code) || /^GP\d+$/.test(code); net.autoAt = 0; net.awards = null;
     net.gp = gp ? 1 : 0; net.gpRes = null;   // sala del Gran Premio (R-247): 1 finché si aspetta il via delle 21
     net.daily = !!daily; net.giorno = null;
@@ -640,8 +627,8 @@
       clearInterval(net.pingTimer);
       if (!net.want) return;
       if (ev.code === 1008) {
-        // sala pubblica piena: se ne cerca un'altra
-        if (net.pub) { net.want = false; $('btnOnline').click(); return; }
+        // sala pubblica (online o Gran Premio) piena: se ne chiede un'altra da soli, fino a 3 volte, senza errore (B-04)
+        if (net.pub) { net.want = false; const gp = net.gp; SALA.riprova(gp).then(d => { if (d) connect(d.code, true, false, null, !!gp); else { toMenu(); menuError(tr('errFull')); } }); return; }
         net.want = false; toMenu(); menuError(tr(net.daily ? 'dailyErr' : 'errFull')); return;
       }
       if (ev.code === 4000) { net.want = false; toMenu(); menuError(tr('errOtherTab')); return; }
@@ -746,7 +733,7 @@
     } else if (m.t === 'left') {
       removeRemote(m.id);
     } else if (m.t === 'full') {
-      menuError(tr('errFull'));
+      if (!net.pub) menuError(tr('errFull'));   // sala pubblica: la chiusura 1008 chiede un'altra sala da sola (B-04)
     } else if (m.t === 'aggiorna') {
       // il server parla una versione nuova del protocollo: questa pagina è vecchia (la chiusura 4001 porta al menu)
       say(tr('errAggiorna'), '#d8302a');
@@ -825,7 +812,7 @@
       // rientro durante la gara: si riparte dal via, il tempo corre già
       mode = 'race';
     }
-    say(tr('raceLength', { m: net.minutes || 5, d: fmtLen(raceLen) }), '#13233a');
+    say(net.locale ? tr('trainRace', { d: fmtLen(raceLen) }) : tr('raceLength', { m: net.minutes || 5, d: fmtLen(raceLen) }), '#13233a');
     clearInterval(net.posTimer);
     net.posTimer = setInterval(() => {
       if (!racing()) return;
@@ -852,6 +839,7 @@
   function raceClock() {
     const cnt = $('count');
     if (mode === 'countdown' && !net.startAt) {
+      if (net.locale) { cnt.hidden = true; showPronto(false); return; }   // allenamento-gara: niente attesa della sala, il 3-2-1 parte appena la pista è pronta (R-519)
       // attesa prima del via (R-119). Sfida: 25 s (prima, se tutti sono pronti), così chi ha l'invito fa in tempo a entrare.
       // Sala online: il conto alla rovescia parte quando tutti hanno caricato la gara, al massimo dopo 25 s.
       const s = Math.max(0, Math.ceil((net.gatherUntil - serverNow()) / 1000));
@@ -919,7 +907,7 @@
   }
 
   // nella pista del giorno si corre da soli: il microfono è grigio come in allenamento (S-40)
-  const VOCALI = PN.vocali({ net, audio: AUDIO, say, isOnline: () => !net.daily && !!(net.ws && net.ws.readyState === 1) && (mode === 'lobby' || mode === 'results' || racing()), isTraining: () => mode === 'solo' || mode === 'pause' || !!net.daily, serverNow });
+  const VOCALI = PN.vocali({ net, audio: AUDIO, say, isOnline: () => !net.daily && !net.locale && !!(net.ws && net.ws.readyState === 1) && (mode === 'lobby' || mode === 'results' || racing()), isTraining: () => mode === 'solo' || mode === 'pause' || !!net.daily || !!net.locale, serverNow });
   const { voice, fmtWait, updateVoiceBtn, voiceButton, stopVoice, playVoice, mutedIds } = VOCALI;
   // ---------- donazioni ----------
   // sul portale (R-244, S-46) niente donazioni e il titolo non è un link: il portale vieta i link verso l'esterno
@@ -944,6 +932,8 @@
   const SETT = PN.settimana({ schermate: SCHERMATE, say, vaiInCitta: sc => { if (THEMES[sc] && !racing()) { selScena.value = sc; selScena.dispatchEvent(new Event('change')); } }, cambiato: () => PERS.mostra() });
   // Gran Premio delle 21 (R-247): riquadro con il conto alla rovescia nel menu; a fine gara la propria posizione nei risultati
   const GP = PN.granpremio({ myId, entra: entraGp, cambiato: () => { if (mode === 'results') renderResults(); } });
+  const SALA = PN.sala({ myId, diag });   // sala online o del Gran Premio con il posto prenotato e i nuovi tentativi (B-04)
+  const GL = PN.garaLocale({ myId, onMsg, diag });   // allenamento uguale alla gara: il "server finto" sul dispositivo (R-519)
 
   // ---------- render ----------
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
@@ -997,17 +987,18 @@
     world.localToWorld(v2);
     camera.lookAt(v2);
     camera.rotateZ(-lean * 0.035);
-    const fov = 58 + Math.min(16, P.speed * 0.72);   // velocità più basse dalla 0.19.0 (R-242): stessa sensazione di prima
+    // velocità più basse dalla 0.19.0 (R-242): stessa sensazione di prima; R-524 (0.30.0): +5° in posizione raccolta, più dinamico
+    const fov = 58 + Math.min(16, P.speed * 0.72) + tuckS * 5;
     if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, 3 * dt); camera.updateProjectionMatrix(); }
     vignette.style.opacity = String(clamp((P.speed - 12) / 14, 0, 0.85));
 
     v3.set(P.x, gH, P.z); world.localToWorld(v3);
     sun.target.position.copy(v3);
     sun.position.copy(v3).add(SUN_OFFSET);
-    sky.position.copy(camera.position);
+    CIELO.uccelliVisibili(QUALITA.livello !== 'bassa');   // nella qualità bassa niente uccelli (R-513, punto 6)
+    CIELO.aggiorna(dt, camera);
     ranges.position.copy(camera.position);
-    const skyG = builtSky[theme];
-    if (skyG) skyG.position.copy(camera.position);
+    SFONDI.segui(theme, camera, center(P.z));   // la città ferma sull'asse della strada, i monti con la telecamera (R-513)
     updateTrail();
   }
 
@@ -1021,17 +1012,23 @@
   window.addEventListener('resize', resize);
   if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
 
-  let last = performance.now(), wasPlaying = null;
+  let last = performance.now(), wasPlaying = null, ombraN = 0;
+  // R-524 (dalla 0.30.0): prima il passo era tagliato a 0,033 s, quindi su un telefono a 15-20 fps il gioco andava al
+  // rallentatore (metà della velocità vera) e la qualità automatica non scendeva mai (gli fps misurati restavano ≥ 30).
+  // Ora il tempo è quello vero (fino a 0,1 s, per le pause della pagina) e la fisica fa più passi piccoli da ≤ 25 ms
+  function passi(raw, fn) { const n = Math.min(4, Math.max(1, Math.ceil(raw / 0.025))), d = raw / n; for (let i = 0; i < n; i++) fn(d); }
   function frame(now) {
-    const dt = Math.min(0.033, (now - last) / 1000);
+    const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
     last = now;
-    if (mode === 'solo') { update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); }
-    else if (racing()) { raceClock(); update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); SFIDA.hud(dt); }
-    else if (mode === 'menu' || mode === 'lobby' || mode === 'results') { update(dt, true); if (mode === 'lobby' && net.pub && net.autoAt) PUB.mostra('lobby'); }
+    if (mode === 'solo') { passi(dt, d => { update(d, false); BOT.aggiorna(d); }); updateRemotes(dt); hud(dt); }
+    else if (racing()) { raceClock(); passi(dt, d => { update(d, false); BOT.aggiorna(d); }); updateRemotes(dt); hud(dt); SFIDA.hud(dt); }
+    else if (mode === 'menu' || mode === 'lobby' || mode === 'results') { passi(dt, d => update(d, true)); if (mode === 'lobby' && net.pub && net.autoAt) PUB.mostra('lobby'); }
     else if (mode === 'over') { updateSpray(dt); updateFlakes(dt, P.x, P.z, 0); }
     const playing = mode === 'solo' || racing();
+    QUALITA.tick(dt, playing && mode !== 'countdown');
     if (playing !== wasPlaying) { wasPlaying = playing; stage.classList.toggle('playing', playing); stick.x = stick.y = 0; stickRest(); diag.log('gioco', 'modo ' + mode); }
     place(mode === 'pause' ? 0 : dt);
+    if (isPhone) renderer.shadowMap.needsUpdate = (++ombraN % (QUALITA.livello === 'bassa' ? 3 : 2)) === 0;   // R-524
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
@@ -1091,13 +1088,16 @@
     rete: net.ws ? ['apertura', 'aperta', 'chiusura', 'chiusa'][net.ws.readyState] : 'no', stanza: net.code || '-', fase: net.phase,
     ping: net.ping, msg: net.msgs, giocatori: net.players.length, avversari: remotes.size, lingua: lang, tel: isPhone ? 1 : 0, gl: glName,
     sfondo: builtSky[theme] ? (builtSky[theme].userData.pronto ? 'pronto' : 'in arrivo') : '-', pittore: SFONDI.pittore(),   // cartolina della città (R-405, A-22)
+    monti: builtSky[theme] && builtSky[theme].userData.lontano && builtSky[theme].userData.lontano.children[0].visible ? 'sì' : '-',   // piano lontano della cartolina (R-513)
     portale: PORTALE.nome || '-', vocali: VOCALI.abilitati() ? 1 : 0,   // modalità portale e vocali accesi (R-244)
     fonte: diag.fonte || '-',   // da dove arriva la visita (R-246)
+    qualita: QUALITA.livello, fpsGioco: QUALITA.fps(),   // qualità automatica e fps medi di gioco (A-14)
     pubblicita: PUB.fornitore + (PUB.visibile ? ' (visibile)' : '')   // riquadro pubblicitario (R-517)
   });
   const verLabel = $('verLabel');
   if (verLabel) { verLabel.textContent = 'v' + ((window.CYF && window.CYF.version) || '?'); diag.tapToOpen(verLabel); }
   diag.log('gioco', 'pronto · ' + theme + ' · ' + lang);
+  avviato = true;
   requestAnimationFrame(frame);
   // R-232: visita e tempo di caricamento, misurati quando la prima immagine del gioco è sullo schermo
   requestAnimationFrame(() => requestAnimationFrame(() => { if (diag.visita) diag.visita(myId, isPhone); }));

@@ -43,7 +43,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
       label.position.y = 2.3;
       model.group.add(label);
       world.add(model.group);
-      r = { model, nome: info.name || 'Rider', x: 0, z: 0, y: 0, a: 0, s: 0, tx: 0, tz: 0, ty: 0, ta: 0, v: 0, c: 0, last: 0, has: false };
+      r = { model, nome: info.name || 'Rider', colore: info.color || 0, bot: !!info.bot, x: 0, z: 0, y: 0, a: 0, s: 0, tx: 0, tz: 0, ty: 0, ta: 0, v: 0, c: 0, last: 0, has: false };
       remotes.set(id, r);
     }
     r.model.setLook(id, info.h);   // gli stessi capelli che vede lui: scelti (R-225) o a caso dal suo codice (R-220)
@@ -97,9 +97,14 @@ PN.avversari = ({ world, pista, net, stato }) => {
   function removeRemote(id) { const r = remotes.get(id); if (r) { world.remove(r.model.group); remotes.delete(id); } }
   function clearRemotes() { for (const id of [...remotes.keys()]) removeRemote(id); }
 
+  // in allenamento con gli avversari del computer (B-05, R-519) non c'è l'elenco del server: la classifica è il rider più
+  // gli avversari in pista, ordinati per strada fatta, come in gara
   function standings() {
     const { myId, P } = stato;
-    const list = net.racers.map(r => {
+    const racers = stato.allenaConAvversari
+      ? [{ id: myId, name: stato.nome(), color: 0 }, ...[...remotes].filter(([, r]) => r.has && r.model.group.visible).map(([id, r]) => ({ id, name: r.nome, bot: r.bot, color: r.colore }))]
+      : net.racers;
+    const list = racers.map(r => {
       const rm = r.id === myId ? null : remotes.get(r.id);
       return { id: r.id, name: r.name, bot: !!r.bot, color: r.id === myId ? net.myColor : r.color, d: r.id === myId ? -P.z : (rm ? -rm.tz : 0), ms: net.finished.get(r.id) };
     });
@@ -118,6 +123,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
   // classifica dal vivo in alto a destra: posizione, nome e distacco dal primo (o il tempo, per chi è arrivato)
   function renderLive(list) {
     const { myId, raceLen } = stato;
+    const allena = stato.allenaConAvversari;   // senza traguardo: il primo mostra la strada fatta, gli altri il distacco
     const ol = $('liveList');
     ol.innerHTML = '';
     const lead = list.find(x => x.ms == null);
@@ -129,7 +135,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
       const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = PALETTE[(r.color || 0) % PALETTE.length];
       const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.name + (r.bot ? ' 🤖' : '') + (r.id === myId ? tr('you') : '');
       const gap = document.createElement('span'); gap.className = 'gap';
-      gap.textContent = r.ms != null ? fmtTime(r.ms) : (i === 0 ? fmtLen(Math.max(0, raceLen - r.d)) : '−' + fmtLen(Math.max(0, leadD - r.d)));
+      gap.textContent = r.ms != null ? fmtTime(r.ms) : (i === 0 ? fmtLen(Math.max(0, allena ? r.d : raceLen - r.d)) : '−' + fmtLen(Math.max(0, leadD - r.d)));
       li.append(pos, dot, nm, gap);
       ol.append(li);
     });
