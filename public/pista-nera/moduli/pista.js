@@ -12,7 +12,7 @@ PN.pista = ({ scene, world, ANISO, TEX }) => {
   // Tutti i tracciati hanno la stessa pendenza media della Neve (dalla 0.10.0 con le curve più spinte di R-311,
   // fattore di tempo 1,0237; controllo: tools/verifica/piste.py): più curve corte o rettilinei alternati a curve
   // più decise, ma tempi simili. Ostacoli, bonus, rampe e porte restano nella stessa sequenza in ogni città (R-309).
-  const CURVE = { a: 22, l: 62, W: 300, k: 2 };   // R-527: curve vere in tutti gli scenari (vedi center)
+  const CURVE = { a: 0, l: 62, W: 300, k: 2 };   // R-527: curve vere in tutti gli scenari (vedi center)
   const TRACKS = {
     neve:        { w: [[27, 230, 0], [12, 105, 0], [4.5, 46, 0]], lo: 1 },                                         // R-311: curve più frequenti e più spinte
     napoli:      { w: [[16.89, 190, 1.1], [9.5, 85, 0.4], [4.75, 38, 2.0]], lo: 1 },  // tornanti continui come la costiera
