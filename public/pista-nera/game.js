@@ -1018,11 +1018,11 @@
   // Ora il tempo è quello vero (fino a 0,1 s, per le pause della pagina) e la fisica fa più passi piccoli da ≤ 25 ms
   function passi(raw, fn) { const n = Math.min(4, Math.max(1, Math.ceil(raw / 0.025))), d = raw / n; for (let i = 0; i < n; i++) fn(d); }
   function frame(now) {
-    const dt = Math.min(0.033, (now - last) / 1000);   // prova: ripristinato il passo precedente (0,033 s) per isolare il cancello rosso
+    const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
     last = now;
-    if (mode === 'solo') { update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); }
-    else if (racing()) { raceClock(); update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); SFIDA.hud(dt); }
-    else if (mode === 'menu' || mode === 'lobby' || mode === 'results') { update(dt, true); if (mode === 'lobby' && net.pub && net.autoAt) PUB.mostra('lobby'); }
+    if (mode === 'solo') { passi(dt, d => { update(d, false); BOT.aggiorna(d); }); updateRemotes(dt); hud(dt); }
+    else if (racing()) { raceClock(); passi(dt, d => { update(d, false); BOT.aggiorna(d); }); updateRemotes(dt); hud(dt); SFIDA.hud(dt); }
+    else if (mode === 'menu' || mode === 'lobby' || mode === 'results') { passi(dt, d => update(d, true)); if (mode === 'lobby' && net.pub && net.autoAt) PUB.mostra('lobby'); }
     else if (mode === 'over') { updateSpray(dt); updateFlakes(dt, P.x, P.z, 0); }
     const playing = mode === 'solo' || racing();
     QUALITA.tick(dt, playing && mode !== 'countdown');
