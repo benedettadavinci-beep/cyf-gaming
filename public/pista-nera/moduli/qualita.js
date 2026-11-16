@@ -11,9 +11,13 @@
 window.PN = window.PN || {};
 PN.qualita = (() => {
   const LIVELLI = ['bassa', 'media', 'alta'];
+  // R-524 (dalla 0.30.0): sul telefono meno pixel (1,5 / 1,25 / 1), si parte da media, si misura dopo 3 s su finestre di
+  // 5 s e si scende di livello ogni volta che si va sotto i 45 fps (prima una volta sola, dopo 20 s, sotto i 28)
   const PIXEL = { alta: 2, media: 1.5, bassa: 1 };
+  const PIXEL_TEL = { alta: 1.5, media: 1.25, bassa: 1 };
   const OMBRE = { alta: 2048, media: 1024, bassa: 512 };
   const SOGLIA_FPS = 28, FINESTRA_S = 20, INVIO_S = 45;
+  const SOGLIA_TEL = 45, FINESTRA_TEL = 5, AVVIO_TEL = 3;
   return ({ renderer, ombra, telefono, dopoCambio }) => {
     const { store } = PN.base;
     const forzato = new URLSearchParams(location.search).get('qualita');
@@ -23,7 +27,7 @@ PN.qualita = (() => {
       if (LIVELLI.includes(salvato)) return salvato;
       if (!telefono) return 'alta';
       const mem = navigator.deviceMemory || 0, cpu = navigator.hardwareConcurrency || 0;
-      return mem >= 6 || cpu >= 8 ? 'alta' : 'media';
+      return mem >= 6 || cpu >= 8 ? 'media' : 'bassa';   // R-524: sul telefono si parte più leggeri
     }
     let livello = iniziale(), abbassato = false, inviato = false;
     let frames = 0, acc = 0, framesTot = 0, accTot = 0;
@@ -31,7 +35,7 @@ PN.qualita = (() => {
     function applica(l, salva) {
       livello = l;
       if (salva) store.set('cyf.qualita', l);
-      try { renderer.setPixelRatio(Math.min(PIXEL[l], window.devicePixelRatio || 1)); } catch (e) {}
+      try { renderer.setPixelRatio(Math.min((telefono ? PIXEL_TEL : PIXEL)[l], window.devicePixelRatio || 1)); } catch (e) {}
       try {
         if (ombra && ombra.mapSize && ombra.mapSize.x !== OMBRE[l]) {
           ombra.mapSize.set(OMBRE[l], OMBRE[l]);
@@ -45,7 +49,19 @@ PN.qualita = (() => {
     // il gioco lo chiama ogni fotogramma con dt in secondi e se si sta giocando (allenamento o gara): nei menu non si misura
     function tick(dt, giocando) {
       if (!giocando || !(dt > 0)) return;
-      frames++; acc += dt; framesTot++; accTot += dt;
+      framesTot++; accTot += dt;
+      if (telefono) {   // R-524: finestre corte, si può scendere più volte (mai salire nella stessa pagina)
+        if (accTot < AVVIO_TEL) { frames = 0; acc = 0; }
+        else { frames++; acc += dt; }
+        if (acc >= FINESTRA_TEL) {
+          const fps = frames / acc, i = LIVELLI.indexOf(livello);
+          if (fps < SOGLIA_TEL && i > 0) { applica(LIVELLI[i - 1], true); if (window.CYFDiag) window.CYFDiag.log('misure', Math.round(fps) + ' fps: qualità ' + livello); }
+          frames = 0; acc = 0;
+        }
+        if (!inviato && accTot >= INVIO_S) { inviato = true; invia(framesTot / accTot); }
+        return;
+      }
+      frames++; acc += dt;
       if (!abbassato && acc >= FINESTRA_S) {
         const fps = frames / acc;
         abbassato = true;

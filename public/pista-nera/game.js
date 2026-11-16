@@ -31,12 +31,14 @@
 
   // ---------- renderer & scene ----------
   let renderer;
-  try { renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: true }); }
+  // R-524: sul telefono niente antialias (con lo schermo ad alta densità costa molto e si vede poco) e la GPU più veloce
+  try { renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: !isPhone, powerPreference: 'high-performance' }); }
   catch (e) { $('glErr').hidden = false; return; }
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));   // poi la qualità automatica (A-14) la regola
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = isPhone ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;   // R-524: ombre più leggere sul telefono
+  if (isPhone) renderer.shadowMap.autoUpdate = false;   // R-524: sul telefono le ombre si ridisegnano a fotogrammi alterni (frame)
   const ANISO = renderer.capabilities.getMaxAnisotropy();
   const TEX = isPhone ? 512 : 1024;   // risoluzione delle texture del terreno
 
@@ -167,7 +169,9 @@
     colpo: (target, kind) => { if (BOT.guida(target)) BOT.colpo(target, kind, inName.value.trim() || 'Rider'); },
     // allenamento con gli avversari del computer (R-515): banane, bombe e bananoni come in gara, simulati su questo dispositivo
     get allenaConAvversari() { return mode === 'solo' && BOT.modo === 'allenamento' && BOT.lista.length > 0; },
-    get sterza() { return inSteer() !== 0; },   // sta curvando (← → o A/D premuti, rotellina di lato oltre la zona morta): schiva banana e bananone lanciati (R-522)
+    get sterza() { return inSteer() !== 0; },
+    arriva: (chi, big, durata) => SCHERMATE.arriva(chi, big, durata),   // R-525: popup "banana in arrivo"
+    arrivata: schivata => SCHERMATE.arrivata(schivata),   // sta curvando (← → o A/D premuti, rotellina di lato oltre la zona morta): schiva banana e bananone lanciati (R-522)
     nome: () => inName.value.trim() || 'Rider',
     get sfida() { return SFIDA; },   // "batti il mio tempo" (R-236): le schermate gli passano risultati e menu
     get settimana() { return SETT; },   // città della settimana (R-245): riquadro nel menu quando arriva /api/giorno
@@ -983,7 +987,8 @@
     world.localToWorld(v2);
     camera.lookAt(v2);
     camera.rotateZ(-lean * 0.035);
-    const fov = 58 + Math.min(16, P.speed * 0.72);   // velocità più basse dalla 0.19.0 (R-242): stessa sensazione di prima
+    // velocità più basse dalla 0.19.0 (R-242): stessa sensazione di prima; R-524 (0.30.0): +5° in posizione raccolta, più dinamico
+    const fov = 58 + Math.min(16, P.speed * 0.72) + tuckS * 5;
     if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, 3 * dt); camera.updateProjectionMatrix(); }
     vignette.style.opacity = String(clamp((P.speed - 12) / 14, 0, 0.85));
 
@@ -1007,18 +1012,23 @@
   window.addEventListener('resize', resize);
   if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
 
-  let last = performance.now(), wasPlaying = null;
+  let last = performance.now(), wasPlaying = null, ombraN = 0;
+  // R-524 (dalla 0.30.0): prima il passo era tagliato a 0,033 s, quindi su un telefono a 15-20 fps il gioco andava al
+  // rallentatore (metà della velocità vera) e la qualità automatica non scendeva mai (gli fps misurati restavano ≥ 30).
+  // Ora il tempo è quello vero (fino a 0,1 s, per le pause della pagina) e la fisica fa più passi piccoli da ≤ 25 ms
+  function passi(raw, fn) { const n = Math.min(4, Math.max(1, Math.ceil(raw / 0.025))), d = raw / n; for (let i = 0; i < n; i++) fn(d); }
   function frame(now) {
-    const dt = Math.min(0.033, (now - last) / 1000);
+    const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
     last = now;
-    if (mode === 'solo') { update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); }
-    else if (racing()) { raceClock(); update(dt, false); BOT.aggiorna(dt); updateRemotes(dt); hud(dt); SFIDA.hud(dt); }
-    else if (mode === 'menu' || mode === 'lobby' || mode === 'results') { update(dt, true); if (mode === 'lobby' && net.pub && net.autoAt) PUB.mostra('lobby'); }
+    if (mode === 'solo') { passi(dt, d => { update(d, false); BOT.aggiorna(d); }); updateRemotes(dt); hud(dt); }
+    else if (racing()) { raceClock(); passi(dt, d => { update(d, false); BOT.aggiorna(d); }); updateRemotes(dt); hud(dt); SFIDA.hud(dt); }
+    else if (mode === 'menu' || mode === 'lobby' || mode === 'results') { passi(dt, d => update(d, true)); if (mode === 'lobby' && net.pub && net.autoAt) PUB.mostra('lobby'); }
     else if (mode === 'over') { updateSpray(dt); updateFlakes(dt, P.x, P.z, 0); }
     const playing = mode === 'solo' || racing();
     QUALITA.tick(dt, playing && mode !== 'countdown');
     if (playing !== wasPlaying) { wasPlaying = playing; stage.classList.toggle('playing', playing); stick.x = stick.y = 0; stickRest(); diag.log('gioco', 'modo ' + mode); }
     place(mode === 'pause' ? 0 : dt);
+    if (isPhone) renderer.shadowMap.needsUpdate = (++ombraN % (QUALITA.livello === 'bassa' ? 3 : 2)) === 0;   // R-524
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }

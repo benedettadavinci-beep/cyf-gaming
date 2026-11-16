@@ -42,6 +42,33 @@ PN.schermate = ({ diag, stato: S }) => {
     while (toasts.children.length > 3) toasts.firstChild.remove();
   }
 
+  // R-525 (dalla 0.30.0): popup piccolo "banana in arrivo". arriva(chi, big, durata in s) lo mostra con la barra che si
+  // accorcia fino all'arrivo; arrivata(true | false | null) lo colora (schivata / presa) e lo chiude poco dopo
+  let arrivoT = 0;
+  function arriva(chi, big, durata) {
+    const el = $('arrivo'), fill = $('arrivoFill');
+    clearTimeout(arrivoT);
+    el.className = 'arrivo' + (big ? ' big' : '');
+    $('arrivoTit').textContent = tr(big ? 'incomingBig' : 'incoming', { n: chi });
+    $('arrivoTip').textContent = tr(PN.base.isPhone ? 'incomingTipPhone' : 'incomingTip');
+    el.hidden = false;
+    fill.style.transition = 'none'; fill.style.transform = 'scaleX(1)';
+    void fill.offsetWidth;   // riparte l'animazione della barra
+    fill.style.transition = 'transform ' + durata + 's linear'; fill.style.transform = 'scaleX(0)';
+    arrivoT = setTimeout(() => { el.hidden = true; }, durata * 1000 + 1500);   // rete di sicurezza se arrivata() non viene chiamata
+  }
+  function arrivata(schivata) {
+    const el = $('arrivo');
+    if (el.hidden) return;
+    clearTimeout(arrivoT);
+    if (schivata === null) { el.hidden = true; return; }
+    el.classList.add(schivata ? 'ok' : 'ko');
+    $('arrivoIco').textContent = schivata ? '✅' : '💥';
+    $('arrivoTip').textContent = '';
+    $('arrivoTit').textContent = tr(schivata ? 'incomingDodged' : 'incomingHit');
+    arrivoT = setTimeout(() => { el.hidden = true; $('arrivoIco').textContent = '🍌'; }, 700);
+  }
+
   function renderLobby() {
     const pub = S.net.pub;
     $('lobbyShare').hidden = pub;
@@ -318,5 +345,5 @@ PN.schermate = ({ diag, stato: S }) => {
     } catch (e) { $('boardBox').hidden = true; }
   }
 
-  return { show, banner, setBanner, hudLabels, say, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard, renderDaily, cityName, get giorno() { return giorno; } };
+  return { show, banner, setBanner, hudLabels, say, arriva, arrivata, renderLobby, renderLobbyStatus, renderResults, renderResultsStatus, hud, renderLives, loadBoard, renderDaily, cityName, get giorno() { return giorno; } };
 };

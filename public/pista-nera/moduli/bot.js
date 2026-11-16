@@ -405,17 +405,21 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
   const STERZO_SCHIVA = 0.3;
   function colpo(bersaglio, kind, chi) {
     const big = kind === 'bananone';
+    const volo = (PN.protocollo.VOLO || { banana: 1.1, bananone: 1.3 })[big ? 'bananone' : 'banana'];
+    // R-525: chi è il bersaglio vede subito il popup "in arrivo" con il tempo che resta per schivare
+    if (bersaglio === stato.myId && stato.arriva) stato.arriva(chi || tr('someone'), big, volo);
     setTimeout(() => {
-      if (!stato.racing() && !(stato.mode === 'solo' && modo === 'allenamento')) return;
+      if (!stato.racing() && !(stato.mode === 'solo' && modo === 'allenamento')) { if (stato.arrivata) stato.arrivata(null); return; }
       if (bersaglio === stato.myId) {
-        if (stato.P.air) { say(tr('dodgedAir'), '#1f8a4c'); return; }
-        if (stato.sterza) { say(tr('dodgedSteer'), '#1f8a4c'); return; }
+        if (stato.P.air) { say(tr('dodgedAir'), '#1f8a4c'); if (stato.arrivata) stato.arrivata(true); return; }
+        if (stato.sterza) { say(tr('dodgedSteer'), '#1f8a4c'); if (stato.arrivata) stato.arrivata(true); return; }
+        if (stato.arrivata) stato.arrivata(false);
         crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: chi || tr('someone') }), FERMO[big ? 'bananone' : 'banana'], true);
         return;
       }
       const b = lista.find(x => x.id === bersaglio);
       if (b && !b.air && Math.abs(b.sterzo || 0) <= STERZO_SCHIVA) cade(b, FERMO[big ? 'bananone' : 'banana']);
-    }, 450);
+    }, volo * 1000);
   }
   const guida_ = id => lista.some(b => b.id === id);
   // ogni 100 ms il pilota manda le posizioni di tutti gli avversari in un messaggio solo
