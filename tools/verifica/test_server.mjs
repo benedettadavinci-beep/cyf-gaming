@@ -413,8 +413,8 @@ console.log('T11 · misure (R-232): punti fatti per gara, oggetti usati, visite,
   await sleep(600);
   const dopo = await giorno();
   const d = k => (dopo[k] || 0) - (prima[k] || 0);
-  ok(d('pts_n') === 2 && d('pts_1500') === 1 && d('pts_lt50') === 1 && d('pts_sum') === 1610,
-    'punti fatti in gara = rimasti + spesi, contati in fasce (1.600 → fascia del bananone, 10 → sotto la banana)',
+  ok(d('pts_n') === 2 && d('pts_1500') === 1 && d('pts_lt50') === 1 && d('pts_sum') === 2960,
+    'punti fatti in gara = rimasti + spesi, contati in fasce (1.400 rimasti + 1.550 spesi con banana 1.500 e bomba 50 = 2.950 → fascia 1.500, 10 → sotto i 50)',
     JSON.stringify({ n: d('pts_n'), f1500: d('pts_1500'), lt50: d('pts_lt50'), somma: d('pts_sum') }));
   ok(d('use_banana') === 1 && d('use_bomb') === 1, 'oggetti usati contati per tipo', JSON.stringify({ banana: d('use_banana'), bomba: d('use_bomb') }));
   A.close(); B.close();
