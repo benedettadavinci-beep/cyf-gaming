@@ -22,7 +22,8 @@ globalThis.CYF_PROTOCOLLO = (() => {
   const THROW_KINDS = ['banana', 'bananone'];   // oggetti che si lanciano al giocatore davanti (R-224, R-231)
   // punti della gara spesi per lasciare l'oggetto (R-113). Dalla 0.27.0 (R-520, R-521, 29/10): banana 1.500 (era 50),
   // bomba 50 (era 150), così sulla pista si trovano soprattutto bombe; bananone 1.500 fisso (S-54, non più 10 volte la bomba)
-  const COSTI = { banana: 1500, bomb: 50, bananone: 1500 };
+  // R-532 (dalla 0.31.2, Luigi 18/11): bananone 3.000, il doppio della banana, perché ferma il doppio (4 s contro 2)
+  const COSTI = { banana: 1500, bomb: 50, bananone: 3000 };
   const FERMO = { banana: 2, bomb: 4, bananone: 4 };
   // secondi di volo della banana e del bananone lanciati a un giocatore (R-525, dalla 0.30.0; prima 0,45 s): il tempo per
   // leggere l'avviso "in arrivo" e schivare curvando o saltando (R-522). Lo usano il colpo (bot.js) e il volo disegnato (oggetti.js)

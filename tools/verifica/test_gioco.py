@@ -268,17 +268,17 @@ with sync_playwright() as p:
     r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 200; window.__toasts.length = 0; document.getElementById('btnBanana').click();
       return D.frames(3).then(() => ({ bonus: D.bonus, toast: window.__toasts.join('|'), gesto: D.throwT })); }""")
     check(r['bonus'] == 150 and 'Ospite' in r['toast'] and r['gesto'] > 0, 'pulsante della banana: gesto del braccio e banana lanciata al giocatore davanti (R-230)', json.dumps(r))
-    # bananone (R-231): con 1.499 punti dice quanti ne servono; con 1.600 si lancia all'ospite davanti, che si ferma 4 s
+    # bananone (R-231): con 2.999 punti dice quanti ne servono; con 3.100 si lancia (R-532: 3.000) all'ospite davanti, che si ferma 4 s
     gp.evaluate("() => { const D = window.__dbg; D.P.z -= 40; D.P.x = D.center(D.P.z); D.invuln = 0; D.P.crash = 0; D.P.stop = 0; window.__toasts.length = 0; }")
     pg.wait_for_function("(() => { const D = window.__dbg; const r = D.remotes.get('pGuest2'); return !!r && D.P.z - r.z > 5; })()", timeout=20000)
     pg.wait_for_timeout(1100)
-    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 1499; window.__toasts.length = 0; document.getElementById('btnBananone').click();
+    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 2999; window.__toasts.length = 0; document.getElementById('btnBananone').click();
       return D.frames(2).then(() => ({ bonus: D.bonus, toast: window.__toasts.join('|'), short: document.getElementById('btnBananone').classList.contains('short') })); }""")
-    check(r['bonus'] == 1499 and '1500' in r['toast'], 'bananone con meno di 1500 punti: non parte e dice quanti punti servono (R-231)', json.dumps(r))
+    check(r['bonus'] == 2999 and '3000' in r['toast'], 'bananone con meno di 3000 punti: non parte e dice quanti punti servono (R-231)', json.dumps(r))
     gp.evaluate("() => { const D = window.__dbg; D.invuln = 0; D.P.crash = 0; window.__toasts.length = 0; }")
-    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 1600; window.__toasts.length = 0; document.getElementById('btnBananone').click();
+    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 3100; window.__toasts.length = 0; document.getElementById('btnBananone').click();
       return D.frames(3).then(() => ({ bonus: D.bonus, toast: window.__toasts.join('|'), gesto: D.throwT })); }""")
-    check(r['bonus'] == 100 and 'Ospite' in r['toast'] and r['gesto'] > 0, 'pulsante del bananone: gesto del braccio, 1500 punti spesi, lanciato al giocatore davanti (R-231)', json.dumps(r))
+    check(r['bonus'] == 100 and 'Ospite' in r['toast'] and r['gesto'] > 0, 'pulsante del bananone: gesto del braccio, 3000 punti spesi, lanciato al giocatore davanti (R-231)', json.dumps(r))
     try:
         gp.wait_for_function("window.__dbg.P.stop > 0", timeout=10000)
         # durata decisa al colpo (P.stopFor), non il tempo che resta: il browser delle prove gira a pochi fotogrammi al secondo
