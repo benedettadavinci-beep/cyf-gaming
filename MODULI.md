@@ -52,7 +52,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/granpremio.js` | granpremio | 86 | base (fmtTime); lingua (lang, tr, ord, cityName) |
 | `moduli/lingua.js` | lingua | 41 | base (store) |
 | `moduli/missioni.js` | missioni | 129 | base (store); lingua (lang, tr) |
-| `moduli/modello.js` | modello | 263 | base (lin) |
+| `moduli/modello.js` | modello | 262 | base (lin) |
 | `moduli/oggetti.js` | oggetti | 182 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, VOLO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
 | `moduli/panorami.js` | panorami | 1158 | base (mulberry32) |
 | `moduli/personaggio.js` | personaggio | 123 | base (store, lin); lingua (tr, cityName); rider (jerseyOf, myJersey, myHair, myGear, makeRider); calendario (numeroDelPremio, scenaDi) |

@@ -7,13 +7,12 @@
 // Questo modulo carica i file una volta (solo quando servono, uno per sesso), crea un personaggio per rider e lo mette
 // nella stessa posa del vecchio modello: rider.js gli passa i punti della posa (caviglie, ginocchia, anche, spalle,
 // gomiti, mani) e le rotazioni di bacino, busto e testa; qui le gambe e le braccia si piegano con l'IK a due ossa.
-// Se il file non si carica resta il rider di prima. ACCESO: false finché le foto della notte non lo approvano: fino ad
-// allora si vede solo con ?rider=nuovo nell'indirizzo (e ?rider=vecchio lo spegne quando sarà acceso per tutti).
+// Se il file non si carica resta il rider di prima. Con ?rider=vecchio nell'indirizzo si rivede il rider di prima.
 window.PN = window.PN || {};
 PN.modello = (() => {
   const { lin } = PN.base;
   const DOVE = (() => { try { return new URL('../modelli/', document.currentScript.src).href; } catch (e) { return '/pista-nera/modelli/'; } })();
-  const ACCESO = false;
+  const ACCESO = true;   // 0.32.1: acceso per tutti dopo le foto della notte del 19/11
   const SPENTO = (() => { try {
     if (typeof THREE.GLTFLoader !== 'function' || typeof THREE.SkeletonUtils !== 'object') return true;
     const q = location.search;
