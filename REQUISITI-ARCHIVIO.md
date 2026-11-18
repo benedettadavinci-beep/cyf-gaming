@@ -422,3 +422,4 @@
 | 0.31.5 | 18/11/2026 | Cartelloni ridotti del 70% (3 palazzi su 10), personaggi senza cilindri e palline: scarponi, polsini, gambe e cappuccio arrotondati (R-535, R-536) |
 | 0.32.0 | 18/11/2026 | Personaggi 3D veri con lo scheletro (R-534, modelli CC0 di Quaternius), per ora visibili solo con `?rider=nuovo` nell'indirizzo; pubblicata la sera senza prove |
 | 0.32.1 | 19/11/2026 | Personaggi 3D veri accesi per tutti dopo le foto della notte (R-534); `?rider=vecchio` per rivedere il rider di prima |
+| 0.32.2 | 19/11/2026 | Ottimizzazione (A-27): server più leggero con 8 giocatori, schermo del gioco aggiornato solo quando cambia, cristalli più leggeri, il gioco non si blocca più per un errore in un fotogramma; senza prove, ramo `giorno/2026-11-19-ottimizzazione` |

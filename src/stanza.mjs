@@ -18,6 +18,10 @@ export class RaceRoom extends DurableObject {
     this.botUltimo = new Map();   // ultima posizione nota di ogni avversario del software (per il tempo stimato e per un nuovo pilota)
     this.botsAt = 0;              // quando il pilota ha mandato le posizioni l'ultima volta
     this.prenotazioni = new Map();   // posti prenotati da /api/quick e non ancora consumati dal saluto (B-04): id → istante
+    // A-27 (0.32.1): dati di ogni connessione letti una volta e tenuti in memoria. Prima ogni posizione (10 al secondo per
+    // giocatore) rileggeva i dati di tutti i destinatari: con 8 giocatori ~640 letture al secondo. Se la stanza si
+    // "addormenta" la memoria si svuota e si rilegge dalla connessione: si scrive sempre con allega(), mai a mano.
+    this.allegati = new WeakMap();
     // i client mandano "ping" ogni 20 s: risponde il sistema senza svegliare la stanza
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
@@ -79,16 +83,25 @@ export class RaceRoom extends DurableObject {
   }
 
   sockets(except) { return this.ctx.getWebSockets().filter(ws => ws !== except); }
+  // dati della connessione (A-27): dalla memoria, altrimenti dalla connessione
+  dati(ws) {
+    let a = this.allegati.get(ws);
+    if (a === undefined) { a = ws.deserializeAttachment(); this.allegati.set(ws, a); }
+    return a;
+  }
+  // si scrive di rado (saluto, pronto, maglia, scena): la memoria si svuota tutta, così nessuna copia resta vecchia anche se
+  // la stessa connessione arrivasse come oggetto diverso
+  allega(ws, a) { ws.serializeAttachment(a); this.allegati = new WeakMap(); this.allegati.set(ws, a); }
   players(except) {
     return this.sockets(except)
-      .map(ws => ws.deserializeAttachment())
+      .map(ws => this.dati(ws))
       .filter(a => a && a.id);
   }
   send(ws, msg) { try { ws.send(JSON.stringify(msg)); } catch (e) { /* socket già chiuso */ } }
   broadcast(msg, except) {
     const s = JSON.stringify(msg);
     for (const ws of this.sockets(except)) {
-      const a = ws.deserializeAttachment();
+      const a = this.dati(ws);
       if (a && a.id) { try { ws.send(s); } catch (e) {} }
     }
   }
@@ -194,7 +207,7 @@ export class RaceRoom extends DurableObject {
     st.spesa = {};      // punti spesi da ogni corridore in banane, bombe e bananoni (R-232)
     st.usati = {};      // oggetti usati in questa gara, per tipo (R-232)
     this.stats = new Map();
-    for (const s of this.sockets()) { const a = s.deserializeAttachment(); if (a && a.id) { a.ready = false; s.serializeAttachment(a); } }
+    for (const s of this.sockets()) { const a = this.dati(s); if (a && a.id) { a.ready = false; this.allega(s, a); } }
     st.ready = bots.map(b => b.id);   // gli avversari alzano subito la mano (R-237)
     await this.save();
     await this.schedule();
@@ -308,7 +321,7 @@ export class RaceRoom extends DurableObject {
     try { m = JSON.parse(raw); } catch (e) { return; }
     if (PROTO.valida(m, 'client')) return;   // fuori dal contratto (tipo sconosciuto o campo mancante): si ignora
     const st = await this.load();
-    const me = ws.deserializeAttachment() || {};
+    const me = this.dati(ws) || {};
     const now = Date.now();
 
     if (m.t === 'hello') {
@@ -321,14 +334,14 @@ export class RaceRoom extends DurableObject {
       this.prenotazioni.delete(id);   // il posto prenotato da /api/quick è occupato davvero (B-04)
       // stesso giocatore riconnesso da un'altra scheda: chiude la vecchia connessione
       for (const old of this.sockets(ws)) {
-        const a = old.deserializeAttachment();
-        if (a && a.id === id) { old.serializeAttachment({ id: null }); try { old.close(4000, 'Riconnesso altrove'); } catch (e) {} }
+        const a = this.dati(old);
+        if (a && a.id === id) { this.allega(old, { id: null }); try { old.close(4000, 'Riconnesso altrove'); } catch (e) {} }
       }
       const used = new Set(others.map(p => p.color));
       let color = 0; while (used.has(color)) color++;
       const j = cleanJersey(m.j);
       Object.assign(me, { id, name: cleanName(m.name), ready: false, color, j, h: cleanHair(m.h), ...cleanGear(m), sc: cleanScena(m.sc) });
-      ws.serializeAttachment(me);
+      this.allega(ws, me);
       this.fixHost();
       if (!st.hostId) st.hostId = id;
       if (!others.length) st.scena = me.sc;   // stanza vuota: chi entra organizza e porta la sua città
@@ -357,7 +370,7 @@ export class RaceRoom extends DurableObject {
 
     if (m.t === 'ready') {
       me.ready = !!m.ready;
-      ws.serializeAttachment(me);
+      this.allega(ws, me);
       this.updateAuto();
       await this.save();
       await this.schedule();
@@ -399,14 +412,14 @@ export class RaceRoom extends DurableObject {
       me.j = cleanJersey(m.j);
       if ('h' in m) me.h = cleanHair(m.h);   // anche i capelli (R-225)
       if ('p' in m || 'e' in m || 's' in m) Object.assign(me, cleanGear(m));   // e pantaloni, casco, tavola (R-229)
-      ws.serializeAttachment(me);
+      this.allega(ws, me);
       this.broadcast(this.lobbyMsg());
       return;
     }
 
     if (m.t === 'scena') {
       me.sc = cleanScena(m.scena);
-      ws.serializeAttachment(me);
+      this.allega(ws, me);
       if (!st.pub && !st.daily && me.id === st.hostId && (st.phase === 'lobby' || st.phase === 'results')) st.scena = me.sc;
       await this.save();
       this.broadcast(this.lobbyMsg());
@@ -638,7 +651,7 @@ export class RaceRoom extends DurableObject {
 
   async webSocketClose(ws, code) {
     await this.load();
-    const me = ws.deserializeAttachment();
+    const me = this.dati(ws);
     try { ws.close(1000, 'Chiusa'); } catch (e) {}
     if (!me || !me.id) return;
     this.fixHost(ws);

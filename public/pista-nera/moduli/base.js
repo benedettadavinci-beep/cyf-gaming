@@ -28,6 +28,9 @@ PN.base = (() => {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
+  // A-27 (0.32.1): scrive un testo sullo schermo solo se è cambiato. Riscrivere lo stesso testo 12 volte al secondo
+  // (HUD) fa ricalcolare la pagina al browser per niente, e sui telefoni si sente. Non tocca document: va bene ovunque.
+  const scrivi = (el, txt) => { txt = String(txt); if (el && el.textContent !== txt) el.textContent = txt; };
   function mulberry32(a) {
     return function () {
       a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -36,5 +39,5 @@ PN.base = (() => {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
-  return { TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, reduceMotion, isPhone, rand, clamp, fmt, fmtTime, lin, store, mulberry32 };
+  return { TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, reduceMotion, isPhone, rand, clamp, fmt, fmtTime, lin, store, scrivi, mulberry32 };
 })();
