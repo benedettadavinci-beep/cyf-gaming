@@ -8,7 +8,7 @@
 // stato si legge solo quando serve (al clic, a ogni fotogramma): così il modulo si può creare prima della rete.
 window.PN = window.PN || {};
 PN.schermate = ({ diag, stato: S }) => {
-  const { PALETTE, START_ALT, SLOPE, fmt, fmtTime } = PN.base;
+  const { PALETTE, START_ALT, SLOPE, fmt, fmtTime, scrivi } = PN.base;
   const { tr, ord, fmtLen, cityName } = PN.lingua;
   const $ = id => document.getElementById(id);
   const kmh = v => v * 3.6;
@@ -265,35 +265,39 @@ PN.schermate = ({ diag, stato: S }) => {
   }
   // ---------- HUD ----------
   let hudT = 0, liveT = 1;
+  // A-27: gli elementi dell'HUD si cercano una volta sola; i testi si scrivono solo quando cambiano (PN.base.scrivi)
+  const H = {};
+  const h = id => H[id] || (H[id] = $(id));
+  const TASTI = [['btnBanana', 'banana'], ['btnBomb', 'bomb'], ['btnBananone', 'bananone']];
   function hud(dt) {
     hudT += dt;
     if (hudT < 0.08) return;
     hudT = 0;
-    $('vSpeed').textContent = Math.round(kmh(S.P.speed)) + ' km/h';
+    scrivi(h('vSpeed'), Math.round(kmh(S.P.speed)) + ' km/h');
     if (S.racing()) {
       const el = S.mode === 'countdown' ? 0 : (S.net.finished.get(S.myId) ?? Math.max(0, S.serverNow() - S.net.startAt));
-      $('v1').textContent = fmtTime(el);
+      scrivi(h('v1'), fmtTime(el));
       const pl = S.racePlace();
-      $('v2').textContent = tr('placeOf', { p: ord(pl.place), n: pl.of });
-      $('v4').textContent = fmtLen(Math.max(0, S.raceLen - S.distM()));
-      $('v5').textContent = fmt(S.bonus);
+      scrivi(h('v2'), tr('placeOf', { p: ord(pl.place), n: pl.of }));
+      scrivi(h('v4'), fmtLen(Math.max(0, S.raceLen - S.distM())));
+      scrivi(h('v5'), fmt(S.bonus));
       // sempre premibili in gara: senza punti abbastanza sono più chiari e, se premuti, dicono quanti punti servono (R-230)
-      for (const [id, k] of [['btnBanana', 'banana'], ['btnBomb', 'bomb'], ['btnBananone', 'bananone']]) { const b = $(id); b.disabled = S.mode !== 'race'; b.classList.toggle('short', S.bonus < PN.protocollo.COSTI[k]); }
+      for (const [id, k] of TASTI) { const b = h(id); b.disabled = S.mode !== 'race'; b.classList.toggle('short', S.bonus < PN.protocollo.COSTI[k]); }
       liveT += 0.08;
       if (liveT > 0.25) { liveT = 0; S.renderLive(pl.list); }
     } else {
-      if (S.allenaConAvversari) for (const [id, k] of [['btnBanana', 'banana'], ['btnBomb', 'bomb'], ['btnBananone', 'bananone']]) { const b = $(id); b.disabled = S.mode !== 'solo'; b.classList.toggle('short', S.bonus < PN.protocollo.COSTI[k]); }   // R-515
-      $('v1').textContent = fmt(S.score());
+      if (S.allenaConAvversari) for (const [id, k] of TASTI) { const b = h(id); b.disabled = S.mode !== 'solo'; b.classList.toggle('short', S.bonus < PN.protocollo.COSTI[k]); }   // R-515
+      scrivi(h('v1'), fmt(S.score()));
       if (S.allenaConAvversari) {
         // come in gara: posizione tra gli avversari e classifica dal vivo (B-05, R-519); la distanza va al posto della quota
         const pl = S.racePlace();
-        $('v2').textContent = tr('placeOf', { p: ord(pl.place), n: pl.of });
-        $('v4').textContent = fmt(Math.floor(S.distM())) + ' m';
+        scrivi(h('v2'), tr('placeOf', { p: ord(pl.place), n: pl.of }));
+        scrivi(h('v4'), fmt(Math.floor(S.distM())) + ' m');
         liveT += 0.08;
         if (liveT > 0.25) { liveT = 0; S.renderLive(pl.list); }
       } else {
-        $('v2').textContent = fmt(Math.floor(S.distM())) + ' m';
-        $('v4').textContent = fmt(Math.max(0, START_ALT - S.distM() * Math.sin(SLOPE))) + ' m';
+        scrivi(h('v2'), fmt(Math.floor(S.distM())) + ' m');
+        scrivi(h('v4'), fmt(Math.max(0, START_ALT - S.distM() * Math.sin(SLOPE))) + ' m');
       }
     }
   }

@@ -56,8 +56,9 @@ PN.sfida = ({ stato: S, schermate, say, foto, accetta }) => {
 
   // ---------- in gara: distacco stimato ----------
   let hudT = 0;
+  let elRival = null;
   function hud(dt) {
-    const el = $('rival');
+    const el = elRival || (elRival = $('rival'));
     const on = inGioco() && S.mode === 'race';
     if (el.hidden === on) el.hidden = !on;
     if (!on || (hudT += dt) < 0.2) return;
@@ -65,7 +66,7 @@ PN.sfida = ({ stato: S, schermate, say, foto, accetta }) => {
     const tempo = S.net.finished.get(S.myId) ?? Math.max(0, S.serverNow() - S.net.startAt);
     const suo = sfida.ms * Math.min(1, S.distM() / S.raceLen);   // dove sarebbe l'amico, alla sua media
     const d = tempo - suo;
-    el.textContent = tr('rivalHud', { name: sfida.da, t: fmtTime(sfida.ms), d: (d < 0 ? '−' : '+') + secondi(d) });
+    PN.base.scrivi(el, tr('rivalHud', { name: sfida.da, t: fmtTime(sfida.ms), d: (d < 0 ? '−' : '+') + secondi(d) }));   // solo se cambia (A-27)
     el.classList.toggle('ahead', d < 0);
   }
 

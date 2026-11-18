@@ -414,7 +414,7 @@
     if (!auto && !frozen && !braking) collide();
     if (mode === 'race' || stato.allenaConAvversari) collideHazards();
     updateHazards(dt);
-    for (const o of GEN.objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = hgt(o.x, o.z) + 0.9 + Math.sin(t * 3 + o.phase) * 0.15; }
+    for (const o of GEN.objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = (o.y0 ?? (o.y0 = hgt(o.x, o.z) + 0.9)) + Math.sin(t * 3 + o.phase) * 0.15; }   // y0: terreno sotto il cristallo, calcolato una volta (A-27)
     updateSpray(dt);
     updateSparks(dt);
     updateFlakes(dt, P.x, P.z, P.speed);
@@ -1017,7 +1017,16 @@
   // rallentatore (metà della velocità vera) e la qualità automatica non scendeva mai (gli fps misurati restavano ≥ 30).
   // Ora il tempo è quello vero (fino a 0,1 s, per le pause della pagina) e la fisica fa più passi piccoli da ≤ 25 ms
   function passi(raw, fn) { const n = Math.min(4, Math.max(1, Math.ceil(raw / 0.025))), d = raw / n; for (let i = 0; i < n; i++) fn(d); }
+  // A-27 (0.32.1): il fotogramma dopo si chiede per primo e il resto sta in try. Prima un errore in un passo fermava il
+  // ciclo per sempre (schermo immobile, comandi morti); ora si riparte dal fotogramma dopo e l'errore va nella diagnosi
+  let erroriCiclo = 0;
   function frame(now) {
+    requestAnimationFrame(frame);
+    try { fotogramma(now); } catch (e) {
+      if (erroriCiclo++ < 3) { console.error(e); if (diag && diag.report) diag.report('Ciclo del gioco: ' + (e && e.message), 'frame', e && e.stack); }
+    }
+  }
+  function fotogramma(now) {
     const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
     last = now;
     if (mode === 'solo') { passi(dt, d => { update(d, false); BOT.aggiorna(d); }); updateRemotes(dt); hud(dt); }
@@ -1030,7 +1039,6 @@
     place(mode === 'pause' ? 0 : dt);
     if (isPhone) renderer.shadowMap.needsUpdate = (++ombraN % (QUALITA.livello === 'bassa' ? 3 : 2)) === 0;   // R-524
     renderer.render(scene, camera);
-    requestAnimationFrame(frame);
   }
 
   // testi della pagina: data-i18n (testo), data-i18n-html (con grassetti), data-i18n-ph (segnaposto), data-i18n-title, data-i18n-aria
