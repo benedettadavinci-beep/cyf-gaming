@@ -60,7 +60,7 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
       b.sterzo = steer;   // quanto sta sterzando in questo passo: se è oltre 0,3 schiva banana e bananone lanciati (R-522)
       b.ang += steer * F.STERZO * dt;
       b.ang = clamp(b.ang, -F.ANGOLO, F.ANGOLO);
-      const ax = b.x + Math.sin(b.ang) * 2, az = b.z - Math.cos(b.ang) * 2;
+      const ax = b.x, az = b.z - 2;   // pendenza misurata dritto giù per la pista: virare non rallenta (R-531)
       const drop = hgt(b.x, b.z) - hgt(ax, az);
       let target = F.obiettivo(vmax * b.L.v, b.ang, drop);
       // allenamento: niente traguardo, gli avversari restano nei paraggi (R-239): dietro accelerano, davanti rallentano

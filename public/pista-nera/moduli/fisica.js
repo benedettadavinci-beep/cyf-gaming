@@ -31,8 +31,12 @@ PN.fisica = (() => {
   const SALTO = 6.4;           // spinta del salto (Spazio): ~1 m d'altezza, 0,64 s in aria
   const RAMPA = 8.6, TRAMPOLINO = 13.5;   // spinta allo stacco: rampa ~3 m e 1 s; trampolino gigante ~7 m e 1,5 s (R-214)
   const CADUTA = 0.85;         // secondi a terra dopo una caduta
-  // velocità da tenere partendo da base (di solito vmax del punto): meno in curva, un po' di più in discesa ripida
-  const obiettivo = (base, ang, drop) => base * Math.pow(Math.cos(ang), 1.6) * (1 + clamp(drop * 0.35, -0.2, 0.2));
+  // velocità da tenere partendo da base (di solito vmax del punto): un po' di più in discesa ripida.
+  // R-531 (dalla 0.31.1, Luigi 18/11: "anche quando si vira a destra o sinistra non ci deve essere alcun rallentamento,
+  // si rallenta solo quando si preme freccia in su"): la curva non toglie più velocità (prima × cos(ang)^1,6) e la
+  // pendenza drop va misurata dritto giù per la pista, non nella direzione del rider (pendenzaDritta), così girarsi di
+  // lato non la riduce. ang resta tra gli argomenti per non cambiare chi la chiama.
+  const obiettivo = (base, ang, drop) => base * (1 + clamp(drop * 0.35, -0.2, 0.2));
   // velocità allo stacco dalla rampa
   const stacco = v => Math.min(v * 1.06, MAX);
   // invulnerabilità dopo una caduta: almeno 2,3 s, o il fermo più 1,5 s
