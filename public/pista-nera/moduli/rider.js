@@ -82,7 +82,8 @@ PN.rider = (() => {
     // giacca da snowboard: scende sotto la vita e copre l'attacco del bacino
     torso: lathe([[0.001, 0.02], [0.13, -0.06], [0.15, -0.1], [0.152, -0.02], [0.144, 0.07], [0.136, 0.17], [0.15, 0.28], [0.168, 0.38], [0.166, 0.45], [0.135, 0.51], [0.075, 0.555], [0.001, 0.57]], 28).scale(0.74, 1, 1.22),
     band: lathe([[0.15, -0.105], [0.158, -0.09], [0.158, -0.055], [0.15, -0.045]], 28).scale(0.76, 1, 1.24),
-    hood: new THREE.SphereGeometry(0.1, 16, 10).scale(0.55, 0.62, 1.15),
+    // R-536: il cappuccio non è più una palla dietro la testa ma un rotolo basso e largo appoggiato sulle spalle
+    hood: new THREE.SphereGeometry(0.1, 20, 12).scale(0.42, 0.34, 1.55),
     zip: new THREE.BoxGeometry(0.008, 0.5, 0.014),
     // bacino con i pantaloni larghi: unisce le due cosce, niente fessura da manichino
     pelvis: new THREE.SphereGeometry(0.15, 22, 14).scale(0.78, 0.62, 1.14),
@@ -101,8 +102,9 @@ PN.rider = (() => {
     joint: r => new THREE.SphereGeometry(r, 14, 10),
     limb: r => new THREE.CylinderGeometry(r, r * 0.86, 1, 14),
     // arti modellati (y da -0,5 a 0,5, poi allungati fino alla lunghezza giusta): pantaloni larghi, maniche morbide
-    thigh: lathe([[0.001, -0.5], [0.078, -0.5], [0.083, -0.36], [0.092, -0.08], [0.099, 0.22], [0.097, 0.44], [0.001, 0.5]], 18),
-    shin: lathe([[0.001, -0.5], [0.09, -0.5], [0.086, -0.4], [0.077, -0.12], [0.081, 0.18], [0.08, 0.42], [0.001, 0.5]], 18),
+    // R-536: cosce che si allargano verso l'anca e polpacci con la loro forma, più lati (meno spigoli): niente tubi
+    thigh: lathe([[0.001, -0.5], [0.072, -0.5], [0.077, -0.4], [0.086, -0.16], [0.098, 0.12], [0.104, 0.36], [0.1, 0.46], [0.001, 0.5]], 26),
+    shin: lathe([[0.001, -0.5], [0.09, -0.5], [0.085, -0.4], [0.074, -0.16], [0.08, 0.1], [0.083, 0.28], [0.077, 0.44], [0.001, 0.5]], 26),
     // R-528 (dalla 0.30.0): braccia umane, non più tubi. Braccio dalla spalla (-0,5) al gomito (+0,5): deltoide, bicipite,
     // gomito più stretto; avambraccio dal gomito (-0,5) al polso (+0,5): muscoli larghi in alto, polso sottile.
     // Sezione un po' ovale (0,84) come un braccio vero
@@ -112,9 +114,10 @@ PN.rider = (() => {
     // muffola con il pollice
     glove: new THREE.SphereGeometry(0.06, 16, 12).scale(0.85, 1.25, 0.95),
     thumb: new THREE.SphereGeometry(0.026, 10, 8).scale(1, 1.5, 1),
-    cuff: new THREE.CylinderGeometry(0.062, 0.058, 0.07, 14),
+    cuff: lathe([[0.05, -0.035], [0.06, -0.03], [0.063, 0], [0.06, 0.03], [0.05, 0.035]], 20),   // R-536: polsino arrotondato (prima un cilindro)
     // scarponi ovali con la punta arrotondata
-    boot: new THREE.CylinderGeometry(0.07, 0.078, 0.13, 16).scale(1.45, 1, 0.95),
+    // R-536: scarpone con i bordi arrotondati (prima un cilindro schiacciato)
+    boot: lathe([[0.001, -0.065], [0.07, -0.065], [0.079, -0.05], [0.08, -0.01], [0.074, 0.04], [0.066, 0.062], [0.001, 0.066]], 22).scale(1.45, 1, 0.95),
     toe: new THREE.SphereGeometry(0.07, 14, 8, 0, TAU, 0, Math.PI / 2).scale(1.45, 0.6, 0.95),
     snowboard: roundedSlab(0.3, 1.5, 0.15, 0.03),
     stripe: roundedSlab(0.05, 1.1, 0.025, 0.006),
@@ -434,14 +437,14 @@ PN.rider = (() => {
       uarmL: mesh(G.uarm, sleeve), uarmR: mesh(G.uarm, sleeve), farmL: mesh(G.farm, sleeve), farmR: mesh(G.farm, sleeve)
     };
     const JM = {
-      kneeL: joint(0.085, pants), kneeR: joint(0.085, pants), hipL: joint(0.098, pants), hipR: joint(0.098, pants),
+      kneeL: joint(0.078, pants), kneeR: joint(0.078, pants), hipL: joint(0.098, pants), hipR: joint(0.098, pants),   // R-536: ginocchio della misura della gamba: non sporge più come una pallina
       shL: joint(0.066, sleeve), shR: joint(0.066, sleeve), elL: joint(0.05, sleeve), elR: joint(0.05, sleeve)   // giunti più piccoli: si fondono con braccio e avambraccio (R-528)
     };
     const pelvis = mesh(G.pelvis, pants);
     const torso = mesh(G.torso, jacket);
     mesh(G.band, jacketDark, torso);
     mesh(G.collar, jacketDark, torso).position.y = 0.535;
-    mesh(G.hood, jacketDark, torso).position.set(-0.1, 0.5, 0);           // cappuccio arrotolato sulla schiena
+    mesh(G.hood, jacketDark, torso).position.set(-0.085, 0.49, 0);         // cappuccio arrotolato sulla schiena, basso (R-536)
     mesh(G.zip, SHARED.glove, torso).position.set(0.118, 0.22, 0);        // cerniera davanti
     const headG = new THREE.Group();
     figure.add(headG);
