@@ -47,11 +47,12 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/effetti.js` | effetti | 132 | base (isPhone, lin, rand, reduceMotion) |
 | `moduli/fisica.js` | fisica | 95 | base (TAU, clamp) |
 | `moduli/gara_locale.js` | gara_locale | 114 | protocollo (MAX_PLAYERS, NOMI_BOT); gara () |
-| `moduli/generazione.js` | generazione | 401 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); cartelloni (); portale (attivo); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
+| `moduli/generazione.js` | generazione | 402 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); cartelloni (); portale (attivo); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/granpremio.js` | granpremio | 86 | base (fmtTime); lingua (lang, tr, ord, cityName) |
 | `moduli/lingua.js` | lingua | 41 | base (store) |
 | `moduli/missioni.js` | missioni | 129 | base (store); lingua (lang, tr) |
+| `moduli/modello.js` | modello | 257 | base (lin) |
 | `moduli/oggetti.js` | oggetti | 182 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, VOLO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
 | `moduli/panorami.js` | panorami | 1158 | base (mulberry32) |
 | `moduli/personaggio.js` | personaggio | 123 | base (store, lin); lingua (tr, cityName); rider (jerseyOf, myJersey, myHair, myGear, makeRider); calendario (numeroDelPremio, scenaDi) |
@@ -60,7 +61,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/profilo.js` | profilo | 101 | base (store); lingua (tr) |
 | `moduli/pubblicita.js` | pubblicita | 142 | portale (attivo); lingua (tr) |
 | `moduli/qualita.js` | qualita | 87 | base (store) |
-| `moduli/rider.js` | rider | 617 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi) |
+| `moduli/rider.js` | rider | 651 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi); modello (SPENTO, quando, crea, posa) |
 | `moduli/sala.js` | sala | 37 | nessuno |
 | `moduli/schermate.js` | schermate | 350 | base (isPhone, PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
 | `moduli/settimana.js` | settimana | 62 | base (store); lingua (lang, tr, cityName); calendario (); schermate (js, giorno) |
