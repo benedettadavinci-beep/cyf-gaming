@@ -8,7 +8,7 @@
 // e nel server (import '../public/shared/gara.js', poi globalThis.CYF_GARA: src/avversari.mjs e src/comune.mjs),
 // come shared/protocollo.js. Niente import/export.
 globalThis.CYF_GARA = (() => {
-  const VEL_MAX_MS = 24;                       // velocità massima possibile nel gioco (m/s), con margine: sotto il tempo minimo l'arrivo non vale
+  const VEL_MAX_MS = 31;                       // velocità massima possibile nel gioco (m/s), con margine: sotto il tempo minimo l'arrivo non vale (24 fino alla 0.30.0; ×1,3 dalla 0.31.0, R-529: massimo 28,9 m/s)
   const PUNTI_POSTO = [100, 70, 50];           // punti per 1°, 2°, 3°; chi arriva dopo ne prende 30
   const PUNTI_ALTRI = 30;
   const tempoMinimoMs = len => Math.floor(len / VEL_MAX_MS * 1000);

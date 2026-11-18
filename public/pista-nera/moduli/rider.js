@@ -50,6 +50,33 @@ PN.rider = (() => {
     g.rotateX(-Math.PI / 2);
     return g;
   }
+  // ---------- testa umana (R-530, dalla 0.31.0) ----------
+  // Luigi, 18/11: "falli sembrare più veri e senza quelle palline al posto della testa". Prima la testa era un uovo
+  // rotondo uguale da ogni lato. Ora è una sfera deformata come una testa vera: più alta che larga, più profonda che
+  // larga, nuca piena in alto, mascella e mento che si stringono in basso, il dietro che scende nel collo.
+  // Coordinate come prima (davanti +x, cima a y = 0,142), così capelli, caschi e maschera restano al loro posto.
+  // fronte(y, z): dove sta la superficie davanti all'altezza y e di lato z, per mettere naso, occhi, bocca e orecchie.
+  const TESTA = { r: 0.1, sy: 1.3, oy: 0.012, sx: 1.08, sz: 0.9 };
+  const mento = yp => { const s = Math.min(1, Math.max(0, -yp / 0.11)); return s * s * (3 - 2 * s); };   // 0 sopra la bocca, 1 al mento
+  function headGeo() {
+    const { r, sy, oy, sx, sz } = TESTA;
+    const g = new THREE.SphereGeometry(r, 36, 26), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      const yp = y * sy + oy, t = mento(yp);
+      let xp = x * sx, zp = z * sz * (1 - 0.35 * t);
+      if (x < 0) xp *= (1 - 0.5 * t) * (1 + 0.07 * Math.min(1, Math.max(0, yp / 0.142)));   // nuca piena, sotto il collo
+      else { xp *= 1 + 0.1 * t; zp *= 1 - 0.2 * t * (x / r); }                             // mascella in avanti, mento più stretto
+      p.setXYZ(i, xp, yp, zp);
+    }
+    g.computeVertexNormals();
+    return g;
+  }
+  function fronte(yp, zp = 0) {
+    const { r, sy, oy, sx, sz } = TESTA, t = mento(yp), y = (yp - oy) / sy, zz = zp / (sz * (1 - 0.35 * t));
+    return Math.sqrt(Math.max(0, r * r - y * y - zz * zz)) * sx * (1 + 0.1 * t);
+  }
+  const lato = yp => { const { r, sy, oy, sz } = TESTA, y = (yp - oy) / sy; return Math.sqrt(Math.max(0, r * r - y * y)) * sz * (1 - 0.35 * mento(yp)); };
   const RIDER_GEO = {
     // busto: dai fianchi (y = 0) al collo, schiacciato davanti-dietro e largo di spalle
     // giacca da snowboard: scende sotto la vita e copre l'attacco del bacino
@@ -61,14 +88,16 @@ PN.rider = (() => {
     pelvis: new THREE.SphereGeometry(0.15, 22, 14).scale(0.78, 0.62, 1.14),
     collar: new THREE.TorusGeometry(0.062, 0.026, 8, 20).rotateX(Math.PI / 2),
     // testa a uovo, maschera da neve avvolgente con elastico
-    head: lathe([[0.001, -0.125], [0.05, -0.12], [0.08, -0.095], [0.098, -0.04], [0.104, 0.02], [0.1, 0.08], [0.074, 0.125], [0.001, 0.142]], 24).scale(1.08, 1, 0.9),
+    head: headGeo(),   // R-530: testa umana (prima un uovo rotondo, lathe)
     goggle: new THREE.CylinderGeometry(0.128, 0.128, 0.064, 26, 1, false, Math.PI / 2 - 1.0, 2.0).scale(1.1, 1, 0.98),
     goggleFrame: new THREE.CylinderGeometry(0.131, 0.131, 0.076, 26, 1, true, Math.PI / 2 - 1.05, 2.1).scale(1.1, 1, 0.98),
     strap: new THREE.TorusGeometry(0.15, 0.012, 6, 32).rotateX(Math.PI / 2).scale(1.1, 1, 0.99),
     nose: new THREE.SphereGeometry(0.024, 12, 8).scale(1.1, 1.3, 0.85),
     // scaldacollo tirato fin sopra il mento
-    gaiter: lathe([[0.058, -0.2], [0.064, -0.14], [0.07, -0.09], [0.074, -0.05], [0.07, -0.03]], 22).scale(1.12, 1, 1.0),
-    neck: new THREE.CylinderGeometry(0.048, 0.054, 0.14, 14),
+    // R-530: scaldacollo abbassato attorno al collo (prima tirato sopra il mento): sulla neve si vedono bocca e mento
+    gaiter: lathe([[0.064, -0.25], [0.07, -0.2], [0.07, -0.15], [0.066, -0.12], [0.06, -0.105]], 22).scale(1.12, 1, 1.0),
+    // collo più largo alla base, che entra nelle spalle (prima un cilindro sottile)
+    neck: lathe([[0.001, -0.09], [0.068, -0.09], [0.058, -0.06], [0.05, -0.02], [0.047, 0.03], [0.048, 0.07], [0.001, 0.07]], 18).scale(1.05, 1, 1),
     joint: r => new THREE.SphereGeometry(r, 14, 10),
     limb: r => new THREE.CylinderGeometry(r, r * 0.86, 1, 14),
     // arti modellati (y da -0,5 a 0,5, poi allungati fino alla lunghezza giusta): pantaloni larghi, maniche morbide
@@ -418,7 +447,7 @@ PN.rider = (() => {
     figure.add(headG);
     mesh(G.neck, SHARED.skin, headG).position.y = -0.15;
     mesh(G.head, SHARED.skin, headG);
-    mesh(G.nose, SHARED.skin, headG).position.set(0.112, -0.005, 0);
+    mesh(G.nose, SHARED.skin, headG).position.set(fronte(-0.005) + 0.004, -0.005, 0);   // R-530: sulla superficie della testa nuova
     // sulla neve: scaldacollo e maschera con l'elastico sopra i capelli (niente casco dalla 0.12.2, R-220)
     const gaiter = mesh(G.gaiter, jacketDark, headG);
     const strap = mesh(G.strap, SHARED.glove, headG); strap.position.y = 0.03; strap.scale.set(0.78, 1, 0.78);
@@ -449,14 +478,15 @@ PN.rider = (() => {
     headG.add(helmetG);
     // viso (il davanti della testa è +x): occhi con l'iride, sopracciglia, bocca; le orecchie si vedono sempre
     for (const s of [-1, 1]) {
-      const eye = mesh(G.eye, STREET.eye, headG); eye.position.set(0.107, 0.022, s * 0.036);
-      const iris = mesh(G.iris, STREET.iris, headG); iris.position.set(0.1118, 0.0215, s * 0.036);
-      const brow = mesh(G.brow, STREET.brow, headG); brow.position.set(0.1105, 0.043, s * 0.037); brow.rotation.x = s * 0.18;
-      const ear = mesh(G.ear, SHARED.skin, headG); ear.position.set(-0.004, 0.005, s * 0.094);
+      // R-530: posizioni prese dalla superficie della testa nuova (fronte, lato), prima numeri fissi per l'uovo
+      const ex = fronte(0.022, 0.036);
+      const eye = mesh(G.eye, STREET.eye, headG); eye.position.set(ex - 0.003, 0.022, s * 0.036);
+      const iris = mesh(G.iris, STREET.iris, headG); iris.position.set(ex + 0.0018, 0.0215, s * 0.036);
+      const brow = mesh(G.brow, STREET.brow, headG); brow.position.set(fronte(0.043, 0.037) + 0.0015, 0.043, s * 0.037); brow.rotation.x = s * 0.18;
+      const ear = mesh(G.ear, SHARED.skin, headG); ear.position.set(-0.008, 0.005, s * (lato(0.005) + 0.004));
       streetOnly.push(eye, iris, brow);
     }
-    const mouth = mesh(G.mouth, STREET.lip, headG); mouth.position.set(0.101, -0.058, 0);
-    streetOnly.push(mouth);
+    const mouth = mesh(G.mouth, STREET.lip, headG); mouth.position.set(fronte(-0.058) - 0.0015, -0.058, 0);   // R-530: la bocca si vede anche sulla neve
     // mani: guanti da neve con il polsino sulla neve, mani nude in città
     const gloveL = mesh(G.glove, SHARED.glove), gloveR = mesh(G.glove, SHARED.glove);
     for (const [gl, s] of [[gloveL, 1], [gloveR, -1]]) {

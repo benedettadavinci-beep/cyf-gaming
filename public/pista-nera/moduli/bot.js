@@ -69,7 +69,7 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
       if (b.arrivato) target = 0;
       b.speed += (target - b.speed) * (target > b.speed ? 0.75 : (b.arrivato ? 0.9 : 1.3)) * dt;
       b.speed = F.limita(b.speed);
-      b.k = b.arrivato || b.frenaT > 0 ? -0.6 : (Math.abs(b.ang) < 0.35 && b.speed > 9 ? 0.8 : 0);   // posizione raccolta o frenata (si vede)
+      b.k = b.arrivato || b.frenaT > 0 ? -0.6 : (Math.abs(b.ang) < 0.35 && b.speed > F.PARTENZA ? 0.8 : 0);   // posizione raccolta o frenata (si vede)
       // roccia da saltare: si stacca poco prima, come farebbe una persona premendo Salta
       if (b.salto && !b.onRamp && b.z - b.salto.z < Math.max(2.2, b.speed * 0.3) && b.z > b.salto.z) { b.salto = null; salta(b); }
     } else {
@@ -83,7 +83,7 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
     b.z -= Math.cos(b.ang) * b.speed * dt;
     const g1 = hgt(b.x, b.z);
     if (!b.air && !b.onRamp && b.crash <= 0) {
-      if ((g0 - g1) / Math.max(dt, 1e-4) > 3.2 && b.speed > 16) { b.air = true; b.vy = 0; b.y = g0 - g1; b.ramp = false; inizioAria(b); }
+      if ((g0 - g1) / Math.max(dt, 1e-4) > F.GOBBA_CALO && b.speed > F.GOBBA_V) { b.air = true; b.vy = 0; b.y = g0 - g1; b.ramp = false; inizioAria(b); }
     } else if (b.air) b.y += g0 - g1;
     // restano dentro la strada (paline e palazzi)
     const c = center(b.z), off = b.x - c;

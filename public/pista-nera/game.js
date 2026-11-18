@@ -194,7 +194,7 @@
     diag.log('pista', 'seed ' + seed + ' · ' + theme + (withFinish ? ' · con traguardo' : ''));
     clearWorld();
     GEN.riparti(seed);
-    P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: 9, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, stop: 0, ramp: false, onRamp: null };
+    P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: F.PARTENZA, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, stop: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
     maxSpeed = 0; bestSpin = 0; overTimer = 0; overReason = ''; tricksN = 0; crashN = 0; near500 = false;
@@ -329,7 +329,7 @@
       if (brake) target *= F.FRENATA;
       if (braking) target = 0;
       P.speed += (target - P.speed) * (target > P.speed ? (tuck ? 0.85 : 0.65) : (braking ? 0.9 : (brake ? 2.0 : 1.3))) * dt;
-      P.speed = F.limita(P.speed);   // mai oltre 80 km/h (R-242)
+      P.speed = F.limita(P.speed);   // mai oltre F.MAX (104 km/h dalla 0.31.0, R-529; prima 80, R-242)
       if (Math.abs(P.ang) > 0.6 && Math.random() < 0.8) spray(P.x, 0, P.z, 2, 1.6, 2.4, Math.cos(P.ang) * Math.sign(P.ang) * 3);
     } else {
       const flipIn = (keys.down || stick.y > 0.35 ? 1 : 0) - (keys.up || stick.y < -0.35 ? 1 : 0);   // in aria: giù (freccia o rotellina in basso) e su fanno lo stesso salto mortale (R-523)
@@ -363,7 +363,7 @@
     P.z -= Math.cos(P.ang) * P.speed * dt;
     const g1 = hgt(P.x, P.z);
     if (!P.air && !P.onRamp && P.crash <= 0) {
-      if ((g0 - g1) / Math.max(dt, 1e-4) > 3.2 && P.speed > 16) { P.air = true; P.vy = 0; P.y = g0 - g1; P.ramp = false; startAir(); }
+      if ((g0 - g1) / Math.max(dt, 1e-4) > F.GOBBA_CALO && P.speed > F.GOBBA_V) { P.air = true; P.vy = 0; P.y = g0 - g1; P.ramp = false; startAir(); }
     } else if (P.air) P.y += g0 - g1;
     // in città la strada è chiusa dai palazzi: chi va contro il muro rimbalza verso il centro e rallenta
     if (wallT > 0) wallT -= dt;
