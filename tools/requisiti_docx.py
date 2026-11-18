@@ -278,6 +278,148 @@ def word(src_md, out, BP):
     print('ok', out)
 
 
+# ---------------------------------------------------------------- archivio (18/11/2026, A-26: meno token per ogni chat)
+# REQUISITI.md tiene solo ciò che serve per lavorare; le righe chiuse (Fatto, Controllato, Confermata, Superata,
+# Sostituito, verifiche, storico fino a `online:`) stanno in REQUISITI-ARCHIVIO.md con gli stessi titoli di sezione.
+# Ogni volta che si generano i Word le righe chiuse si spostano da sole nell'archivio; i Word si fanno dall'unione,
+# quindi restano identici a prima. Per cercare un requisito chiuso: grep -n "R-123" REQUISITI-ARCHIVIO.md
+ARCHIVIO = 'REQUISITI-ARCHIVIO.md'
+TESTA_ARCHIVIO = ('<!-- Archivio dei requisiti chiusi (A-26). Non va letto per lavorare: si cerca solo un ID con grep. '
+                  'Lo scrive da solo tools/requisiti_docx.py; le righe nuove si scrivono sempre in REQUISITI.md. -->')
+SALTA = ('Prossimi passi', 'Come leggere')
+
+
+def _testa(righe):
+    if righe and righe[0].strip() == '---':
+        fine = righe.index('---', 1)
+        return righe[:fine + 1], righe[fine + 1:]
+    return [], righe
+
+
+def _blocchi(righe):
+    """[(titolo o None, [righe])]: il primo blocco è ciò che sta prima del primo '# '."""
+    out = [(None, [])]
+    for x in righe:
+        if x.startswith('# '):
+            out.append((x[2:].strip(), [x]))
+        else:
+            out[-1][1].append(x)
+    return out
+
+
+def _tabelle_con_chiave(righe):
+    """Pezzi del blocco; ogni tabella ha la chiave (ultimo sottotitolo, intestazione, quante prima con la stessa)."""
+    sotto, conta, out = '', {}, []
+    for p in tabelle_e_testo(righe):
+        if p[0] == 'testo':
+            for x in p[1]:
+                if re.match(r'^#{2,4} ', x):
+                    sotto = x.strip()
+            out.append((None, p))
+        else:
+            base = (sotto, p[1].strip())
+            n = conta.get(base, 0); conta[base] = n + 1
+            out.append((base + (n,), p))
+    return out
+
+
+def _archiviabile(h):
+    return 'Stato' in h or 'Esito' in h or (h and h[0] == 'Versione') or 'Chi' in h
+
+
+def _leggi_archivio(testo):
+    """{titolo: {chiave: [righe]}} dall'archivio (ogni tabella ha davanti <!-- tabella: sotto ¦ n -->)."""
+    out = {}
+    for titolo, righe in _blocchi(testo.split('\n'))[1:]:
+        tab, sotto, n = {}, '', 0
+        i = 0
+        while i < len(righe):
+            m = re.match(r'^<!-- tabella: (.*) ¦ (\d+) -->$', righe[i])
+            if m:
+                sotto, n = m.group(1), int(m.group(2))
+                i += 1
+                continue
+            if righe[i].startswith('|') and i + 1 < len(righe) and re.match(r'^\|[\s:|-]+\|\s*$', righe[i + 1]):
+                j = i + 2
+                while j < len(righe) and righe[j].startswith('|'):
+                    j += 1
+                tab[(sotto, righe[i].strip(), n)] = (righe[i], righe[i + 1], righe[i + 2:j])
+                i = j
+                continue
+            i += 1
+        out[titolo] = tab
+    return out
+
+
+def unisci(attivo, archivio):
+    """REQUISITI.md + archivio → il REQUISITI.md completo di prima (righe archiviate davanti, come in origine)."""
+    if not archivio.strip():
+        return attivo
+    arc = _leggi_archivio(archivio)
+    testa, righe = _testa(attivo.split('\n'))
+    out = list(testa)
+    for titolo, blocco in _blocchi(righe):
+        tab = arc.pop(titolo, {}) if titolo else {}
+        for chiave, p in _tabelle_con_chiave(blocco):
+            if chiave is None:
+                out.extend(p[1])
+                continue
+            vecchie = tab.pop(chiave, (None, None, []))[2]
+            out.extend([p[1], p[2]] + vecchie + p[3])
+        for (sotto, _h, _n), (h, s, rr) in tab.items():   # tabelle che nel file attivo non ci sono più
+            out.extend(['', h, s] + rr)
+    for titolo, tab in arc.items():                       # sezioni che nel file attivo non ci sono più
+        out.extend(['', '# ' + titolo, ''])
+        for (h, s, rr) in tab.values():
+            out.extend([h, s] + rr + [''])
+    return '\n'.join(out)
+
+
+def archivia(completo):
+    """REQUISITI.md completo → (attivo, archivio): le righe chiuse vanno nell'archivio."""
+    testa, righe = _testa(completo.split('\n'))
+    online = next((re.match(r'^online:\s*"?(.*?)"?\s*$', x).group(1) for x in testa if x.startswith('online:')), '')
+    stati = stati_dei_requisiti(righe)
+    att, arc = list(testa), [TESTA_ARCHIVIO, '']
+    for titolo, blocco in _blocchi(righe):
+        if titolo is None or titolo.startswith(SALTA):
+            att.extend(blocco)
+            continue
+        mossi = []
+        for chiave, p in _tabelle_con_chiave(blocco):
+            if chiave is None:
+                att.extend(p[1])
+                continue
+            h = celle(p[1])
+            if not _archiviabile(h):
+                att.extend([p[1], p[2]] + p[3])
+                continue
+            via = [x for x in p[3] if nel_primo(h, celle(x), stati, online)]
+            resta = [x for x in p[3] if x not in via]
+            att.extend([p[1], p[2]] + resta)
+            if via:
+                mossi.extend([f'<!-- tabella: {chiave[0]} ¦ {chiave[2]} -->', p[1], p[2]] + via + [''])
+        if mossi:
+            arc.extend(['# ' + titolo, ''] + mossi)
+    return '\n'.join(att), '\n'.join(arc).rstrip('\n') + '\n'
+
+
+def leggi_completo(src):
+    """Legge REQUISITI.md e, se c'è, l'archivio accanto; sistema i due file; restituisce il testo completo."""
+    attivo = open(src, encoding='utf-8').read()
+    p_arc = os.path.join(os.path.dirname(os.path.abspath(src)), ARCHIVIO)
+    archivio = open(p_arc, encoding='utf-8').read() if os.path.exists(p_arc) else ''
+    completo = unisci(attivo, archivio)
+    nuovo_att, nuovo_arc = archivia(completo)
+    assert unisci(nuovo_att, nuovo_arc).split('\n') == completo.split('\n') or \
+        dividi(unisci(nuovo_att, nuovo_arc)) == dividi(completo), 'archivio: unione diversa dal file completo'
+    if nuovo_att != attivo:
+        open(src, 'w', encoding='utf-8').write(nuovo_att)
+    if nuovo_arc != archivio:
+        open(p_arc, 'w', encoding='utf-8').write(nuovo_arc)
+    return completo
+
+
 def main():
     src, out = sys.argv[1], sys.argv[2]
     BP = os.path.basename(src).lower().startswith('business')
@@ -286,7 +428,7 @@ def main():
         return
     cartella = os.path.dirname(out) if out.endswith('.docx') else out
     os.makedirs(cartella or '.', exist_ok=True)
-    md1, md2 = dividi(open(src, encoding='utf-8').read())
+    md1, md2 = dividi(leggi_completo(src))
     with tempfile.TemporaryDirectory() as tmp:
         for md, nome in ((md1, NOME_1), (md2, NOME_2)):
             p = os.path.join(tmp, nome.replace('.docx', '.md'))

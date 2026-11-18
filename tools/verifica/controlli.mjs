@@ -73,7 +73,9 @@ console.log('C4 · versione');
 const ver = (/version:\s*'([\d.]+)'/.exec(read('public/config.js')) || [])[1];
 const req = read('REQUISITI.md');
 ok(!!ver, 'versione in public/config.js', ver);
-ok(new RegExp('^\\| ' + (ver || 'x').replace(/\./g, '\\.') + ' \\|', 'm').test(req), 'la versione ' + ver + ' è nello storico di REQUISITI.md');
+// dal 18/11/2026 (A-26) le versioni già online stanno in REQUISITI-ARCHIVIO.md: lo storico è l'unione dei due file
+let arc = ''; try { arc = read('REQUISITI-ARCHIVIO.md'); } catch (e) {}
+ok(new RegExp('^\\| ' + (ver || 'x').replace(/\./g, '\\.') + ' \\|', 'm').test(req + '\n' + arc), 'la versione ' + ver + ' è nello storico di REQUISITI.md (o del suo archivio)');
 // R-011: la pagina del gioco dichiara la sua versione (se è diversa da config.js il gioco si ricarica una volta)
 const verPag = (/<meta name="cyf-versione" content="([\d.]+)">/.exec(read('public/pista-nera/index.html')) || [])[1];
 ok(verPag === ver, 'la pagina del gioco ha la stessa versione di config.js (R-011)', verPag + ' / ' + ver);
