@@ -17,7 +17,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
   function nameSprite(text, color) {
     const c = document.createElement('canvas'); c.width = 256; c.height = 64;
     const g = c.getContext('2d');
-    g.font = '700 36px "Barlow Condensed", Arial, sans-serif';
+    g.font = '600 34px -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", Arial, sans-serif';
     const w = Math.min(250, g.measureText(text).width + 52);
     const x0 = (256 - w) / 2;
     g.fillStyle = 'rgba(12,24,40,0.72)';

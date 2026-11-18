@@ -128,17 +128,17 @@ PN.sfida = ({ stato: S, schermate, say, foto, accetta }) => {
     const sc = g.createLinearGradient(0, 0, 0, W);
     sc.addColorStop(0, 'rgba(12,24,40,.78)'); sc.addColorStop(0.45, 'rgba(12,24,40,.35)'); sc.addColorStop(1, 'rgba(12,24,40,.85)');
     g.fillStyle = sc; g.fillRect(0, 0, W, W);
-    const DISP = '"Rubik Mono One", "Arial Black", Impact, sans-serif', BODY = '"Barlow Condensed", "Arial Narrow", sans-serif';
+    const DISP = '-apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", Arial, sans-serif', BODY = DISP;   // R-533: come il sito di Apple
     const riga = (t, y, font, col, max = W - 120) => { g.font = font; g.fillStyle = col; g.textAlign = 'center'; g.fillText(t, W / 2, y, max); };
     g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = 12;
     riga('C-Y-F GAMING', 110, '700 40px ' + BODY, '#d6e7f3');
-    riga('PISTA NERA', 200, '84px ' + DISP, '#ff5a1f');
+    riga('PISTA NERA', 200, '700 84px ' + DISP, '#ff5a1f');
     riga(d.titolo, 300, '700 54px ' + BODY, '#ffffff');
-    riga(d.t != null ? fmtTime(d.t) : '—', 540, '150px ' + DISP, '#ffffff');
+    riga(d.t != null ? fmtTime(d.t) : '—', 540, '600 150px ' + DISP, '#ffffff');
     if (d.pos) riga(d.pos, 640, '700 64px ' + BODY, '#ffb08a');
     const e = esito();
     if (d.G && e) riga(tr(e.vinta ? 'imgBeat' : 'imgLost', { name: sfida.da, d: secondi(e.d) }), 730, '700 52px ' + BODY, e.vinta ? '#7ee2a1' : '#ffd0c2');
-    riga(tr('imgCall'), 900, '56px ' + DISP, '#ffffff');
+    riga(tr('imgCall'), 900, '600 56px ' + DISP, '#ffffff');
     riga(location.host + location.pathname, 980, '600 36px ' + BODY, '#d6e7f3');
     return new Promise(ok => { try { c.toBlob(b => ok(b), 'image/png'); } catch (x) { ok(null); } });
   }
