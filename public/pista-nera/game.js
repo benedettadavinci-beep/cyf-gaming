@@ -320,7 +320,7 @@
       P.ang += steer * F.STERZO * dt;
       if (!steer) P.ang -= P.ang * Math.min(1, 1.5 * dt);
       P.ang = clamp(P.ang, -F.ANGOLO, F.ANGOLO);
-      const ax = P.x + Math.sin(P.ang) * 2, az = P.z - Math.cos(P.ang) * 2;
+      const ax = P.x, az = P.z - 2;   // pendenza misurata dritto giù per la pista: virare non rallenta (R-531)
       const drop = hgt(P.x, P.z) - hgt(ax, az);
       let target = F.obiettivo(auto ? F.AUTO : vmax, P.ang, drop);
       // freccia giù: posizione raccolta, più veloce; freccia su: peso in avanti, frena
