@@ -9,10 +9,11 @@ Online: https://cyf-gaming.benedetta-davinci-mellum.workers.dev/pista-nera/ — 
 
 ## Regole di Luigi (valgono su tutto)
 1. **Prima frase di ogni attività: tempo stimato e token** (rimasti / stima del consumo) (R-509).
-2. **Sera (regola del 18/11 alle 21:47):** le modifiche chieste si fanno e vanno online **subito, senza prove**.
-   **Tutti i controlli (cancello GitHub, prove, correzioni) solo di notte, dopo le 00.** Di giorno nessuna prova se
-   Luigi non la chiede chiaramente. In chat solo controlli statici: `node --check` sui file toccati, `npm run matrice`,
-   `npm run nomi`, `npm run controlli`.
+2. **Sera (regola del 18/11, 21:47 e 22:43):** le modifiche chieste vanno online **subito, senza prove di Claude**,
+   ma **dopo il controllo automatico di GitHub** ("prove", ~4-5 min, ruleset "Cancello main" attivo: Luigi ha deciso
+   di tenerlo). Rosso = non va online, si corregge. **Prove complete e correzioni generali solo di notte, dopo le 00.**
+   Di giorno nessuna prova se Luigi non la chiede chiaramente. In chat solo controlli statici: `node --check` sui file
+   toccati, `npm run matrice`, `npm run nomi`, `npm run controlli`.
 3. **Prima i requisiti, poi il software (R-501).** Ogni richiesta = riga in `REQUISITI.md` (ID, data, stato, parole di Luigi).
 4. **Word dei requisiti rigenerati a ogni cosa fatta**, prossimi passi in testa (R-507, R-511):
    `python3 tools/requisiti_docx.py REQUISITI.md docs/` (serve pandoc). Online = `docs/` su GitHub.
@@ -47,7 +48,8 @@ Le pagine caricano i moduli con `<script>` in ordine in `public/pista-nera/index
 1. Ramo `giorno/<data>-<nome>` da `main` aggiornato.
 2. Requisiti → codice → versione (`config.js`, `package.json`, `<meta name="cyf-versione">`, riga nello storico) →
    `online:` = nuova versione → Word rigenerati → controlli statici.
-3. Commit, push del ramo, pull request e unione in `main` con la REST API (`gh api`, GraphQL non va).
+3. Commit, push del ramo, pull request; quando il check "prove" è verde (~4-5 min) unione in `main` con la REST API
+   (`gh api -X PUT repos/…/pulls/<n>/merge`; GraphQL e auto-merge non vanno).
 4. Nota breve nel Project (`claude/CYF-Gaming-<versione>-<argomento>.md`) e Word sul Desktop se il PC è collegato.
 
 ## Cose che non funzionano dalla sandbox
