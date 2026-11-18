@@ -21,6 +21,13 @@ Online: https://cyf-gaming.benedetta-davinci-mellum.workers.dev/pista-nera/ — 
    `G:\Il mio Drive\CYF gaming`). **Desktop e online devono essere uguali.**
 5. **Il software cresce senza rallentare (R-510):** niente framework, niente riscritture; ogni novità è un modulo.
 
+## Giro notturno 00:00–07:00 (R-537, dal 18/11)
+Tutto il lavoro automatico gira di notte con cinque attività pianificate: 1 Verifica e pubblicazione (00:00–01:45),
+2 Implementazione (01:50–05:10; la notte tra domenica e lunedì: Revisione settimanale), 3 Confronto con le altre app
+(05:15–05:55), 4 Rapporto del mattino (06:05–06:35). Chi scrive non pubblica: il blocco 2 lascia il codice su
+`giorno/<data>-notte`, lo prova e lo pubblica il blocco 1 la notte dopo. Ogni blocco scrive la sua riga in «Ultima notte»
+(testa dei Prossimi passi). Dettagli: `REQUISITI.md`, «Regole di lavoro», punto 3.
+
 ## Come leggere i requisiti senza sprecare token (A-26)
 - `REQUISITI.md` (~125 KB): solo ciò che serve per lavorare. Leggi prima le sezioni "Prossimi passi" e "Bachi";
   il resto con `grep -n` sull'ID o sulla parola.
@@ -55,4 +62,5 @@ Le pagine caricano i moduli con `<script>` in ordine in `public/pista-nera/index
 ## Cose che non funzionano dalla sandbox
 - Il sito non si raggiunge (proxy 403): lo stato del deploy si legge dai check del commit su GitHub.
 - Non si cancellano rami su GitHub: si elencano a Luigi.
-- Le attività pianificate non si modificano dalle chat: si prepara il testo e lo incolla Luigi.
+- Le attività pianificate: dal 18/11 le modifica Claude direttamente quando Luigi lo chiede; il modello di un'attività
+  si cambia solo su sua richiesta esplicita.
