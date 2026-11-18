@@ -1,10 +1,12 @@
 // modulo: rider
-// dipende da: base, calendario
+// dipende da: base, calendario, modello
 // Il modello del rider (lo stesso per te e per gli avversari): forme arrotondate, giacca con lo stemma CYF e la maglia
 // della città o il colore scelto (JERSEYS; dalla 0.23.0 anche le maglie esclusive della settimana, jerseyOf, R-245),
 // capelli a caso tra 6 acconciature o scelti dal giocatore (setLook, myHair), tavola da neve o skateboard,
 // pantaloni, casco e tipo di tavola scelti nella schermata "Modifica il personaggio" (setGear, myGear, R-227…R-229),
 // posa (pose) che segue curva, salto, grab e switch.
+// Dalla 0.32.0 (R-534) il corpo è un personaggio 3D vero con lo scheletro (moduli/modello.js): appena il file è caricato
+// prende il posto delle forme geometriche, che restano come ripiego se il file non arriva (o con ?rider=vecchio).
 // Solo modello e animazione: niente fisica, niente stato di gioco.
 window.PN = window.PN || {};
 PN.rider = (() => {
@@ -159,6 +161,8 @@ PN.rider = (() => {
       return [cap(0.118, 0.58, 0.4), knot, tail]; } },
     { name: 'caschetto', female: true, parts: () => [cap(0.119, 0.6, 0.4), curtain(0.114, 0.124, 0.17, 0.05)] }
   ];
+  // R-534: acconciature del personaggio 3D (pezzi del file del modello); le femminili usano il corpo femminile
+  const CAPELLI_3D = { corti: 'capelli_simpleparted', rasati: 'capelli_buzzed', ciuffo: 'capelli_simpleparted+capelli_beard', lunghi: 'capelli_long', coda: 'capelli_buns', caschetto: 'capelli_buzzedfemale' };
   const HAIR_COLORS = ['#1f1a17', '#3b2a1f', '#6b4a30', '#c9a25e', '#8a4a2a'];   // nero, castano scuro, castano, biondo, ramato
   const hairGeo = HAIR_STYLES.map(() => null), hairMat = {};
   const hairMaterial = c => hairMat[c] || (hairMat[c] = new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
@@ -427,6 +431,7 @@ PN.rider = (() => {
       for (const m of snowOnly) m.visible = !city;
       for (const m of streetOnly) m.visible = city;
       setHands(city);
+      citta = city; if (M3) M3.setCitta(city);
       // R-528: in città maglia a maniche corte, avambracci e gomiti nudi; sulla neve tutto coperto dalla giacca
       for (const m of [L.farmL, L.farmR, JM.elL, JM.elR]) m.material = city ? SHARED.skin : sleeve;
     }
@@ -460,20 +465,43 @@ PN.rider = (() => {
     // capelli: un gruppo che si ricostruisce con setLook(codice del giocatore)
     const hairG = new THREE.Group();
     headG.add(hairG);
-    let lookNow = '', hairStyle = 0, helmetOn = false;
+    let lookNow = '', hairStyle = 0, hairColor = 0, helmetOn = false;
+    // ---------- R-534: personaggio 3D vero ----------
+    // M3: il personaggio del modulo modello, quando è pronto; vecchio: il gruppo dove finiscono le forme geometriche
+    let M3 = null, citta = false, ultimaPosa = [0.3, 0.2, 0];
+    const vecchio = new THREE.Group();
+    function modello3D() {
+      const sesso = HAIR_STYLES[hairStyle].female ? 'f' : 'm';
+      if ((M3 && M3.sesso === sesso) || PN.modello.SPENTO) return;
+      PN.modello.quando(sesso, () => {
+        if ((HAIR_STYLES[hairStyle].female ? 'f' : 'm') !== sesso || (M3 && M3.sesso === sesso)) return;
+        const nuovo = PN.modello.crea(sesso, { giacca: jacket, manica: sleeve, pantaloni: pants });
+        // caschi, maschera, elastico e scaldacollo passano sulla testa del personaggio
+        for (const o of [helmetG, strap, gFrame, goggle, gaiter]) nuovo.accessori.add(o);
+        if (M3) M3.lascia();
+        else { for (const c of [...figure.children]) vecchio.add(c); vecchio.visible = false; figure.add(vecchio); }
+        M3 = nuovo;
+        figure.add(M3.radice);
+        M3.setCitta(citta);
+        hairUnderHelmet();
+        pose(...ultimaPosa);
+      });
+    }
     function setLook(id, scelta) {
       const L2 = lookOf(id, scelta), key = L2.style + ':' + L2.color;
       if (key === lookNow) return L2;
-      lookNow = key; hairStyle = L2.style;
+      lookNow = key; hairStyle = L2.style; hairColor = L2.color;
       while (hairG.children.length) hairG.remove(hairG.children[0]);
       if (!hairGeo[L2.style]) hairGeo[L2.style] = HAIR_STYLES[L2.style].parts();
       for (const g of hairGeo[L2.style]) mesh(g, hairMaterial(HAIR_COLORS[L2.color]), hairG);
       hairUnderHelmet();
+      modello3D();
       return L2;
     }
     // con il casco la calotta dei capelli (e il ciuffo) sta sotto il casco: si vedono solo i capelli lunghi e la coda (S-36)
     function hairUnderHelmet() {
       hairG.children.forEach((m, i) => { m.visible = !helmetOn || (i > 0 && HAIR_STYLES[hairStyle].name !== 'ciuffo'); });
+      if (M3) M3.setCapelli(CAPELLI_3D[HAIR_STYLES[hairStyle].name], HAIR_COLORS[hairColor], helmetOn);
     }
     setLook('');
     // casco (R-228): un gruppo per tipo, costruito la prima volta che serve
@@ -522,8 +550,10 @@ PN.rider = (() => {
     // così testa, spalle e braccio davanti restano verso dove si va (R-215). Nel mezzo dell'avvitamento si passa con continuità.
     // hand: 0..1 mano destra alzata ("Sono pronto", R-222); thr: 0..1 avanzamento del lancio della banana (R-224):
     // fino a 0,4 il braccio va indietro e in alto, poi si distende in avanti verso dove si va (-z)
+    const POSA = { fig: figure, J, bacino: pelvis.rotation, busto: torso.rotation, testa: headG.rotation };
     const JR = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => JR[k] = new THREE.Vector3());
     function pose(k0, arms, twist, grab = 0, fwd = 0, sw = 0, hand = 0, thr = 0) {
+      ultimaPosa = [k0, arms, twist, grab, fwd, sw, hand, thr];
       const fz = -fwd * 0.09;   // il davanti della tavola è verso -z
       // frenata (R-523, dalla 0.27.0): il rider si alza un po', le ginocchia si piegano meno e le anche salgono di almeno 5 cm
       // rispetto alla corsa normale (prima con la frenata spostava solo il peso in avanti)
@@ -573,6 +603,7 @@ PN.rider = (() => {
         for (const n in J) JR[n].copy(J[n]);
         for (const n in J) { const t = JR[n.endsWith('L') ? n.slice(0, -1) + 'R' : n.slice(0, -1) + 'L']; J[n].lerp(tmpE.set(t.x, t.y, -t.z), sw); }
       }
+      if (M3) { PN.modello.posa(M3, POSA); return; }   // R-534: il personaggio 3D; le forme vecchie sono nascoste
       setLimb(L.shinL, J.ankL, J.kneeL); setLimb(L.shinR, J.ankR, J.kneeR);
       setLimb(L.thighL, J.kneeL, J.hipL); setLimb(L.thighR, J.kneeR, J.hipR);
       setLimb(L.uarmL, J.shL, J.elL); setLimb(L.uarmR, J.shR, J.elR);
