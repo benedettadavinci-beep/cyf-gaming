@@ -40,13 +40,14 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/avversari.js` | avversari | 147 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (jerseyOf, makeRider, bodyTurn, switchOf, lookBot) |
 | `moduli/base.js` | base | 41 | nessuno |
 | `moduli/bot.js` | bot | 430 | fisica (); base (TAU, clamp, mulberry32); lingua (tr); protocollo (VOLO, COSTI, FERMO, NOMI_BOT); tracciato (dati); pista (center, hgt); oggetti (hazards, showThrow, addHazard, removeHazard, js); avversari (botUpdate, remotes, playThrow) |
+| `moduli/cartelloni.js` | cartelloni | 58 | base (TAU) |
 | `moduli/cielo.js` | cielo | 129 | base (HORIZON, reduceMotion) |
 | `moduli/citta.js` | citta | 881 | pista (center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_MAKE); base (TAU, lin, mulberry32); lingua (tr, fmtLen); geometria (merge, lumpy, vcMat, GEO, gateGeo) |
 | `moduli/comandi.js` | comandi | 106 | base (clamp); audio (initAudio, muted) |
 | `moduli/effetti.js` | effetti | 132 | base (isPhone, lin, rand, reduceMotion) |
-| `moduli/fisica.js` | fisica | 84 | base (TAU, clamp) |
+| `moduli/fisica.js` | fisica | 95 | base (TAU, clamp) |
 | `moduli/gara_locale.js` | gara_locale | 114 | protocollo (MAX_PLAYERS, NOMI_BOT); gara () |
-| `moduli/generazione.js` | generazione | 388 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
+| `moduli/generazione.js` | generazione | 401 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); cartelloni (); portale (attivo); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/granpremio.js` | granpremio | 86 | base (fmtTime); lingua (lang, tr, ord, cityName) |
 | `moduli/lingua.js` | lingua | 41 | base (store) |
@@ -59,7 +60,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/profilo.js` | profilo | 101 | base (store); lingua (tr) |
 | `moduli/pubblicita.js` | pubblicita | 142 | portale (attivo); lingua (tr) |
 | `moduli/qualita.js` | qualita | 87 | base (store) |
-| `moduli/rider.js` | rider | 587 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi) |
+| `moduli/rider.js` | rider | 617 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi) |
 | `moduli/sala.js` | sala | 37 | nessuno |
 | `moduli/schermate.js` | schermate | 350 | base (isPhone, PALETTE, START_ALT, SLOPE, fmt, fmtTime); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
 | `moduli/settimana.js` | settimana | 62 | base (store); lingua (lang, tr, cityName); calendario (); schermate (js, giorno) |
@@ -72,7 +73,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `i18n.js` | — | 399 | nessuno |
 | `shared/calendario.js` | calendario | 35 | nessuno |
 | `shared/gara.js` | gara | 51 | nessuno |
-| `shared/protocollo.js` | protocollo | 98 | nessuno |
+| `shared/protocollo.js` | protocollo | 99 | nessuno |
 <!-- /matrice -->
 
 ## Dove sta cosa
