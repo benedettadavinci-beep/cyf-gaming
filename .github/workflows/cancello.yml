@@ -1,14 +1,13 @@
-# Cancello dei test: a ogni modifica su GitHub lancia il giro rapido delle prove (~1,5 min in tutto).
+# Cancello dei test: giro rapido delle prove (~1,5 min in tutto), ogni notte dopo le 00.
 # Verde = si può andare online. Rosso = qualcosa si è rotto: il dettaglio è nel registro del passo "Giro rapido".
-# Il giro completo (~30 min) lo fa il controllo notturno delle 21:33; da qui si lancia a mano con "Run workflow" → tutto.
+# Dal 18/11/2026 gira solo di notte dopo le 00 (niente controlli a ogni modifica): da qui si lancia a mano con "Run workflow".
 name: Cancello dei test
 
 on:
-  push:
-    # R-506: di giorno il lavoro sta sui rami giorno/* e le prove le fa il turno di notte
-    branches-ignore:
-      - 'giorno/**'
-  pull_request:
+  # Dal 18/11/2026 (decisione di Luigi alle 21:47): tutti i controlli solo di notte, dopo mezzanotte. La sera le modifiche
+  # vanno online all'istante, senza aspettare il cancello. 23:05 UTC = 00:05 in Italia d'inverno (01:05 d'estate).
+  schedule:
+    - cron: '5 23 * * *'
   workflow_dispatch:
     inputs:
       modo:
