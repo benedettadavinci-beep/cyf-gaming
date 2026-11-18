@@ -849,8 +849,8 @@ PN.citta = ({ world, ANISO, pista }) => {
     const banner = new THREE.Mesh(
       new THREE.BoxGeometry(36, 2, 0.2),
       [postMat, postMat, postMat, postMat,
-       new THREE.MeshBasicMaterial({ map: textTexture(tr('finishBanner') + ' · ' + fmtLen(raceLen), 1024, 64, '#ff5a1f', '#ffffff', '700 44px "Barlow Condensed", Arial, sans-serif') }),
-       new THREE.MeshBasicMaterial({ map: textTexture('C-Y-F GAMING', 1024, 64, '#13233a', '#ffffff', '700 44px "Barlow Condensed", Arial, sans-serif') })]
+       new THREE.MeshBasicMaterial({ map: textTexture(tr('finishBanner') + ' · ' + fmtLen(raceLen), 1024, 64, '#ff5a1f', '#ffffff', '700 44px -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", Arial, sans-serif') }),
+       new THREE.MeshBasicMaterial({ map: textTexture('C-Y-F GAMING', 1024, 64, '#13233a', '#ffffff', '700 44px -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", Arial, sans-serif') })]
     );
     banner.position.set(c, Math.max(hgt(c - 18, z), hgt(c + 18, z)) + 6.2, z);
     banner.castShadow = true;

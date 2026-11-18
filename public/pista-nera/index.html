@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- versione della pagina: deve essere uguale a public/config.js (R-011, controllata da tools/verifica/controlli.mjs C4) -->
-<meta name="cyf-versione" content="0.31.2">
+<meta name="cyf-versione" content="0.31.3">
 <title>Pista Nera · C-Y-F Gaming</title>
 <meta name="description" content="Sfida i tuoi amici in una discesa in 3D, in snowboard sulla neve o in skateboard per 12 città: stessa pista, stesso via, vince il tempo migliore.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
   :root {
     --snow: #eef4f8;
@@ -20,8 +20,8 @@
     --ice: #2f7fd0;
     --ok: #1f8a4c;
     --frame: #0c1828;
-    --display: "Rubik Mono One", "Arial Black", Impact, sans-serif;
-    --body: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+    --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --body: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
     color-scheme: light;
   }
   html, body { height: 100%; margin: 0; }
@@ -306,6 +306,34 @@
   .adclose { position: absolute; top: 2px; right: 4px; border: 0; background: none; color: #6b7a8c; font-size: 16px; line-height: 1; padding: 2px 4px; cursor: pointer; }
   .adhome { display: flex; justify-content: center; }
   .adhome .adbox { box-shadow: 0 0 0 1px rgba(19,35,58,.12); }
+
+  /* R-533 (dalla 0.31.3, Luigi 18/11: "segui il formato delle scritte del sito di Apple"): stessa famiglia per titoli e
+     testo (SF Pro sui dispositivi Apple, Inter sugli altri, che gli somiglia molto), titoli in grassetto 600 con le
+     lettere un po' strette, niente MAIUSCOLO spaziato nelle etichette, testo a 17 px con interlinea ampia. Colori invariati.
+     Le regole sono qui in fondo, così vincono su quelle sopra senza toccarle una per una. */
+  body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -0.01em; font-feature-settings: "cv11", "ss01"; }
+  h1, h2, h3, h4, .logo { font-weight: 600 !important; letter-spacing: -0.022em !important; line-height: 1.08; }
+  [style*="text-transform:uppercase"], .tag, .brand, .pill, .meta span, label.field, .stat .k, .live h4, .awards .k, .missions h3, .board h3, .results .k, .adlbl, .sound, .langs button
+    { text-transform: none !important; letter-spacing: -0.005em !important; }
+  .panel h1 { font-size: clamp(30px, 7.5vw, 48px); }
+  .panel h2, .look-panel h2 { font-size: 24px; }
+  .panel p { font-size: 17px; line-height: 1.47; }
+  .stat .k, .results .k, label.field, .live h4, .missions h3, .board h3, .awards .k { font-size: 12px; font-weight: 600; }
+  .stat .v { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .results .v { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .go, .daily b, .rival-card b, .gp b, .week b, .pos, .code, #profCode { font-weight: 600; letter-spacing: -0.01em; }
+  .go { font-size: 17px; border-radius: 980px; }
+  .alt, .ghost, .seg button, .items button, .look-btn { font-weight: 600; }
+  .alt, .ghost { border-radius: 980px; font-size: 17px; }
+  .seg button { font-size: 15px; }
+  .players li { font-size: 17px; }
+  input[type=text], select { font-size: 17px; font-weight: 500; }
+  .toast { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+  .count { font-weight: 700; letter-spacing: -0.04em; }
+  .banner { font-weight: 500; }
+  .code { font-size: 36px; letter-spacing: 0.04em; }
+  @media (pointer: coarse) and (max-width: 700px) { .toast { font-size: 20px; } }
+  @media (max-width: 480px) { .stat .v { font-size: 19px; } .code { font-size: 30px; } }
 </style>
 </head>
 <body>

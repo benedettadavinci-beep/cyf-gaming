@@ -163,7 +163,7 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     const box = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
     box(10, 18, 492, 220, 46); g.fillStyle = '#13233a'; g.fill();
     g.lineWidth = 12; g.strokeStyle = '#ffffff'; g.stroke();
-    g.font = '900 200px "Barlow Condensed", "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '700 200px -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.lineJoin = 'round'; g.lineWidth = 16; g.strokeStyle = '#ffffff'; g.strokeText('CYF', 256, 136);
     g.fillStyle = '#ff5a1f'; g.fillText('CYF', 256, 136);
     cyfTex = new THREE.CanvasTexture(c); cyfTex.encoding = THREE.sRGBEncoding; cyfTex.anisotropy = Math.min(8, ANISO);
@@ -223,7 +223,7 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     const g = c.getContext('2d');
     g.fillStyle = '#13233a'; g.fillRect(0, 0, 2048, 80);
     g.fillStyle = '#ffffff'; g.fillRect(0, 4, 2048, 5); g.fillRect(0, 71, 2048, 5);
-    g.font = '900 60px "Barlow Condensed", "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '700 60px -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.lineJoin = 'round';
     for (let i = 0; i < 6; i++) {
       const x = 170 + i * 341;

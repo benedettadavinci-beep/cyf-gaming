@@ -21,12 +21,12 @@
 <meta name="description" content="Giochi nel browser per sfidare gli amici in tempo reale. Crea una sfida, condividi il link, vince il migliore.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
   :root {
     --bg: #0c1828; --panel: #13233a; --line: #23395a; --fg: #eef4f8; --soft: #9fb3c8; --flare: #ff5a1f; --ice: #6cb4ff;
-    --display: "Rubik Mono One", "Arial Black", Impact, sans-serif;
-    --body: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --body: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -72,6 +72,20 @@
   footer { color: var(--soft); font-size: 15px; border-top: 1px solid var(--line); padding-top: 14px; }
   @media (max-width: 640px) { .game { grid-template-columns: 1fr; } .art { min-height: 170px; } }
   @media (prefers-reduced-motion: reduce) { .play { transition: none; } }
+
+  /* R-533 (dalla 0.31.3, Luigi 18/11: "segui il formato delle scritte del sito di Apple"): stessa famiglia per titoli e
+     testo (SF Pro sui dispositivi Apple, Inter sugli altri, che gli somiglia molto), titoli in grassetto 600 con le
+     lettere un po' strette, niente MAIUSCOLO spaziato nelle etichette, testo a 17 px con interlinea ampia. Colori invariati.
+     Le regole sono qui in fondo, così vincono su quelle sopra senza toccarle una per una. */
+  body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -0.01em; font-feature-settings: "cv11", "ss01"; }
+  h1, h2, h3, h4, .logo { font-weight: 600 !important; letter-spacing: -0.022em !important; line-height: 1.08; }
+  [style*="text-transform:uppercase"], .tag, .brand, .pill, .meta span, label.field, .stat .k, .live h4, .awards .k, .missions h3, .board h3, .results .k, .adlbl, .sound, .langs button
+    { text-transform: none !important; letter-spacing: -0.005em !important; }
+  body { font-size: 17px; line-height: 1.47; }
+  .logo { font-size: clamp(40px, 10vw, 88px); line-height: 1.05; }
+  .tag { font-size: 17px; font-weight: 500; }
+  .info h2 { font-size: 28px; }
+  .play { font-weight: 600; border-radius: 980px; }
 </style>
 </head>
 <body>
