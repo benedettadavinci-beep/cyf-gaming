@@ -1,7 +1,7 @@
 // modulo: cartelloni
 // dipende da: base
-// Cartelloni sui palazzi delle città (R-535, dalla 0.31.4, Luigi 18/11): uno su ogni palazzo, sulla facciata verso la
-// strada, quindi almeno 15 per lato a vista (i palazzi sono larghi 9-15 m e la città si costruisce 200 m avanti).
+// Cartelloni sui palazzi delle città (R-535, dalla 0.31.4, Luigi 18/11): sulla facciata verso la strada; dalla 0.31.5
+// solo su 3 palazzi su 10 (Luigi: "troppe, riduci del 70%"), circa 4-5 per lato a vista.
 // Oggi mostrano la sigla CYF; domani la pubblicità: immagini o loghi diversi, presi dall'elenco in config.js
 // (window.CYF.cartelloni.annunci). Ogni annuncio è { immagine: 'https://…/logo.png' } oppure { testo: 'CYF' };
 // un'immagine che non si carica mostra CYF al suo posto. Il palazzo n. i della pista mostra l'annuncio i % elenco,

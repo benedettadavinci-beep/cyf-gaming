@@ -418,3 +418,4 @@
 | 0.31.2 | 18/11/2026 | Bananone 3.000 punti, il doppio della banana (R-532) |
 | 0.31.3 | 18/11/2026 | Scritte nello stile del sito di Apple: SF Pro / Inter, titoli stretti, niente maiuscolo spaziato, pulsanti a pillola (R-533) |
 | 0.31.4 | 18/11/2026 | Cartelloni CYF su ogni palazzo delle città, verso la strada, pronti per gli annunci della pubblicità (R-535) |
+| 0.31.5 | 18/11/2026 | Cartelloni ridotti del 70% (3 palazzi su 10), personaggi senza cilindri e palline: scarponi, polsini, gambe e cappuccio arrotondati (R-535, R-536) |

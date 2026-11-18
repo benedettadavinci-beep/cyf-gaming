@@ -299,7 +299,8 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
         // R-535: cartellone sulla facciata verso la strada (la faccia ±x del palazzo, larga w), 5 cm fuori dal muro,
         // con il bordo basso ad almeno 2 m da terra e sotto il tetto; si toglie con il palazzo (è suo figlio)
         const top = h - 3, cy = Math.min(9, Math.max(2 + CART.ALTO / 2, top - CART.ALTO / 2 - 1));
-        if (top > CART.ALTO + 2.5 && w > CART.LARGO + 1) {
+        // R-536 bis (0.31.5, Luigi 22:31: "troppe, riduci del 70%"): solo 3 palazzi su 10 (n. 0, 3, 6 di ogni decina)
+        if (top > CART.ALTO + 2.5 && w > CART.LARGO + 1 && [0, 3, 6].includes(palazzoN % 10)) {
           const cart = CART.pannello(palazzoN);
           cart.position.set(-side * (d / 2 + 0.05), cy, 0);
           cart.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
