@@ -1,5 +1,5 @@
 // modulo: generazione
-// dipende da: base, geometria, pista, citta, tracciato, fisica
+// dipende da: base, geometria, pista, citta, tracciato, fisica, cartelloni, portale
 // La pista si costruisce man mano che il rider scende, con il seme della gara: stessi numeri casuali su ogni dispositivo,
 // quindi stessa pista per tutti (R-103). Qui stanno le file di ostacoli, bonus, rampe e porte (uguali in ogni città,
 // R-309), i trampolini giganti con lo spazio libero attorno (R-214), gli alberi della neve, i palazzi, gli oggetti e i
@@ -10,6 +10,9 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
   const { TAU, lin, mulberry32 } = PN.base;
   const { GEO, vcMat } = PN.geometria;
   const { center, hgt, addMesh } = pista;
+  // cartelloni sui palazzi (R-535): CYF oggi, pubblicità domani; sul portale solo CYF (niente annunci di terzi)
+  const CART = PN.cartelloni({ ANISO, soloCYF: PN.portale.attivo });
+  let palazzoN = 0;   // palazzi costruiti dall'inizio della pista: decide l'annuncio di ognuno
   const { CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat } = CITTA;
   const assets = () => CITTA.assetsFor(stato.theme);
   const isCity = () => stato.isCity();
@@ -293,9 +296,19 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
         m.receiveShadow = true;
         m.position.set(x, hgt(x, z), z);
         m.rotation.y = rot;
+        // R-535: cartellone sulla facciata verso la strada (la faccia ±x del palazzo, larga w), 5 cm fuori dal muro,
+        // con il bordo basso ad almeno 2 m da terra e sotto il tetto; si toglie con il palazzo (è suo figlio)
+        const top = h - 3, cy = Math.min(9, Math.max(2 + CART.ALTO / 2, top - CART.ALTO / 2 - 1));
+        if (top > CART.ALTO + 2.5 && w > CART.LARGO + 1) {
+          const cart = CART.pannello(palazzoN);
+          cart.position.set(-side * (d / 2 + 0.05), cy, 0);
+          cart.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+          m.add(cart);
+        }
         world.add(m);
         objs.push({ type: 'bldg', x, z, mesh: m });
       }
+      palazzoN++;   // anche per i palazzi "fantasma" già alle spalle: così il numero è uguale per tutti
       len = Math.max(len, w);
     }
     buildZ -= len + 0.6 + r() * 1.2;
@@ -372,7 +385,7 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     forestRng = mulberry32(seed ^ 0x5bd1e995);
     buildRng = mulberry32(seed ^ 0x2c1b3c6d);
     propRng = mulberry32(seed ^ 0x6a09e667);
-    buildZ = 30; propZ = 10; sideZ = 20; treeZ = 14; sideRng = mulberry32(seed ^ 0x1b873593);
+    buildZ = 30; palazzoN = 0; propZ = 10; sideZ = 20; treeZ = 14; sideRng = mulberry32(seed ^ 0x1b873593);
     bigZones = [];
     rowZ = -28; forestZ = 22; markerZ = 10;
   }
