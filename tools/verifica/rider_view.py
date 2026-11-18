@@ -30,9 +30,10 @@ with sync_playwright() as p:
     pg = ctx.new_page()
     errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.goto(f'http://127.0.0.1:8787/pista-nera/?scena={SCENA}', wait_until='domcontentloaded')
+    EXTRA = os.environ.get('PARAMETRI', '')   # es. PARAMETRI='&rider=vecchio' per il rider di prima (R-534)
+    pg.goto(f'http://127.0.0.1:8787/pista-nera/?scena={SCENA}{EXTRA}', wait_until='domcontentloaded')
     pg.wait_for_function('window.__dbg', timeout=60000)
-    pg.wait_for_timeout(1500)
+    pg.wait_for_timeout(int(os.environ.get('ATTESA', '6000')))   # il file del personaggio 3D arriva dopo la pagina (R-534)
     for pose_name, pose_args in [('normale', '0.35, 0.3, 0, 0, 0'), ('curva', '0.6, 0.6, 0.25, 0, 0'), ('raccolto', '0.95, 0.2, 0, 0, 0')]:
         for name, (dx, dy, dz), ly in SHOTS:
             if pose_name != 'normale' and name not in ('dietro', 'fianco', 'tre-quarti'): continue
