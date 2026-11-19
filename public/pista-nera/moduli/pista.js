@@ -38,7 +38,8 @@ PN.pista = ({ scene, world, ANISO, TEX }) => {
     // a tratti da una busta lenta (CURVE.W): tratti con curve strette (raggio fino a ~135 m) alternati a tratti più dritti.
     // Fattore di tempo +2 % uguale per tutte le piste (calcolo del 16/11 sulla Neve: pendenza max 0,33 → 0,50)
     const f = T.w[0][2];
-    s += CURVE.a * Math.sin(z / CURVE.l + f * 1.7) * Math.pow(0.5 + 0.5 * Math.sin(z / CURVE.W + f + 0.6), CURVE.k);
+    // R-539 (dalla 0.34.0): la busta non spegne più le curve, le tiene almeno al 55 %: ~10 curve in 2 km in ogni scenario
+    s += CURVE.a * Math.sin(z / CURVE.l + f * 1.7) * (0.55 + 0.45 * Math.pow(0.5 + 0.5 * Math.sin(z / CURVE.W + f + 0.6), CURVE.k));
     return s;
   };
   function hgt(x, z) {

@@ -427,3 +427,4 @@
 | 0.32.2 | 19/11/2026 | Ottimizzazione (A-27): server più leggero con 8 giocatori, schermo del gioco aggiornato solo quando cambia, cristalli più leggeri, il gioco non si blocca più per un errore in un fotogramma; senza prove, ramo `giorno/2026-11-19-ottimizzazione` |
 | 0.32.3 | 19/11/2026 | Personaggi 3D davvero accesi per tutti (B-07: un controllo all'avvio li spegneva sempre dalla 0.32.0); nuovo controllo statico C7; pubblicata la mattina su richiesta di Luigi, senza prove |
 | 0.33.0 | 19/11/2026 | Posizione raccolta come nella foto di Luigi con la freccia giù (R-538): anche basse, busto quasi orizzontale, braccia dietro la schiena, testa alta; pubblicata la mattina su richiesta di Luigi, senza prove |
+| 0.34.0 | 19/11/2026 | Almeno 5 curve per scenario (R-539, ~10 in 2 km), schivata di banana e bananone al 75 % (R-540), porte da slalom alternate con le lucine sopra i pali (R-541); pubblicata la mattina su richiesta di Luigi, senza prove |
