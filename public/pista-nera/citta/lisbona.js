@@ -11,7 +11,8 @@ PN.citta.schede.lisbona = ({ lowGeos, markerGeos, foodGeos, streetTrees, genTree
   ramp: ['#b07a45', '#e8c33c'], gate: ['#3f7a3a', '#d8352a'], marker: markerGeos.stonePill,
   tallCrash: 'crashTree', lowCrash: 'crashCrate', markerCrash: 'crashBollard',
   walls: ['#d8e2e4', '#c2d4dc', '#e8d2b4', '#efe4ce', '#b8d0d8', '#e2c0a4'],
-  props: [['tramLisbona', 8.5]], setback: 2.6, street: { L: 'bldg', R: 'bldg', trees: { geo: streetTrees.jacaranda, every: 15 } },   // Avenida da Liberdade: file di alberi
+  props: [['tramLisbona', 8.5]], setback: 2.6, street: { L: 'bldg', R: 'river', fiume: { nome: 'Tago', w: 76, col: '#3f7fa8' }, trees: { geo: streetTrees.jacaranda, every: 15 } },   // Avenida da Liberdade: file di alberi
+  aeroporto: { nome: 'Humberto Delgado', km: 7, coda: '#3f7a3a', aerei: 2 },   // R-543: aerei nel cielo (aeroporto a 7 km)
   style: 'azulejos', style2: 'altbau', roof: '#b4603f', bldH: [9, 10], ground: calcadaTexture,
   theme: { sky: ['#2f86d8', '#8fc4ea', '#eef0ea'], fog: '#eaece6', hemi: ['#f6f0e2', '#aab0ac'], sun: '#fff4d4', spray: '#c8c4b8', sprayOp: 0.5, trail: '#2a2a28', trailOp: 0.18, rough: 0.9 }
 });

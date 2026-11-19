@@ -12,6 +12,7 @@ PN.citta.schede.milano = ({ lowGeos, markerGeos, foodGeos, genLamp, paveTexture 
   tallCrash: 'crashLamp', lowCrash: 'crashBollard', markerCrash: 'crashBollard',
   walls: ['#e8dcc8', '#d8c8ac', '#e2d0b4', '#cfc0a8', '#e8e2d2', '#d2bfa0'],
   street: { L: 'bldg', R: 'bldg' }, setback: 1.2,   // corso Vittorio Emanuele II: pedonale, palazzi con vetrine, niente tram
+  aeroporto: { nome: 'Linate', km: 7, coda: '#c4372b', aerei: 2 },   // R-543: aerei nel cielo (aeroporto a 7 km)
   style: 'altbau', roof: '#7d8287', bldH: [12, 16], ground: () => paveTexture({ seed: 41, size: 14, joint: '#2e2c2a', tones: [[96, 90, 86], [108, 100, 94], [88, 84, 82]], rails: true }),
   theme: { sky: ['#5a84b0', '#9fb6cc', '#e0e3e4'], fog: '#dcdfe0', fogN: 40, fogF: 150, hemi: ['#e8ecf0', '#a8adb4'], sun: '#f2ead8', spray: '#b8bcc0', sprayOp: 0.5, trail: '#2a2a2c', trailOp: 0.18, rough: 0.9 }
 });

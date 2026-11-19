@@ -50,6 +50,7 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
   }
   // --- lati della strada vera (R-307, sezione 12 dei requisiti): mare, fori, file di alberi; numeri casuali propri, la pista non cambia ---
   const SIDE_MATS = {
+    // R-542: l'acqua del fiume ha il colore della scheda (fiume.col): un materiale per colore
     sea: () => new THREE.MeshStandardMaterial({ color: lin('#2f78b4'), roughness: 0.35, metalness: 0.1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }),
     wall: () => new THREE.MeshStandardMaterial({ color: lin('#d9d2c0'), roughness: 0.9 }),
     ruin: () => new THREE.MeshStandardMaterial({ color: lin('#c9bba0'), roughness: 0.95 }),
@@ -57,6 +58,7 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
   };
   const sideMats = {};
   const sideMat = k => sideMats[k] || (sideMats[k] = SIDE_MATS[k]());
+  const fiumeMat = col => sideMats['fiume' + col] || (sideMats['fiume' + col] = new THREE.MeshStandardMaterial({ color: lin(col), roughness: 0.25, metalness: 0.15, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }));
   // muretto che segue la curva (parapetto del lungomare, muri bassi dei fori): facce verticali e cima
   function wallStrip(z0, len, off, w, h, mat) {
     const n = Math.round(len / 2), pos = [], idx = [];
@@ -76,6 +78,16 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     sea(z, len, s) {
       objs.push({ type: 'side', x: center(z) + s * 60, z: z - len / 2, mesh: edgeStrip(z, len, s * 60, 76, sideMat('sea'), 0.05) });
       objs.push({ type: 'side', x: center(z) + s * 22.4, z: z - len / 2, mesh: wallStrip(z, len, s * 22.4, 0.5, 1.0, sideMat('wall')) });
+    },
+    // R-542 (dalla 0.35.0): il fiume della città su un lato (Tevere, Senna, Tamigi, Meno…): parapetto del lungofiume,
+    // l'acqua larga fiume.w metri e l'argine verde dall'altra parte. Niente palazzi su quel lato (R-307)
+    river(z, len, s) {
+      const F = CITY_CFG[stato.theme].street.fiume || { w: 44, col: '#4f6f78' };
+      const x0 = 24, xm = x0 + F.w / 2, x1 = x0 + F.w;
+      objs.push({ type: 'side', x: center(z) + s * 22.4, z: z - len / 2, mesh: wallStrip(z, len, s * 22.4, 0.5, 1.0, sideMat('wall')) });
+      objs.push({ type: 'side', x: center(z) + s * xm, z: z - len / 2, mesh: edgeStrip(z, len, s * xm, F.w + 2, fiumeMat(F.col), 0.05) });
+      objs.push({ type: 'side', x: center(z) + s * (x1 + 9), z: z - len / 2, mesh: edgeStrip(z, len, s * (x1 + 9), 18, sideMat('grass'), 0.05) });
+      objs.push({ type: 'side', x: center(z) + s * (x1 + 0.5), z: z - len / 2, mesh: wallStrip(z, len, s * (x1 + 0.5), 0.5, 1.0, sideMat('wall')) });
     },
     // Roma, via dei Fori Imperiali: prato, muri bassi di tufo e colonne spezzate
     ruins(z, len, s) {

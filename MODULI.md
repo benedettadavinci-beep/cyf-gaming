@@ -36,6 +36,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 <!-- matrice -->
 | File | Modulo (PN.…) | Righe | Dipende da (cosa usa) |
 |---|---|---|---|
+| `moduli/aerei.js` | aerei | 82 | base (reduceMotion); geometria (merge) |
 | `moduli/audio.js` | audio | 66 | base (store); lingua (tr) |
 | `moduli/avversari.js` | avversari | 147 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (jerseyOf, makeRider, bodyTurn, switchOf, lookBot) |
 | `moduli/base.js` | base | 44 | nessuno |
@@ -47,7 +48,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/effetti.js` | effetti | 132 | base (isPhone, lin, rand, reduceMotion) |
 | `moduli/fisica.js` | fisica | 95 | base (TAU, clamp) |
 | `moduli/gara_locale.js` | gara_locale | 114 | protocollo (MAX_PLAYERS, NOMI_BOT); gara () |
-| `moduli/generazione.js` | generazione | 414 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); cartelloni (); portale (attivo); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
+| `moduli/generazione.js` | generazione | 426 | base (TAU, lin, mulberry32); geometria (GEO, vcMat); cartelloni (); portale (attivo); tracciato (riga, coperto, passo); fisica (rampTop); pista (center, hgt, addMesh); citta (CITY_CFG, facadesFor, roofFor, buildingGeo, gemGeo, gemMat, …) |
 | `moduli/geometria.js` | geometria | 95 | base (TAU, lin, mulberry32) |
 | `moduli/granpremio.js` | granpremio | 86 | base (fmtTime); lingua (lang, tr, ord, cityName) |
 | `moduli/lingua.js` | lingua | 41 | base (store) |
@@ -69,7 +70,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/sfondi.js` | sfondi | 216 | panorami (dipingiPiani); base (reduceMotion) |
 | `moduli/tracciato.js` | tracciato | 139 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 194 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr); portale (attivo) |
-| `game.js` | — | 1113 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio (); sala () |
+| `game.js` | — | 1115 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); aerei (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio (); sala () |
 | `diagnosi.js` | — | 177 | nessuno |
 | `i18n.js` | — | 399 | nessuno |
 | `shared/calendario.js` | calendario | 35 | nessuno |

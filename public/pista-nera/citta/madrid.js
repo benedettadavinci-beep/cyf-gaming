@@ -11,7 +11,8 @@ PN.citta.schede.madrid = ({ lowGeos, markerGeos, foodGeos, genTree, slabTexture 
   ramp: ['#a86a3a', ['#d8352a', '#e8c026']], gate: ['#d8352a', '#e8c026'], marker: markerGeos.bolard,
   tallCrash: 'crashTree', lowCrash: 'crashPot', markerCrash: 'crashBollard',
   walls: ['#c87f5a', '#d8a878', '#b86a48', '#e2c8a4', '#c08a5c', '#d2b490'],
-  street: { L: 'bldg', R: 'bldg' }, props: [['taxiMadrid', 4.3]], setback: 2.6,   // Gran Vía: palazzi monumentali, taxi bianchi con la riga rossa
+  street: { L: 'river', R: 'bldg', fiume: { nome: 'Manzanarre', w: 28, col: '#6a7f6a' } }, props: [['taxiMadrid', 4.3]], setback: 2.6,   // Gran Vía: palazzi monumentali, taxi bianchi con la riga rossa
+  aeroporto: { nome: 'Madrid-Barajas', km: 13, coda: '#d8352a', aerei: 3 },   // R-543: aerei nel cielo (aeroporto a 13 km)
   style: 'haussmann', roof: '#8a5a3c', bldH: [16, 14], ground: () => slabTexture({ seed: 59, v0: 142 }),
   theme: { sky: ['#1f6fd0', '#7fb4e8', '#f0e8d8'], fog: '#ece4d4', hemi: ['#f8f0dc', '#b8a890'], sun: '#fff2c8', spray: '#c8b088', sprayOp: 0.5, trail: '#2a2623', trailOp: 0.18, rough: 0.92 }
 });

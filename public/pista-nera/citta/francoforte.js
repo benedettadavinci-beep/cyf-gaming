@@ -11,7 +11,8 @@ PN.citta.schede.francoforte = ({ lowGeos, markerGeos, foodGeos, genTree, paveTex
   ramp: ['#b07a45', '#c4372b'], gate: ['#d8352a', '#e8e8e8'], marker: markerGeos.fwPole,
   tallCrash: 'crashTree', lowCrash: 'crashBarrel', markerCrash: 'crashPole',
   walls: ['#efe8da', '#e8dcc8', '#f2ece0', '#e2d4ba', '#efe4ce', '#e8dcc2'],
-  street: { L: 'bldg', R: 'bldg' },   // Römerberg: case a graticcio su entrambi i lati
+  street: { L: 'bldg', R: 'river', fiume: { nome: 'Meno', w: 50, col: '#4f6f72' } },   // Römerberg: case a graticcio su entrambi i lati
+  aeroporto: { nome: 'Frankfurt am Main', km: 12, coda: '#d8352a', aerei: 3 },   // R-543: aerei nel cielo (aeroporto a 12 km)
   style: 'fachwerk', roof: '#6a4a3a', bldH: [8, 8], ground: () => paveTexture({ seed: 53, size: 16, joint: '#38342e', tones: [[122, 112, 100], [136, 126, 112], [110, 102, 92]] }),
   theme: { sky: ['#56759c', '#9db0c2', '#dfe1e2'], fog: '#dcdee0', hemi: ['#e8eaec', '#a4a8ac'], sun: '#f2eedd', spray: '#b8bcc0', sprayOp: 0.5, trail: '#2a2a2c', trailOp: 0.18, rough: 0.9 }
 });

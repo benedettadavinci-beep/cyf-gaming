@@ -428,3 +428,4 @@
 | 0.32.3 | 19/11/2026 | Personaggi 3D davvero accesi per tutti (B-07: un controllo all'avvio li spegneva sempre dalla 0.32.0); nuovo controllo statico C7; pubblicata la mattina su richiesta di Luigi, senza prove |
 | 0.33.0 | 19/11/2026 | Posizione raccolta come nella foto di Luigi con la freccia giù (R-538): anche basse, busto quasi orizzontale, braccia dietro la schiena, testa alta; pubblicata la mattina su richiesta di Luigi, senza prove |
 | 0.34.0 | 19/11/2026 | Almeno 5 curve per scenario (R-539, ~10 in 2 km), schivata di banana e bananone al 75 % (R-540), porte da slalom alternate con le lucine sopra i pali (R-541); pubblicata la mattina su richiesta di Luigi, senza prove |
+| 0.35.0 | 19/11/2026 | Il fiume della città lungo la pista in 10 città (R-542) e aerei nel cielo in tutte le 12 città, che hanno l'aeroporto entro 20 km (R-543, modulo nuovo aerei.js); pubblicata la mattina su richiesta di Luigi, senza prove |
