@@ -12,6 +12,7 @@ PN.citta.schede.napoli = ({ GEO, streetTrees, stoneTexture }) => ({
   tallCrash: 'crashTree', lowCrash: 'crashRock', markerCrash: 'crashBollard',
   walls: ['#e7b65c', '#dd8a5c', '#c9573f', '#f1d999', '#e9a98a', '#d8c7a6', '#b85a43', '#f3e6cf'],
   street: { L: 'bldg', R: 'sea', trees: { geo: streetTrees.palma, every: 26, off: 22.6, sides: [-1] } }, props: [['autoNapoli', 4.3]],   // via Partenope: mare a destra, palazzi e palme a sinistra
+  aeroporto: { nome: 'Capodichino', km: 6, coda: '#2766c6', aerei: 2 },   // R-543: aerei nel cielo (aeroporto a 6 km)
   style: 'napoli', roof: '#a89a88', bldH: [10, 14], ground: stoneTexture,
   theme: { sky: ['#2a7fd6', '#86c2ee', '#e6edf1'], fog: '#e1e8ec', hemi: ['#f6ecdc', '#b3a493'], sun: '#fff0cf', spray: '#c7beb3', sprayOp: 0.55, trail: '#262321', trailOp: 0.2, rough: 0.9 }
 });

@@ -11,7 +11,8 @@ PN.citta.schede.newyork = ({ lowGeos, markerGeos, foodGeos, genLamp, asphaltText
   ramp: ['#8a9299', '#e8c33c'], gate: ['#e8842a', '#2753b8'], marker: markerGeos.hydrant,
   tallCrash: 'crashLamp', lowCrash: 'crashTrash', markerCrash: 'crashHydrant',
   walls: ['#7a4a34', '#8a5a40', '#6a3f2c', '#9a6a4e', '#5f3a2a', '#845640'],
-  props: [['taxiNY', 4.7], ['taxiNY', 4.7]], setback: 2.6, street: { L: 'bldg', R: 'bldg' },   // Broadway: grattacieli e taxi gialli
+  props: [['taxiNY', 4.7], ['taxiNY', 4.7]], setback: 2.6, street: { L: 'river', R: 'bldg', fiume: { nome: 'Hudson', w: 76, col: '#47677a' } },   // Broadway: grattacieli e taxi gialli
+  aeroporto: { nome: 'LaGuardia e JFK', km: 13, coda: '#2753b8', aerei: 3 },   // R-543: aerei nel cielo (aeroporto a 13 km)
   style: 'brickfe', roof: '#4a4d52', bldH: [28, 32], ground: () => asphaltTexture({ seed: 73, base: '#3f4144', lines: '#d8b02c', manholes: true }),
   theme: { sky: ['#4a7bb8', '#95b4d0', '#e2e3de'], fog: '#dedfda', hemi: ['#eceee8', '#a0a4a0'], sun: '#f6eeda', spray: '#b0b4b8', sprayOp: 0.5, trail: '#28292b', trailOp: 0.18, rough: 0.9 }
 });

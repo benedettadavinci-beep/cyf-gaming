@@ -54,6 +54,7 @@
   // il cielo con il sole e le nuvole (moduli/cielo.js, R-513): la direzione del sole è una sola per cielo, luce e cartoline
   const CIELO = PN.cielo({ scene, telefono: isPhone });
   const SUN_OFFSET = CIELO.SOLE;
+  const AEREI = PN.aerei({ scene, telefono: isPhone });   // R-543: aerei nel cielo delle città con l'aeroporto vicino
 
   const hemi = new THREE.HemisphereLight(lin('#cfe4f7'), lin('#aebfd0'), 0.55);
   scene.add(hemi);
@@ -107,6 +108,7 @@
     PISTA.setTrack(theme);
     const T = THEMES[theme];
     CIELO.applica(theme, T);
+    AEREI.applica(theme, CITY_CFG[theme] && CITY_CFG[theme].aeroporto);
     scene.fog.color.copy(lin(T.fog));
     scene.fog.near = T.fogN || 60;
     scene.fog.far = T.fogF || 200;
@@ -996,7 +998,7 @@
     sun.target.position.copy(v3);
     sun.position.copy(v3).add(SUN_OFFSET);
     CIELO.uccelliVisibili(QUALITA.livello !== 'bassa');   // nella qualità bassa niente uccelli (R-513, punto 6)
-    CIELO.aggiorna(dt, camera);
+    CIELO.aggiorna(dt, camera); AEREI.aggiorna(dt, camera);
     ranges.position.copy(camera.position);
     SFONDI.segui(theme, camera, center(P.z));   // la città ferma sull'asse della strada, i monti con la telecamera (R-513)
     updateTrail();

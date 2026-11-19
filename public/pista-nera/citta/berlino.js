@@ -11,7 +11,8 @@ PN.citta.schede.berlino = ({ lowGeos, markerGeos, foodGeos, streetTrees, genTree
   ramp: ['#9aa0a6', '#b05ad0', true], gate: ['#d8352a', '#d4a017'], marker: markerGeos.ampel,
   tallCrash: 'crashTree', lowCrash: 'crashBlock', markerCrash: 'crashLight',
   walls: ['#c8c2b4', '#b8ac9c', '#cfc8ba', '#a8a096', '#bfb8a8', '#c2bcae'],
-  props: [['wallBerlino', 6]], setback: 2.6, edge: 'walk', street: { L: 'bldg', R: 'bldg', trees: { geo: streetTrees.tiglio, every: 12 } },   // Unter den Linden: file fitte di tigli
+  props: [['wallBerlino', 6]], setback: 2.6, edge: 'walk', street: { L: 'river', R: 'bldg', fiume: { nome: 'Sprea', w: 40, col: '#4f6a6e' }, trees: { geo: streetTrees.tiglio, every: 12 } },   // Unter den Linden: file fitte di tigli
+  aeroporto: { nome: 'Berlin Brandenburg', km: 18, coda: '#d8352a', aerei: 2 },   // R-543: aerei nel cielo (aeroporto a 18 km)
   style: 'altbau', roof: '#6d7276', bldH: [13, 12], ground: () => asphaltTexture({ seed: 67, base: '#4a4d50' }),
   theme: { sky: ['#5d7792', '#9fb0bf', '#dfe2e4'], fog: '#dcdfe1', hemi: ['#e6e9ec', '#9ea4a8'], sun: '#eeeee6', spray: '#b4b8bc', sprayOp: 0.5, trail: '#2c2e30', trailOp: 0.18, rough: 0.9 }
 });
