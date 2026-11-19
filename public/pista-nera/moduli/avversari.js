@@ -87,7 +87,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
       // mano alzata durante l'attesa (R-222) e gesto del lancio della banana (R-224)
       r.hs = (r.hs || 0) + ((r.ready && stato.mode === 'countdown' ? 1 : 0) - (r.hs || 0)) * Math.min(1, 8 * dt);
       if (r.thrT > 0) { r.thrT += dt / 0.55; if (r.thrT >= 1) r.thrT = 0; }
-      r.model.pose(Math.min(1, 0.35 + r.gs * 0.45 + Math.max(0, r.ks) * 0.55), r.y > 0.3 ? 1 : 0.3, 0, r.gs, Math.max(0, -r.ks), switchOf(r.s || 0), r.hs, r.thrT || 0);
+      r.model.pose(Math.min(1, 0.35 + r.gs * 0.45 + Math.max(0, r.ks) * 0.55), r.y > 0.3 ? 1 : 0.3, 0, r.gs, Math.max(0, -r.ks), switchOf(r.s || 0), r.hs, r.thrT || 0, Math.max(0, r.ks));   // R-538: raccolto anche per gli altri
     }
   }
   // chi ha premuto "Sono pronto" (elenco di codici dal server)

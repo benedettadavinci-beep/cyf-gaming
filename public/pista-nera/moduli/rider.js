@@ -26,7 +26,7 @@ PN.rider = (() => {
   const DECK_Y = WHEEL_R * 2 + 0.006, LIFT = DECK_Y + 0.012 - 0.068;
   // in città il rider è vestito da skater (R-218): viso scoperto, mani nude, scarpe da skate
   const STREET = { sole: RM('#f2f1ec'), shoe: RM('#2b2f36'), lace: RM('#e8e6df'), eye: RM('#f6f4ef'), iris: RM('#4a3426'), brow: RM('#4a3628'), lip: RM('#b07468') };
-  const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), tmpH = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
+  const UP = new THREE.Vector3(0, 1, 0), tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3(), tmpH = new THREE.Vector3(), tmpU = new THREE.Vector3(), tmpN = new THREE.Vector3(), tmpS = new THREE.Vector3(), tmpB = new THREE.Vector3(), GRAB_HAND = new THREE.Vector3(0.2, 0.12, -0.08);
   const PIVOT = new THREE.Vector3();
   // ruota il corpo attorno al baricentro (circa 0,6 m sopra la tavola), non attorno ai piedi
   // quanto il rider è girato al contrario (0 = normale, 1 = dopo un 180°), in modo continuo durante l'avvitamento
@@ -552,29 +552,32 @@ PN.rider = (() => {
     // fino a 0,4 il braccio va indietro e in alto, poi si distende in avanti verso dove si va (-z)
     const POSA = { fig: figure, J, bacino: pelvis.rotation, busto: torso.rotation, testa: headG.rotation };
     const JR = {}; ['ankL', 'ankR', 'kneeL', 'kneeR', 'hipL', 'hipR', 'shL', 'shR', 'elL', 'elR', 'haL', 'haR'].forEach(k => JR[k] = new THREE.Vector3());
-    function pose(k0, arms, twist, grab = 0, fwd = 0, sw = 0, hand = 0, thr = 0) {
-      ultimaPosa = [k0, arms, twist, grab, fwd, sw, hand, thr];
+    function pose(k0, arms, twist, grab = 0, fwd = 0, sw = 0, hand = 0, thr = 0, rac = 0) {
+      ultimaPosa = [k0, arms, twist, grab, fwd, sw, hand, thr, rac];
+      // R-538 (dalla 0.33.0): rac = posizione raccolta con la freccia giù, come la foto di Luigi (skate in discesa):
+      // anche basse, busto quasi orizzontale girato verso il muso della tavola, mani dietro la schiena, testa alta
       const fz = -fwd * 0.09;   // il davanti della tavola è verso -z
       // frenata (R-523, dalla 0.27.0): il rider si alza un po', le ginocchia si piegano meno e le anche salgono di almeno 5 cm
       // rispetto alla corsa normale (prima con la frenata spostava solo il peso in avanti)
       const k = k0 * (1 - fwd * 0.5);
       J.ankL.set(0.02, 0.17, 0.26); J.ankR.set(0.02, 0.17, -0.26);
-      const kneeX = 0.1 + k * 0.17, kneeY = 0.55 - k * 0.13 + fwd * 0.03;
+      const kneeX = 0.1 + k * 0.17 + rac * 0.05, kneeY = 0.55 - k * 0.13 + fwd * 0.03 - rac * 0.06;
       J.kneeL.set(kneeX, kneeY, 0.24 + fz * 0.5); J.kneeR.set(kneeX, kneeY, -0.24 + fz * 0.5);
-      const hipX = -0.04 - k * 0.12, hipY = 0.93 - k * 0.25 + fwd * 0.06;
+      const hipX = -0.04 - k * 0.12 - rac * 0.04, hipY = 0.93 - k * 0.25 + fwd * 0.06 - rac * 0.17;
       J.hipL.set(hipX, hipY, 0.11 + fz); J.hipR.set(hipX, hipY, -0.11 + fz);
-      const lean = 0.25 + k * 0.35;
+      const lean = 0.25 + k * 0.35 + rac * 0.62;
       const tilt = -fwd * 0.22;                 // busto inclinato verso il davanti della tavola
-      const open = 0.2;                         // spalle un po' aperte verso il davanti della tavola, come i rider veri
+      const open = 0.2 + rac * 0.6;             // spalle un po' aperte verso il davanti della tavola, come i rider veri (raccolto: di più)
       const m = 1 - 2 * sw;                     // specchio davanti-dietro: le rotazioni attorno a x e y cambiano segno
       pelvis.position.set(hipX + 0.005, hipY - 0.03, fz * m);
       pelvis.rotation.set(tilt * 0.5 * m, open * 0.5 * m, -lean * 0.5);
       torso.position.set(hipX, hipY - 0.02, fz * m);
       torso.rotation.set((twist * 0.4 + tilt) * m, open * m, -lean);
-      const shX = hipX + Math.sin(lean) * 0.5, shY = hipY + Math.cos(lean) * 0.5 * Math.cos(tilt), shZ = fz - Math.sin(tilt) * 0.5;
+      const oS = 1 - rac + rac * Math.cos(open);   // raccolto: il busto si piega anche verso il muso (-z)
+      const shX = hipX + Math.sin(lean) * 0.5 * oS, shY = hipY + Math.cos(lean) * 0.5 * Math.cos(tilt), shZ = fz - Math.sin(tilt) * 0.5 - rac * Math.sin(lean) * Math.sin(open) * 0.5;
       // testa girata verso dove si va (il davanti della tavola, -z) e più dritta del busto
       headG.position.set(shX + 0.06, shY + 0.2, shZ * m);
-      headG.rotation.set(tilt * 0.4 * m, (0.95 - twist * 0.5) * m, -lean * 0.3);
+      headG.rotation.set(tilt * 0.4 * m, (0.95 - twist * 0.5) * m, -lean * 0.3 * (1 - rac * 0.7));   // raccolto: testa alta, guarda avanti
       const so = Math.sin(open) * 0.19, co = Math.cos(open) * 0.19;
       J.shL.set(shX + so, shY - 0.03, co + shZ); J.shR.set(shX - so, shY - 0.03, -co + shZ);
       // braccio davanti (R, verso il muso della tavola) teso in avanti, braccio dietro (L) morbido vicino al fianco;
@@ -584,6 +587,17 @@ PN.rider = (() => {
       J.haR.set(sR.x + 0.24 - a * 0.06, sR.y - 0.36 + a * 0.33, sR.z - 0.29 - a * 0.27);
       J.elL.set(sL.x + 0.03 + a * 0.03, sL.y - 0.23 + a * 0.14, sL.z + 0.07 + a * 0.17);
       J.haL.set(sL.x + 0.14 + a * 0.05, sL.y - 0.44 + a * 0.3, sL.z + 0.08 + a * 0.3);
+      if (rac > 0) {   // R-538: mani sulla parte bassa della schiena, gomiti sopra la schiena e un po' in fuori
+        const sl = Math.sin(lean), cl = Math.cos(lean), so2 = Math.sin(open), co2 = Math.cos(open);
+        const u = tmpU.set(sl * co2, cl, -sl * so2);      // lungo la schiena, dalle anche alle spalle
+        const n = tmpN.set(-cl * co2, sl, cl * so2);      // fuori dalla schiena (il dorso)
+        const lat = tmpS.set(so2, 0, co2);               // di lato: +z = lato sinistro (L)
+        const base = tmpB.set(hipX, hipY, fz).addScaledVector(u, 0.2).addScaledVector(n, 0.15);
+        J.haL.lerp(tmpE.copy(base).addScaledVector(lat, 0.06), rac);
+        J.haR.lerp(tmpE.copy(base).addScaledVector(lat, -0.06), rac);
+        J.elL.lerp(tmpE.copy(sL).addScaledVector(n, 0.17).addScaledVector(u, -0.12).addScaledVector(lat, 0.07), rac);
+        J.elR.lerp(tmpE.copy(sR).addScaledVector(n, 0.17).addScaledVector(u, -0.12).addScaledVector(lat, -0.07), rac);
+      }
       if (grab > 0) {   // presa della tavola: mano dietro sulla lamina, gomito piegato
         J.haR.lerp(GRAB_HAND, grab);
         J.elR.lerp(tmpE.set(shX + 0.16, shY - 0.3, -0.24), grab);
