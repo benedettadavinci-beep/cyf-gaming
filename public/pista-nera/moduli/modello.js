@@ -14,7 +14,7 @@ PN.modello = (() => {
   const DOVE = (() => { try { return new URL('../modelli/', document.currentScript.src).href; } catch (e) { return '/pista-nera/modelli/'; } })();
   const ACCESO = true;   // 0.32.1: acceso per tutti dopo le foto della notte del 19/11
   const SPENTO = (() => { try {
-    if (typeof THREE.GLTFLoader !== 'function' || typeof THREE.SkeletonUtils !== 'object') return true;
+    if (typeof THREE.GLTFLoader !== 'function' || !THREE.SkeletonUtils || typeof THREE.SkeletonUtils.clone !== 'function') return true;   // B-07: in three r128 SkeletonUtils è una classe (typeof 'function'), non un oggetto
     const q = location.search;
     return /[?&]rider=vecchio\b/.test(q) || !(ACCESO || /[?&]rider=nuovo\b/.test(q));
   } catch (e) { return true; } })();
