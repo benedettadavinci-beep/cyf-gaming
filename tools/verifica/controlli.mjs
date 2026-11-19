@@ -2,7 +2,9 @@
 // 1. sintassi di tutti i file JavaScript;
 // 2. ogni testo usato dal gioco (tr('…'), attributi data-i18n della pagina, schede delle città) esiste in tutte e 4 le lingue;
 // 3. le 4 lingue hanno le stesse chiavi e gli stessi segnaposto ({n}, {t}…);
-// 4. la versione di public/config.js compare nello storico di REQUISITI.md.
+// 4. la versione di public/config.js compare nello storico di REQUISITI.md;
+// …
+// 7. il personaggio 3D si accende con le librerie vere (B-07).
 // Uso: node tools/verifica/controlli.mjs   (esce con 1 se trova problemi)
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -113,6 +115,25 @@ console.log('C6 · schede delle città (citta/<nome>.js): tutti i campi, nell\'o
   const protocollo = read('public/shared/protocollo.js');
   const inProto = (/const SCENE = \[([^\]]+)\]/.exec(protocollo) || ['', ''])[1].replace(/['\s]/g, '').split(',').filter(Boolean);
   ok(inHtml.every(c => inProto.includes(c)) && inProto.length === inHtml.length + 1, 'le città sono le stesse in index.html e in shared/protocollo.js (SCENE)', inHtml.filter(c => !inProto.includes(c)).join(', '));
+}
+
+console.log('C7 · il personaggio 3D si accende (R-534, B-07)');
+{
+  // carica le librerie vere della pagina e modello.js: senza parametri il personaggio deve essere acceso,
+  // con ?rider=vecchio spento. B-07: un controllo sbagliato lo teneva spento dalla 0.32.0 senza che nessuno lo vedesse.
+  const prova = search => {
+    const box = { console: { log() {}, warn() {} }, location: { search }, document: { currentScript: { src: 'https://x/pista-nera/moduli/modello.js' } } };
+    box.window = box; box.self = box; box.globalThis = box;
+    vm.createContext(box);
+    for (const f of ['public/vendor/three.min.js', 'public/vendor/GLTFLoader.js', 'public/vendor/SkeletonUtils.js']) vm.runInContext(read(f), box);
+    box.PN = { base: { lin: c => c } };
+    vm.runInContext(read('public/pista-nera/moduli/modello.js'), box);
+    return box.PN.modello.SPENTO;
+  };
+  let acceso = null, vecchio = null, err = '';
+  try { acceso = prova(''); vecchio = prova('?rider=vecchio'); } catch (e) { err = String(e.message); }
+  ok(acceso === false, 'senza parametri il personaggio 3D è acceso (PN.modello.SPENTO = false)', err || 'SPENTO = ' + acceso);
+  ok(vecchio === true, 'con ?rider=vecchio torna il rider di prima', err || 'SPENTO = ' + vecchio);
 }
 
 console.log('\n' + (problems.length ? 'PROBLEMI:' : 'NESSUN PROBLEMA'));
