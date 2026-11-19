@@ -14,6 +14,7 @@ PN.tracciato = (() => {
   // metti(o): un oggetto nuovo, zona(z): spazio libero di un trampolino gigante (va tolto quello che copre) }.
   // Ogni r() qui consuma un numero casuale: l'ordine non va cambiato, altrimenti cambia la pista.
   function riga(z, ctx) {
+    slalom(z, ctx);
     const r = ctx.r, rr = (a, b) => a + r() * (b - a);
     const d = -z, c = ctx.center(z);
     const n = r() < Math.min(0.8, 0.4 + d / 3500) ? 2 : 1;
@@ -45,6 +46,9 @@ PN.tracciato = (() => {
       } else if (kind < 0.83) {
         // circa una rampa su sette (15%) è un trampolino gigante: grande il doppio, fa saltare molto più in alto (R-214)
         const big = r() < 0.15;
+        // R-541: niente rampa se lei o il suo atterraggio coprirebbero una porta da slalom (la toglierebbero). Il numero
+        // casuale di big è già consumato, quindi il resto della pista non cambia
+        if (portaVicina(x, z + 6, z - (big ? 48 : 30), (big ? 3.8 : 2.6) + 3, ctx.center)) continue;
         if (big) {
           x = clamp(x, c - 13.5, c + 13.5);   // largo 6 m: resta tutto dentro la strada
           ctx.zona({ x, z0: z + 5, z1: z - 5.5, hw: 3.6 });
@@ -57,8 +61,40 @@ PN.tracciato = (() => {
         ctx.zona({ x, z0: z - 1, z1: z - (big ? 48 : 30), hw: big ? 3.8 : 2.6, atterraggio: true });
       } else if (kind < 0.881) { /* posto lasciato libero (prima c'era una porta) */ }
       else {
-        const gx = c + rr(-9, 9), gi = r() < 0.5 ? 0 : 1;
-        if (!ctx.inBigZone(gx, z, 2.7)) ctx.metti({ type: 'gate', x: gx, z, half: 2.4, gi });
+        // R-541 (dalla 0.34.0): niente più porte a caso, ora sono in sequenze da slalom (slalom qui sotto); i due numeri
+        // casuali si consumano come prima, così il resto della pista resta uguale
+        rr(-9, 9); r();
+      }
+    }
+  }
+  // R-541 (dalla 0.34.0): porte come nello slalom gigante delle Olimpiadi. Sequenze di PORTE porte, una ogni PASSO metri,
+  // rosse e blu alternate e spostate LATO metri a destra e a sinistra della strada, con PAUSA metri liberi tra una sequenza
+  // e l'altra. Non usano numeri casuali: stessa posizione per tutti. Davanti e dietro ogni porta niente ostacoli (zona).
+  // riga(z) mette le porte tra la fila prima (ctx.sopra) e la sua quota z, prima degli ostacoli della fila.
+  const SLALOM = { inizio: 70, porte: 8, passo: 26, pausa: 150, lato: 6.5 };
+  // c'è una porta da slalom tra le quote z0 e z1 (z0 > z1) a meno di hw metri da x?
+  function portaVicina(x, z0, z1, hw, center) {
+    const S = SLALOM, giro = S.porte * S.passo + S.pausa, dA = -z0, dB = -z1;
+    for (let sez = Math.max(0, Math.floor((dA - S.inizio) / giro)); S.inizio + sez * giro <= dB; sez++)
+      for (let j = 0; j < S.porte; j++) {
+        const d = S.inizio + sez * giro + j * S.passo;
+        if (d < dA || d > dB) continue;
+        const lato = (j % 2 ? 1 : -1) * (sez % 2 ? -1 : 1);
+        if (Math.abs(center(-d) + lato * S.lato - x) < hw) return true;
+      }
+    return false;
+  }
+  function slalom(z, ctx) {
+    const sopra = ctx.sopra != null && ctx.sopra > z ? ctx.sopra : z + 10;
+    const S = SLALOM, giro = S.porte * S.passo + S.pausa, dA = -sopra, dB = -z;   // distanze dalla partenza, dA < dB
+    for (let sez = Math.max(0, Math.floor((dA - S.inizio) / giro)); S.inizio + sez * giro <= dB; sez++) {
+      for (let j = 0; j < S.porte; j++) {
+        const d = S.inizio + sez * giro + j * S.passo;
+        if (d <= dA || d > dB) continue;
+        const gz = -d, lato = (j % 2 ? 1 : -1) * (sez % 2 ? -1 : 1), gx = ctx.center(gz) + lato * S.lato;
+        if (ctx.inBigZone(gx, gz, 2.7)) continue;
+        ctx.zona({ x: gx, z0: gz + 5, z1: gz - 5, hw: 3.2 });
+        ctx.metti({ type: 'gate', x: gx, z: gz, half: 2.4, gi: j % 2 });
       }
     }
   }
@@ -86,7 +122,7 @@ PN.tracciato = (() => {
     };
     function avanza(z) {
       while (rowZ > z) {
-        if (!opz.gara || -rowZ < opz.lunghezza - 25) riga(rowZ, ctx);
+        if (!opz.gara || -rowZ < opz.lunghezza - 25) { riga(rowZ, ctx); ctx.sopra = rowZ; }
         rowZ -= passo(r, rowZ);
       }
     }
@@ -98,5 +134,5 @@ PN.tracciato = (() => {
     return { avanza, vicini, dimentica, get oggetti() { return objs; } };
   }
 
-  return { riga, coperto, passo, dati };
+  return { riga, coperto, passo, dati, SLALOM, portaVicina };
 })();

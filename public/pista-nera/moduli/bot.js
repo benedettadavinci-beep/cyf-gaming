@@ -20,9 +20,9 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
   // vede in tempo; margine: metri in più di distanza dagli ostacoli; ogni: secondi tra una decisione e l'altra;
   // rampe e porte: quante ne cerca; trucco: quanto spesso fa un'acrobazia; atterra: atterraggi riusciti; oggetti: banane e bombe
   const LIV = {
-    forte: { v: 1.03, vede: 0.97, margine: 0.9, ogni: 0.14, rampe: 0.12, porte: 0.2, trucco: 0.9, atterra: 0.97, oggetti: 1.0 },
-    medio: { v: 0.85, vede: 0.9, margine: 0.5, ogni: 0.2, rampe: 0.08, porte: 0.12, trucco: 0.7, atterra: 0.93, oggetti: 0.75 },
-    lento: { v: 0.75, vede: 0.84, margine: 0.35, ogni: 0.28, rampe: 0.05, porte: 0.06, trucco: 0.5, atterra: 0.88, oggetti: 0.5 }
+    forte: { v: 1.03, vede: 0.97, margine: 0.9, ogni: 0.14, rampe: 0.12, porte: 0.75, trucco: 0.9, atterra: 0.97, oggetti: 1.0 },
+    medio: { v: 0.85, vede: 0.9, margine: 0.5, ogni: 0.2, rampe: 0.08, porte: 0.55, trucco: 0.7, atterra: 0.93, oggetti: 0.75 },
+    lento: { v: 0.75, vede: 0.84, margine: 0.35, ogni: 0.28, rampe: 0.05, porte: 0.35, trucco: 0.5, atterra: 0.88, oggetti: 0.5 }
   };
   const hash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
 
@@ -403,6 +403,8 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
   // oltre la zona morta: `stato.sterza`; per gli avversari `b.sterzo` oltre 0,3). Banane, bananoni e bombe A TERRA colpiscono
   // anche curvando (oggetti.js): sono come la bomba; in aria si saltano come prima
   const STERZO_SCHIVA = 0.3;
+  // R-540 (dalla 0.34.0): in aria o curvando si schiva 3 volte su 4, non sempre
+  const SCHIVA = 0.75;
   function colpo(bersaglio, kind, chi) {
     const big = kind === 'bananone';
     const volo = (PN.protocollo.VOLO || { banana: 1.1, bananone: 1.3 })[big ? 'bananone' : 'banana'];
@@ -411,14 +413,13 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
     setTimeout(() => {
       if (!stato.racing() && !(stato.mode === 'solo' && modo === 'allenamento')) { if (stato.arrivata) stato.arrivata(null); return; }
       if (bersaglio === stato.myId) {
-        if (stato.P.air) { say(tr('dodgedAir'), '#1f8a4c'); if (stato.arrivata) stato.arrivata(true); return; }
-        if (stato.sterza) { say(tr('dodgedSteer'), '#1f8a4c'); if (stato.arrivata) stato.arrivata(true); return; }
+        if ((stato.P.air || stato.sterza) && Math.random() < SCHIVA) { say(tr(stato.P.air ? 'dodgedAir' : 'dodgedSteer'), '#1f8a4c'); if (stato.arrivata) stato.arrivata(true); return; }
         if (stato.arrivata) stato.arrivata(false);
         crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: chi || tr('someone') }), FERMO[big ? 'bananone' : 'banana'], true);
         return;
       }
       const b = lista.find(x => x.id === bersaglio);
-      if (b && !b.air && Math.abs(b.sterzo || 0) <= STERZO_SCHIVA) cade(b, FERMO[big ? 'bananone' : 'banana']);
+      if (b && !((b.air || Math.abs(b.sterzo || 0) > STERZO_SCHIVA) && Math.random() < SCHIVA)) cade(b, FERMO[big ? 'bananone' : 'banana']);
     }, volo * 1000);
   }
   const guida_ = id => lista.some(b => b.id === id);

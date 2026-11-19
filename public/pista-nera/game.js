@@ -451,7 +451,7 @@
             bonus += pts; chime();
             MISS.evento('porta', combo);
             say(combo > 1 ? tr('gate') + ' x' + combo + '  +' + pts : tr('gate') + '  +50', o.col || '#d8302a');
-          } else combo = 0;
+          } else { say(tr('gateMiss'), '#8a8f98'); combo = 0; }   // R-541: porta saltata, la serie riparte
         }
       }
     }

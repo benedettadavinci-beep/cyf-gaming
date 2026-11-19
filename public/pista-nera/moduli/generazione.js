@@ -142,9 +142,11 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
   // una fila di ostacoli, bonus, rampe e porte: dove vanno lo decide il tracciato (moduli/tracciato.js, uguale per
   // tutti e anche per gli avversari del software, R-234); qui si costruiscono i modelli. ghost: fila già alle spalle,
   // si consumano solo i numeri casuali
+  let rigaSopra = null;   // quota della fila prima: le porte da slalom stanno tra due file (R-541)
   function spawnRow(z, ghost) {
+    const sopra = rigaSopra; rigaSopra = z;
     PN.tracciato.riga(z, {
-      r: rowRng, center, inBigZone,
+      r: rowRng, center, inBigZone, sopra,
       zona: zone => {
         bigZones.push(zone);
         // via quello che il trampolino coprirebbe (anche dalla fila prima): stessa scelta su ogni dispositivo
@@ -268,8 +270,18 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
       if (o.big) r.deco = scrittaCYF(r);   // sul trampolino gigante la scritta CYF (R-240)
       return r;
     }
-    const gi = o.gi;
-    return { type: 'gate', x, z, half: 2.4, done: false, mesh: addMesh(CC ? assets().gates[gi] : (gi ? GEO.gateBlue : GEO.gateRed), vcMat, x, z), col: CC ? CC.gate[gi] : (gi ? '#2766c6' : '#d8302a') };
+    const gi = o.gi, col = CC ? CC.gate[gi] : (gi ? '#2766c6' : '#d8302a');
+    const mesh = addMesh(CC ? assets().gates[gi] : (gi ? GEO.gateBlue : GEO.gateRed), vcMat, x, z);
+    lucine(mesh, Array.isArray(col) ? col[0] : col);
+    return { type: 'gate', x, z, half: 2.4, done: false, mesh, col };
+  }
+  // R-541: lucine sopra i pali delle porte, del colore della porta; non prendono la nebbia, così si vede da lontano dove
+  // saranno le prossime porte. Geometria e materiali condivisi da tutte le porte
+  const LUCE = { geo: null, mat: {} };
+  function lucine(mesh, colore) {
+    if (!LUCE.geo) LUCE.geo = new THREE.SphereGeometry(0.16, 10, 8);
+    const mat = LUCE.mat[colore] || (LUCE.mat[colore] = new THREE.MeshBasicMaterial({ color: lin(colore).multiplyScalar(1.6), fog: false }));
+    for (const s of [-1, 1]) { const l = new THREE.Mesh(LUCE.geo, mat); l.position.set(s * 2.4, 2.06, 0); l.castShadow = false; mesh.add(l); }
   }
   function inBigZone(x, z, pad) {
     for (const b of bigZones) if (z <= b.z0 && z >= b.z1 && Math.abs(x - b.x) < b.hw + pad) return true;
@@ -388,7 +400,7 @@ PN.generazione = ({ world, ANISO, pista, citta: CITTA, stato }) => {
     propRng = mulberry32(seed ^ 0x6a09e667);
     buildZ = 30; palazzoN = 0; propZ = 10; sideZ = 20; treeZ = 14; sideRng = mulberry32(seed ^ 0x1b873593);
     bigZones = [];
-    rowZ = -28; forestZ = 22; markerZ = 10;
+    rowZ = -28; forestZ = 22; markerZ = 10; rigaSopra = null;
   }
   function svuota() {
     for (const o of objs) removeObj(o);
