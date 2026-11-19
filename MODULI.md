@@ -61,7 +61,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/profilo.js` | profilo | 101 | base (store); lingua (tr) |
 | `moduli/pubblicita.js` | pubblicita | 142 | portale (attivo); lingua (tr) |
 | `moduli/qualita.js` | qualita | 87 | base (store) |
-| `moduli/rider.js` | rider | 651 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi); modello (SPENTO, quando, crea, posa) |
+| `moduli/rider.js` | rider | 665 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi); modello (SPENTO, quando, crea, posa) |
 | `moduli/sala.js` | sala | 37 | nessuno |
 | `moduli/schermate.js` | schermate | 354 | base (isPhone, scrivi, PALETTE, START_ALT, SLOPE, fmt, …); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
 | `moduli/settimana.js` | settimana | 62 | base (store); lingua (lang, tr, cityName); calendario (); schermate (js, giorno) |

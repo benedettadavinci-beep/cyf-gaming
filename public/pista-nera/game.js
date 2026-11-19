@@ -950,7 +950,7 @@
     brakeS += ((onGround && inSlow() ? 1 : 0) - brakeS) * Math.min(1, 8 * dt);
     handUp += ((mode === 'countdown' && net.iAmReady ? 1 : 0) - handUp) * Math.min(1, 8 * dt);
     if (throwT > 0) { throwT += dt / 0.55; if (throwT >= 1) throwT = 0; }
-    me.pose(Math.min(1, crouch + P.grab * 0.45 + tuckS * 0.55), armsUp * (1 - tuckS * 0.6), P.air ? Math.sin(P.spin) * 0.3 : lean * 0.3, P.grab, brakeS, switchOf(P.spin), handUp, throwT);
+    me.pose(Math.min(1, crouch + P.grab * 0.45 + tuckS * 0.55), armsUp * (1 - tuckS * 0.6), P.air ? Math.sin(P.spin) * 0.3 : lean * 0.3, P.grab, brakeS, switchOf(P.spin), handUp, throwT, tuckS);   // R-538: tuckS = posizione raccolta
 
     const gH = hgt(P.x, P.z);
     rider.position.set(P.x, gH + P.y, P.z);
