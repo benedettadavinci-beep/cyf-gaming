@@ -40,11 +40,11 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/audio.js` | audio | 66 | base (store); lingua (tr) |
 | `moduli/avversari.js` | avversari | 147 | pista (center, hgt); base (TAU, PALETTE, fmtTime); lingua (tr, ord, fmtLen); rider (jerseyOf, makeRider, bodyTurn, switchOf, lookBot) |
 | `moduli/base.js` | base | 44 | nessuno |
-| `moduli/bot.js` | bot | 431 | fisica (); base (TAU, clamp, mulberry32); lingua (tr); protocollo (VOLO, COSTI, FERMO, NOMI_BOT); tracciato (dati); pista (center, hgt); oggetti (hazards, showThrow, addHazard, removeHazard, js); avversari (botUpdate, remotes, playThrow) |
+| `moduli/bot.js` | bot | 432 | fisica (); base (TAU, clamp, mulberry32); lingua (tr); protocollo (VOLO, COSTI, FERMO, NOMI_BOT); tracciato (dati); pista (center, hgt); oggetti (hazards, showThrow, addHazard, removeHazard, js); avversari (botUpdate, remotes, playThrow) |
 | `moduli/cartelloni.js` | cartelloni | 58 | base (TAU) |
 | `moduli/cielo.js` | cielo | 129 | base (HORIZON, reduceMotion) |
 | `moduli/citta.js` | citta | 881 | pista (center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_MAKE); base (TAU, lin, mulberry32); lingua (tr, fmtLen); geometria (merge, lumpy, vcMat, GEO, gateGeo) |
-| `moduli/comandi.js` | comandi | 106 | base (clamp); audio (initAudio, muted) |
+| `moduli/comandi.js` | comandi | 107 | base (clamp); audio (initAudio, muted) |
 | `moduli/effetti.js` | effetti | 132 | base (isPhone, lin, rand, reduceMotion) |
 | `moduli/fisica.js` | fisica | 95 | base (TAU, clamp) |
 | `moduli/gara_locale.js` | gara_locale | 114 | protocollo (MAX_PLAYERS, NOMI_BOT); gara () |
@@ -54,7 +54,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/lingua.js` | lingua | 41 | base (store) |
 | `moduli/missioni.js` | missioni | 129 | base (store); lingua (lang, tr) |
 | `moduli/modello.js` | modello | 262 | base (lin) |
-| `moduli/oggetti.js` | oggetti | 182 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, VOLO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
+| `moduli/oggetti.js` | oggetti | 183 | base (TAU, clamp, lin); lingua (tr); geometria (merge, vcMat); protocollo (COSTI, FERMO, VOLO, THROW_KINDS); pista (center, hgt, addMesh); effetti (spray, sparkle); audio (thump) |
 | `moduli/panorami.js` | panorami | 1158 | base (mulberry32) |
 | `moduli/personaggio.js` | personaggio | 123 | base (store, lin); lingua (tr, cityName); rider (jerseyOf, myJersey, myHair, myGear, makeRider); calendario (numeroDelPremio, scenaDi) |
 | `moduli/pista.js` | pista | 183 | base (TAU, clamp, isPhone, lin, mulberry32) |
@@ -62,15 +62,16 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/profilo.js` | profilo | 101 | base (store); lingua (tr) |
 | `moduli/pubblicita.js` | pubblicita | 142 | portale (attivo); lingua (tr) |
 | `moduli/qualita.js` | qualita | 87 | base (store) |
-| `moduli/rider.js` | rider | 665 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi); modello (SPENTO, quando, crea, posa) |
+| `moduli/rider.js` | rider | 674 | base (TAU, lin, store, mulberry32); calendario (numeroDelPremio, scenaDi); modello (SPENTO, quando, crea, posa) |
 | `moduli/sala.js` | sala | 37 | nessuno |
 | `moduli/schermate.js` | schermate | 354 | base (isPhone, scrivi, PALETTE, START_ALT, SLOPE, fmt, …); lingua (lang, tr, ord, fmtLen, cityName); portale (attivo); protocollo (COSTI) |
+| `moduli/scudi.js` | scudi | 136 | base (TAU, lin, mulberry32); lingua (tr); pista (center, hgt) |
 | `moduli/settimana.js` | settimana | 62 | base (store); lingua (lang, tr, cityName); calendario (); schermate (js, giorno) |
 | `moduli/sfida.js` | sfida | 187 | base (scrivi, fmtTime); lingua (lang, tr, ord); protocollo (SCENE); portale (link, titolo); schermate (cityName, giorno) |
 | `moduli/sfondi.js` | sfondi | 216 | panorami (dipingiPiani); base (reduceMotion) |
 | `moduli/tracciato.js` | tracciato | 139 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 194 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr); portale (attivo) |
-| `game.js` | — | 1115 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); aerei (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); avversari (); bot (); sfida (); settimana (); granpremio (); sala () |
+| `game.js` | — | 1124 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); aerei (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); scudi (); avversari (); bot (); sfida (); settimana (); granpremio (); sala () |
 | `diagnosi.js` | — | 177 | nessuno |
 | `i18n.js` | — | 399 | nessuno |
 | `shared/calendario.js` | calendario | 35 | nessuno |

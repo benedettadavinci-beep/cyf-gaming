@@ -64,6 +64,7 @@ if [ "$MODO" = "tutto" ]; then
   prova "Avversari del computer (allenamento, sfida, sala online)" python3 tools/verifica/test_avversari.py
   prova "Banane, bombe e bananoni in allenamento con gli avversari (R-515)" python3 tools/verifica/test_oggetti_allenamento.py
   prova "Novità 0.21-0.25: batti il mio tempo, missioni, portale, settimana, Gran Premio" python3 tools/verifica/test_novita.py
+  prova "Presa della tavola e scudi sulla pista (R-544, R-545)" python3 tools/verifica/test_presa_scudi.py
   echo; echo "════ Rotellina contro tastiera (solo informativa)"; python3 tools/verifica/cmp_input.py || true
 fi
 
