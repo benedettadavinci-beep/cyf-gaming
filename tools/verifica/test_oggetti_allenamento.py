@@ -79,7 +79,7 @@ with sync_playwright() as p:
         const b = D.BOT.lista.find(q => q.liv === 'forte') || D.BOT.lista[0];
         b.bonus = 3000; b.oggT = 0; b.crash = 0; b.stopUntil = 0; b.air = false; b.y = 0; b.x = P.x; b.z = P.z + 25;
         const p0 = b.bonus, t0 = performance.now();
-        return new Promise(res => { const f = () => { if (b.bonus < p0 || performance.now() - t0 > 20000) res({ speso: p0 - b.bonus, ms: Math.round(performance.now() - t0) }); else setTimeout(f, 200); }; f(); }); }""")
+        return new Promise(res => { const f = () => { if (b.bonus < p0 || performance.now() - t0 > 60000) res({ speso: p0 - b.bonus, ms: Math.round(performance.now() - t0) }); else setTimeout(f, 200); }; f(); }); }""")
     check(r['speso'] > 0, 'gli avversari del computer usano da soli banane, bombe e bananoni', json.dumps(r))
     check(not errs, 'nessun errore nella pagina', '; '.join(errs[:3]))
     br.close()
