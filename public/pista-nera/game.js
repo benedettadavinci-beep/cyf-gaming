@@ -334,14 +334,17 @@
       P.speed = F.limita(P.speed);   // mai oltre F.MAX (104 km/h dalla 0.31.0, R-529; prima 80, R-242)
       if (Math.abs(P.ang) > 0.6 && Math.random() < 0.8) spray(P.x, 0, P.z, 2, 1.6, 2.4, Math.cos(P.ang) * Math.sign(P.ang) * 3);
     } else {
-      const flipIn = (keys.down || stick.y > 0.35 ? 1 : 0) - (keys.up || stick.y < -0.35 ? 1 : 0);   // in aria: giù (freccia o rotellina in basso) e su fanno lo stesso salto mortale (R-523)
+      // R-544 (0.36.0): in aria freccia giù o rotellina in basso = presa della tavola con la mano; il salto mortale
+      // all'indietro passa a Spazio / Salta premuto di nuovo in aria (keys.back); su = salto mortale in avanti come prima
+      const flipIn = (keys.back ? 1 : 0) - (keys.up || stick.y < -0.35 ? 1 : 0);
+      const grabIn = keys.down || stick.y > 0.35;
       P.airT += dt;
       P.spin += steer * 9 * dt;
       P.flip += flipIn * 8.5 * dt;
-      // presa automatica della tavola se in aria non si tocca nulla
-      P.idleAir = steer || flipIn ? 0 : P.idleAir + dt;
-      const wantGrab = !auto && P.airT > 0.18 && P.idleAir > 0.12 && P.vy > -9;
-      P.grab += ((wantGrab ? 1 : 0) - P.grab) * Math.min(1, 9 * dt);
+      // la presa parte solo se resta almeno mezzo secondo d'aria (niente scatti sui saltini) e si lascia 0,2 s prima di atterrare
+      const tLand = (P.vy + Math.sqrt(Math.max(0, P.vy * P.vy + 40 * Math.max(0, P.y)))) / 20;
+      const wantGrab = !auto && grabIn && P.airT > 0.18 && tLand > (P.grab > 0.05 ? 0.2 : 0.5);
+      P.grab += ((wantGrab ? 1 : 0) - P.grab) * Math.min(1, (wantGrab ? 9 : 14) * dt);
       if (P.grab > 0.8) P.grabT += dt;
       if (!auto && (Math.abs(steer) || flipIn || P.grab > 0.8)) sparkle(P.x, hgt(P.x, P.z) + P.y + 0.4, P.z, 1, false);
       P.vy -= F.GRAVITA * dt;
@@ -963,7 +966,7 @@
     const rr = !P.air && P.onRamp;   // sulla rampa la tavola si inclina come la sua superficie
     rider.rotation.x = P.air ? rider.rotation.x * 0.9 : rr ? Math.atan2(rampTop(rr, P.z + fz * 0.8) - rampTop(rr, P.z - fz * 0.8), 1.6) : Math.atan2(hF - hB, 1.6);
     rider.rotation.z = P.air ? 0 : -Math.atan2(hR - hL, 0.6) * 0.6;
-    bodyTurn(body, P.crash > 0 ? (0.85 - P.crash) * 8 : P.flip, P.spin, -lean * 0.42);
+    bodyTurn(body, P.crash > 0 ? (0.85 - P.crash) * 8 : P.flip, P.spin, -lean * 0.42 + P.grab * 0.25);   // R-544: con la presa la tavola si inclina un po'
     rider.visible = !(invuln > 0 && P.crash <= 0 && Math.floor(invuln * 10) % 2 === 0);
 
     camYaw += (P.ang * 0.5 - camYaw) * Math.min(1, 3 * dt);
