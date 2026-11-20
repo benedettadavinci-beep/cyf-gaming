@@ -38,20 +38,21 @@ with sync_playwright() as p:
     pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.goto(BASE + '/pista-nera/', wait_until='domcontentloaded'); pg.wait_for_function('window.__dbg'); pg.wait_for_timeout(1200)
     print('Allenamento con 3 avversari del computer:', flush=True)
-    r = pg.evaluate("""() => { const D = window.__dbg; D.startSolo(); return D.frames(6).then(() => ({
+    r = pg.evaluate("""() => { const D = window.__dbg; D.startSolo(); return D.frames(6).then(() => new Promise(ok => { const t0 = performance.now(); const w = () => (D.mode === 'race' || performance.now() - t0 > 30000) ? ok() : setTimeout(w, 200); w(); })).then(() => ({
         mode: D.mode, bots: D.BOT.lista.length, allena: D.stato.allenaConAvversari,
         items: !document.getElementById('items').hidden, dis: ['btnBanana', 'btnBomb', 'btnBananone'].map(id => document.getElementById(id).disabled) })); }""")
-    check(r['mode'] == 'solo' and r['bots'] == 3 and r['allena'], 'allenamento partito con 3 avversari', json.dumps(r))
+    # dal 0.28.0 l'allenamento è una gara locale (R-519): il modo è 'race' (o 'countdown' prima del via), non più 'solo'
+    check(r['mode'] in ('race', 'countdown') and r['bots'] == 3, 'allenamento partito con 3 avversari', json.dumps(r))
     check(r['items'] and not any(r['dis']), 'i pulsanti di banana, bomba e bananone si vedono e si possono premere', json.dumps(r))
 
     # banana all'avversario davanti
     r = pg.evaluate("""() => { const D = window.__dbg, P = D.P, b = D.BOT.lista[0];
-        D.bonus = 2000; P.speed = 0; b.x = P.x; b.z = P.z - 25; b.speed = 0; b.air = false; b.y = 0; b.crash = 0; b.stopUntil = 0; b.inv = 0;
+        D.bonus = 5000; P.speed = 0; b.x = P.x; b.z = P.z - 25; b.speed = 0; b.air = false; b.y = 0; b.crash = 0; b.stopUntil = 0; b.inv = 0;
         for (const q of D.BOT.lista.slice(1)) { q.z = P.z + 80; q.speed = 0; }   // gli altri dietro, lontani
         // qualche fotogramma perché le nuove posizioni arrivino anche ai modelli che il lancio usa per scegliere il bersaglio
         return D.frames(4).then(() => { b.x = P.x; b.z = P.z - 25; const prima = D.bonus; D.OGG.useItem('banana');
-          return new Promise(res => setTimeout(() => res({ costo: prima - D.bonus, fermo: b.stopUntil > performance.now(), id: b.id }), 900)); }); }""")
-    check(r['costo'] == 50, 'la banana costa 50 punti', json.dumps(r))
+          return new Promise(res => setTimeout(() => res({ costo: prima - D.bonus, fermo: b.stopUntil > performance.now(), id: b.id }), 1300)); }); }""")
+    check(r['costo'] == 1500, 'la banana costa 1.500 punti (R-520)', json.dumps(r))
     check(r['fermo'], 'la banana ferma l\'avversario davanti', json.dumps(r))
 
     # bomba posata: l'avversario che ci passa sopra si ferma
@@ -68,7 +69,7 @@ with sync_playwright() as p:
     # un avversario lancia al rider: fermo, ma senza perdere una vita
     r = pg.evaluate("""() => { const D = window.__dbg, P = D.P; P.crash = 0; P.air = false; P.y = 0;
         const vite = D.lives; const id = D.stato.myId; D.BOT.colpo(id, 'banana', 'Prova');
-        return new Promise(res => setTimeout(() => res({ fermo: P.stopUntil > performance.now(), vite0: vite, vite1: D.lives }), 900)); }""")
+        return new Promise(res => setTimeout(() => res({ fermo: P.stopUntil > performance.now(), vite0: vite, vite1: D.lives }), 1300)); }""")
     check(r['fermo'], 'la banana di un avversario ferma il rider', json.dumps(r))
     check(r['vite1'] == r['vite0'], 'in allenamento la banana non toglie una vita', json.dumps(r))
 

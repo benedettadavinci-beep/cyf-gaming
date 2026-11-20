@@ -38,7 +38,10 @@ with sync_playwright() as p:
     # registra ~2 s con il microfono finto e manda; t0/t1 misurano la finestra vera di registrazione
     # (su una macchina carica i click e le letture arrivano in ritardo e il vocale dura più dei 2 s previsti)
     t0 = time.monotonic()
-    pa.click('#btnVoice'); pa.wait_for_timeout(400)
+    pa.click('#btnVoice')
+    try: pa.wait_for_function('__dbg.voice.recording', timeout=8000)   # dalla 0.30 la pagina è più carica: il microfono può metterci più di 400 ms
+    except Exception: pass
+    pa.wait_for_timeout(200)
     rec = pa.evaluate("() => ({ recording: __dbg.voice.recording, rate: __dbg.voice.rate, label: document.getElementById('voiceLbl').textContent, toasts: window.__toasts.join('|') })")
     check(rec['recording'] and rec['rate'] >= 8000, 'registrazione partita con Web Audio (niente MediaRecorder)', json.dumps(rec))
     pa.wait_for_timeout(1600)

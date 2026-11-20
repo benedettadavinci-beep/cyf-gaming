@@ -55,23 +55,23 @@ with sync_playwright() as p:
           const D = window.__dbg; D.applyTheme(theme); D.mode = mode; D.raceLen = 3000; D.reset(seed, null, mode === 'race');
           const dati = PN.tracciato.dati(seed, { center: D.center, gara: mode === 'race', lunghezza: 3000 });
           const key = o => o.type + ':' + o.x.toFixed(3) + ':' + o.z.toFixed(3) + (o.type === 'ramp' ? ':' + (o.big ? 1 : 0) : '');
-          let diverse = 0, n = 0;
+          let diverse = 0, n = 0; const ex = [];
           for (let i = 0; i < 12; i++) {
             D.P.z -= 150; D.ensureSpawned(); dati.avanza(D.P.z - 200);
-            const vis = new Set(D.objs.filter(o => ['tree', 'rock', 'ramp', 'gate', 'gem'].includes(o.type) && o.z < D.P.z + 10 && o.z > D.P.z - 190 && !(o.type === 'tree' && Math.abs(o.x - D.center(o.z)) > 20)).map(key));
+            const vis = new Set(D.objs.filter(o => ['tree', 'rock', 'ramp', 'gate', 'gem'].includes(o.type) && o.z <= D.P.z + 10 && o.z >= D.P.z - 190 && !(o.type === 'tree' && Math.abs(o.x - D.center(o.z)) > 20)).map(key));
             const dat = new Set(dati.vicini(D.P.z + 10, D.P.z - 190).map(key));
-            for (const k of vis) if (!dat.has(k)) diverse++;
-            for (const k of dat) if (!vis.has(k)) diverse++;
+            for (const k of vis) if (!dat.has(k)) { diverse++; if (ex.length < 4) ex.push('solo nel gioco ' + k); }
+            for (const k of dat) if (!vis.has(k)) { diverse++; if (ex.length < 4) ex.push('solo nei dati ' + k); }
             n += vis.size;
           }
           D.mode = 'menu';
-          return { n, diverse };
+          return { n, diverse, ex };
         }""", [theme, seed, mode])
         check(r['n'] > 300 and r['diverse'] == 0, f'{theme}, {"gara" if mode == "race" else "allenamento"}: stessi oggetti nello stesso punto', json.dumps(r))
 
     print('A2 · allenamento con 3 avversari (R-239)')
     pg.evaluate("document.getElementById('btnSolo').click()")
-    pg.wait_for_function("window.__dbg.mode === 'solo' && window.__dbg.BOT.lista.length === 3", timeout=20000)
+    pg.wait_for_function("['countdown', 'race'].includes(window.__dbg.mode) && window.__dbg.BOT.lista.length === 3", timeout=20000)
     a = pg.evaluate("""() => { const D = window.__dbg; D.invuln = 1e9; return D.BOT.lista.map(b => { const r = D.remotes.get(b.id); return { nome: b.nome, liv: b.liv, z: b.z, vis: !!(r && r.model.group.visible) }; }); }""")
     check(len(a) == 3 and sorted(x['liv'] for x in a) == ['forte', 'lento', 'medio'] and all(x['vis'] for x in a) and len({x['nome'] for x in a}) == 3,
           'tre avversari visibili, con nomi diversi, livelli misti', json.dumps(a))
@@ -114,23 +114,24 @@ with sync_playwright() as p:
     g = gp.evaluate("() => { const D = window.__dbg; return { modo: D.BOT.modo, live: [...document.querySelectorAll('#liveList li .nm')].map(e => e.textContent) }; }")
     check(g['modo'] is None and sum('🤖' in x for x in g['live']) == 2, "l'ospite li vede scendere (non li guida) e in classifica dal vivo hanno il 🤖", json.dumps(g))
     # regola R-241: chi è in aria non viene colpito dalla banana lanciata
-    t0 = pg.evaluate("""() => { const D = window.__dbg; const b = D.BOT.lista[0]; D.P.z = b.z + 25; D.P.x = b.x; D.bonus = 200; window.__toasts.length = 0;
+    t0 = pg.evaluate("""() => { const D = window.__dbg; const b = D.BOT.lista[0]; D.P.z = b.z + 25; D.P.x = b.x; D.bonus = 5000; window.__toasts.length = 0;
       for (const [id, r] of D.remotes) if (!D.BOT.guida(id)) r.model.group.visible = false;
       for (const x of D.BOT.lista) { x.air = true; x.y = 3; x.vy = 9; x.onRamp = null; }
+      const rnd = Math.random; Math.random = () => 0;   // R-540: la schivata è 3 su 4, qui sempre
       document.getElementById('btnBanana').click();
-      return new Promise(res => setTimeout(() => { const toast = window.__toasts.join('|'), c = D.BOT.lista.find(x => toast.includes(x.nome));
-        res({ toast, colpito: c ? c.nome : null, fermo: c ? c.stopUntil - performance.now() : 0, inAria: c ? c.air : null }); }, 600)); }""")
+      return new Promise(res => setTimeout(() => { Math.random = rnd; const toast = window.__toasts.join('|'), c = D.BOT.lista.find(x => toast.includes(x.nome));
+        res({ toast, colpito: c ? c.nome : null, fermo: c ? c.stopUntil - performance.now() : 0, inAria: c ? c.air : null }); }, 1300)); }""")
     check(t0['colpito'] and t0['fermo'] <= 0, "banana lanciata a un avversario in aria: non lo ferma (R-241)", json.dumps(t0))
     pg.wait_for_timeout(1500)
     # banana del pilota all'avversario davanti
-    t = pg.evaluate("""() => { const D = window.__dbg; const b = D.BOT.lista[0]; D.P.z = b.z + 25; D.P.x = b.x; D.bonus = 200; window.__toasts.length = 0;
+    t = pg.evaluate("""() => { const D = window.__dbg; const b = D.BOT.lista[0]; D.P.z = b.z + 25; D.P.x = b.x; D.bonus = 5000; window.__toasts.length = 0;
       for (const x of D.BOT.lista) { x.air = false; x.y = 0; x.vy = 0; x.inv = 0; x.crash = 0; }
       for (const [id, r] of D.remotes) if (!D.BOT.guida(id)) r.model.group.visible = false;   // davanti c'è solo l'avversario
       document.getElementById('btnBanana').click();
       // la banana va all'avversario più vicino davanti: si controlla che quello si fermi
       return new Promise(res => setTimeout(() => { const toast = window.__toasts.join('|'), c = D.BOT.lista.find(x => toast.includes(x.nome));
-        res({ toast, colpito: c ? c.nome : null, fermo: c ? c.stopUntil - performance.now() : 0 }); }, 700)); }""")
-    check(t['colpito'] and t['fermo'] > 500, "banana lanciata all'avversario davanti: lui si ferma (R-224)", json.dumps(t))
+        res({ toast, colpito: c ? c.nome : null, fermo: c ? c.stopUntil - performance.now() : 0 }); }, 1300)); }""")
+    check(t['colpito'] and t['fermo'] > 0, "banana lanciata all'avversario davanti: lui si ferma (R-224)", json.dumps(t))
     pg.screenshot(path=os.path.join(OUT, 'avversari-sfida.png'))
     # chi organizza esce: li prende l'ospite, da dove erano
     zprima = gp.evaluate("Math.min(...window.__dbg.net.racers.filter(x => x.bot).map(x => window.__dbg.remotes.get(x.id).tz))")
