@@ -10,7 +10,7 @@ PN.comandi = ({ audio: AUDIO, azioni, stato }) => {
   const { initAudio } = AUDIO;
   const $ = id => document.getElementById(id);
   // ---------- input ----------
-  const keys = { left: false, right: false, up: false, down: false };
+  const keys = { left: false, right: false, up: false, down: false, back: false };   // back: salto mortale all'indietro (R-544)
   // rotellina sul telefono: x da -1 (sinistra) a 1 (destra), y da -1 (dito in alto) a 1 (dito in basso).
   // Dalla 0.27.0 (R-523) come la tastiera: in alto = frena (freccia su), in basso = accelera (freccia giù); fino alla 0.26.x era il contrario (S-20)
   const stick = { x: 0, y: 0, on: false };
@@ -23,7 +23,7 @@ PN.comandi = ({ audio: AUDIO, azioni, stato }) => {
     const k = e.key;
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.left = true; e.preventDefault(); }
     else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = true; e.preventDefault(); }
-    else if (k === ' ') { if (mode === 'solo' || mode === 'race') e.preventDefault(); if (!e.repeat) azioni.jump(); }
+    else if (k === ' ') { if (mode === 'solo' || mode === 'race') e.preventDefault(); if (!e.repeat) { if ((mode === 'solo' || mode === 'race') && stato.P && stato.P.air) keys.back = true; else azioni.jump(); } }   // R-544: Spazio premuto di nuovo in aria = salto mortale all'indietro, come Salta sul telefono
     else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
       // a terra frena (peso in avanti); in aria salto mortale in avanti
       if (mode === 'solo' || mode === 'race') e.preventDefault();
@@ -43,8 +43,9 @@ PN.comandi = ({ audio: AUDIO, azioni, stato }) => {
     if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.right = false;
     if (k === 'ArrowUp' || k === 'w' || k === 'W') keys.up = false;
     if (k === 'ArrowDown' || k === 's' || k === 'S') keys.down = false;
+    if (k === ' ') keys.back = false;
   });
-  window.addEventListener('blur', () => { keys.left = keys.right = keys.up = keys.down = false; stick.x = stick.y = 0; if (stato.mode === 'solo') azioni.togglePause(); });
+  window.addEventListener('blur', () => { keys.left = keys.right = keys.up = keys.down = keys.back = false; stick.x = stick.y = 0; if (stato.mode === 'solo') azioni.togglePause(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && stato.mode === 'solo') azioni.togglePause(); });
   function holdButton(el, key) {
     const on = e => { e.preventDefault(); keys[key] = true; el.classList.add('on'); };
@@ -55,11 +56,11 @@ PN.comandi = ({ audio: AUDIO, azioni, stato }) => {
   }
   // sul telefono: Salta a terra salta, tenuto premuto in aria fa il salto mortale all'indietro
   const tJump = $('tJump');
-  tJump.addEventListener('pointerdown', e => { e.preventDefault(); tJump.classList.add('on'); if (stato.P && stato.P.air) keys.down = true; else azioni.jump(); });
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => tJump.addEventListener(ev, () => { keys.down = false; tJump.classList.remove('on'); }));
+  tJump.addEventListener('pointerdown', e => { e.preventDefault(); tJump.classList.add('on'); if (stato.P && stato.P.air) keys.back = true; else azioni.jump(); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => tJump.addEventListener(ev, () => { keys.back = false; tJump.classList.remove('on'); }));
   tJump.addEventListener('contextmenu', e => e.preventDefault());
   // rotellina: compare dove si appoggia il dito; spostandolo a destra/sinistra si curva (più lo sposti, più curvi),
-  // in su si accelera, in giù si frena; in aria destra/sinistra = avvitamento, su/giù = salto mortale
+  // in su si frena, in giù si accelera; in aria destra/sinistra = avvitamento, su = salto mortale in avanti, giù = presa della tavola (R-544)
   const stickEl = $('stick'), stickBase = $('stickBase'), stickKnob = $('stickKnob');
   const STICK_R = 54;
   let stickId = null, stickCx = 0, stickCy = 0;

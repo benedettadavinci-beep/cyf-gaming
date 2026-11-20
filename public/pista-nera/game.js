@@ -153,6 +153,7 @@
   let best = parseInt(store.get('pistaNera.best') || '0', 10) || 0;
   let wallT = 0, tricksN = 0, crashN = 0, near500 = false, P, bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, camYaw, lean, camY, squash, armsUp;
   let finishObj = null, raceLen = 2000;
+  let SC = null;   // scudi sulla pista (R-545, moduli/scudi.js): si crea più sotto, dopo gli oggetti
   const racing = () => mode === 'countdown' || mode === 'race' || mode === 'finished';
   const distM = () => Math.max(0, -P.z);
   const score = () => Math.floor(distM()) + bonus;
@@ -172,6 +173,8 @@
     // allenamento con gli avversari del computer (R-515): banane, bombe e bananoni come in gara, simulati su questo dispositivo
     get allenaConAvversari() { return mode === 'solo' && BOT.modo === 'allenamento' && BOT.lista.length > 0; },
     get sterza() { return inSteer() !== 0; },
+    immune: kind => !!(SC && SC.protegge(kind)), parato: kind => { if (SC) SC.parato(kind); },   // R-545: scudo attivo
+    conta: () => mode === 'race' ? net.racers.length : (BOT.modo === 'allenamento' ? BOT.lista.length + 1 : 1),
     arriva: (chi, big, durata) => SCHERMATE.arriva(chi, big, durata),   // R-525: popup "banana in arrivo"
     arrivata: schivata => SCHERMATE.arrivata(schivata),   // sta curvando (← → o A/D premuti, rotellina di lato oltre la zona morta): schiva banana e bananone lanciati (R-522)
     nome: () => inName.value.trim() || 'Rider',
@@ -196,6 +199,7 @@
     diag.log('pista', 'seed ' + seed + ' · ' + theme + (withFinish ? ' · con traguardo' : ''));
     clearWorld();
     GEN.riparti(seed);
+    if (SC) SC.nuova(seed);
     P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: F.PARTENZA, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, stop: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
@@ -334,14 +338,17 @@
       P.speed = F.limita(P.speed);   // mai oltre F.MAX (104 km/h dalla 0.31.0, R-529; prima 80, R-242)
       if (Math.abs(P.ang) > 0.6 && Math.random() < 0.8) spray(P.x, 0, P.z, 2, 1.6, 2.4, Math.cos(P.ang) * Math.sign(P.ang) * 3);
     } else {
-      const flipIn = (keys.down || stick.y > 0.35 ? 1 : 0) - (keys.up || stick.y < -0.35 ? 1 : 0);   // in aria: giù (freccia o rotellina in basso) e su fanno lo stesso salto mortale (R-523)
+      // R-544 (0.36.0): in aria freccia giù o rotellina in basso = presa della tavola con la mano; il salto mortale
+      // all'indietro passa a Spazio / Salta premuto di nuovo in aria (keys.back); su = salto mortale in avanti come prima
+      const flipIn = (keys.back ? 1 : 0) - (keys.up || stick.y < -0.35 ? 1 : 0);
+      const grabIn = keys.down || stick.y > 0.35;
       P.airT += dt;
       P.spin += steer * 9 * dt;
       P.flip += flipIn * 8.5 * dt;
-      // presa automatica della tavola se in aria non si tocca nulla
-      P.idleAir = steer || flipIn ? 0 : P.idleAir + dt;
-      const wantGrab = !auto && P.airT > 0.18 && P.idleAir > 0.12 && P.vy > -9;
-      P.grab += ((wantGrab ? 1 : 0) - P.grab) * Math.min(1, 9 * dt);
+      // la presa parte solo se resta almeno mezzo secondo d'aria (niente scatti sui saltini) e si lascia 0,2 s prima di atterrare
+      const tLand = (P.vy + Math.sqrt(Math.max(0, P.vy * P.vy + 40 * Math.max(0, P.y)))) / 20;
+      const wantGrab = !auto && grabIn && P.airT > 0.18 && tLand > (P.grab > 0.05 ? 0.2 : 0.5);
+      P.grab += ((wantGrab ? 1 : 0) - P.grab) * Math.min(1, (wantGrab ? 9 : 14) * dt);
       if (P.grab > 0.8) P.grabT += dt;
       if (!auto && (Math.abs(steer) || flipIn || P.grab > 0.8)) sparkle(P.x, hgt(P.x, P.z) + P.y + 0.4, P.z, 1, false);
       P.vy -= F.GRAVITA * dt;
@@ -416,6 +423,7 @@
     if (!auto && !frozen && !braking) collide();
     if (mode === 'race' || stato.allenaConAvversari) collideHazards();
     updateHazards(dt);
+    if (SC) SC.aggiorna(dt);
     for (const o of GEN.objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = (o.y0 ?? (o.y0 = hgt(o.x, o.z) + 0.9)) + Math.sin(t * 3 + o.phase) * 0.15; }   // y0: terreno sotto il cristallo, calcolato una volta (A-27)
     updateSpray(dt);
     updateSparks(dt);
@@ -923,6 +931,7 @@
   }
 
   const OGG = PN.oggetti({ world, ground, camera, cvs, pista: PISTA, effetti: EFF, audio: AUDIO, net, say, crash, stato });
+  SC = PN.scudi({ world, pista: PISTA, say, stato }); SC.nuova(lastSeed);
   const { hazards, addHazard, removeHazard, clearHazards, updateHazards, collideHazards, useItem } = OGG;
   const AVV = PN.avversari({ world, pista: PISTA, net, stato });
   const { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive } = AVV;
@@ -963,7 +972,7 @@
     const rr = !P.air && P.onRamp;   // sulla rampa la tavola si inclina come la sua superficie
     rider.rotation.x = P.air ? rider.rotation.x * 0.9 : rr ? Math.atan2(rampTop(rr, P.z + fz * 0.8) - rampTop(rr, P.z - fz * 0.8), 1.6) : Math.atan2(hF - hB, 1.6);
     rider.rotation.z = P.air ? 0 : -Math.atan2(hR - hL, 0.6) * 0.6;
-    bodyTurn(body, P.crash > 0 ? (0.85 - P.crash) * 8 : P.flip, P.spin, -lean * 0.42);
+    bodyTurn(body, P.crash > 0 ? (0.85 - P.crash) * 8 : P.flip, P.spin, -lean * 0.42 + P.grab * 0.25);   // R-544: con la presa la tavola si inclina un po'
     rider.visible = !(invuln > 0 && P.crash <= 0 && Math.floor(invuln * 10) % 2 === 0);
 
     camYaw += (P.ang * 0.5 - camYaw) * Math.min(1, 3 * dt);

@@ -82,7 +82,7 @@ PN.avversari = ({ world, pista, net, stato }) => {
       g.position.set(r.x, hgt(r.x, r.z) + r.y, r.z);
       g.rotation.y = -r.a;
       r.gs = (r.gs || 0) + ((r.g || 0) - (r.gs || 0)) * Math.min(1, 9 * dt);
-      bodyTurn(r.model.body, r.c ? (now / 120) % TAU : (r.f || 0), r.s, 0);
+      bodyTurn(r.model.body, r.c ? (now / 120) % TAU : (r.f || 0), r.s, r.c ? 0 : r.gs * 0.25);
       r.ks = (r.ks || 0) + ((r.y > 0.3 ? 0 : (r.k || 0)) - (r.ks || 0)) * Math.min(1, 8 * dt);
       // mano alzata durante l'attesa (R-222) e gesto del lancio della banana (R-224)
       r.hs = (r.hs || 0) + ((r.ready && stato.mode === 'countdown' ? 1 : 0) - (r.hs || 0)) * Math.min(1, 8 * dt);

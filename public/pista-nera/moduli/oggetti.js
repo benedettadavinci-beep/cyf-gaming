@@ -88,6 +88,7 @@ PN.oggetti = ({ world, ground, camera, cvs, pista, effetti, audio, net, say, cra
       const dx = h.x - P.x, dz = h.z - P.z, d2 = dx * dx + dz * dz;
       const hit = h.kind === 'bomb' ? (d2 < 2.4 * 2.4 && P.y < 1.6) : h.kind === 'bananone' ? (d2 < 2.0 * 2.0 && P.y < 1.2) : (d2 < 1.0 && P.y < 0.7);
       if (!hit) continue;
+      if (stato.immune && stato.immune(h.kind)) { stato.parato(h.kind); continue; }   // R-545: con lo scudo giusto si passa sopra
       if (h.kind === 'bomb') { spray(h.x, 0.5, h.z, 90, 7, 8); sparkle(h.x, hgt(h.x, h.z) + 0.6, h.z, 80, true); thump(2); }
       removeHazard(hid);
       net.send({ t: 'hit', hid, owner: h.owner, kind: h.kind });

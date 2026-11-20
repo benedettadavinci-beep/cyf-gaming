@@ -10,10 +10,12 @@ Online: https://cyf-gaming.benedetta-davinci-mellum.workers.dev/pista-nera/ — 
 ## Regole di Luigi (valgono su tutto)
 1. **Prima frase di ogni attività: tempo stimato e token** (rimasti / stima del consumo) (R-509).
 2. **Sera (regola del 18/11, 21:47 e 22:43):** le modifiche chieste vanno online **subito, senza prove di Claude**,
-   ma **dopo il controllo automatico di GitHub** ("prove", ~4-5 min, ruleset "Cancello main" attivo: Luigi ha deciso
-   di tenerlo). Rosso = non va online, si corregge. **Prove complete e correzioni generali solo di notte, dopo le 00.**
-   Di giorno nessuna prova se Luigi non la chiede chiaramente. In chat solo controlli statici: `node --check` sui file
-   toccati, `npm run matrice`, `npm run nomi`, `npm run controlli`.
+   ma **dopo il controllo automatico di GitHub** ("prove", ~4-5 min, ruleset "Cancello main"). **20/11 alle 07:14:
+   Luigi vuole il cancello spento (online subito)**; da qui non si può spegnere, lo fa lui da Settings → Rules. Rosso = non va online, si corregge. **Prove complete e correzioni generali solo di notte, dopo le 00.**
+   Di giorno nessuna prova se Luigi non la chiede chiaramente. **Regola del 20/11 alle 07:09: quando Luigi chiede una
+   modifica, in chat NESSUN controllo, nemmeno quelli statici** (niente `node --check`, `npm run …`, foto, misure sui
+   modelli): si legge solo il codice che serve, si scrive, si pubblica; resta solo il cancello automatico di GitHub.
+   I controlli li fa il giro di notte.
 3. **Prima i requisiti, poi il software (R-501).** Ogni richiesta = riga in `REQUISITI.md` (ID, data, stato, parole di Luigi).
 4. **Word dei requisiti rigenerati a ogni cosa fatta**, prossimi passi in testa (R-507, R-511):
    `python3 tools/requisiti_docx.py REQUISITI.md docs/` (serve pandoc). Online = `docs/` su GitHub.
