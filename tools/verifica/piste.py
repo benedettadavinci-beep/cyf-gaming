@@ -1,4 +1,4 @@
-"""Controllo dei tracciati delle città (R-312): legge TRACKS da game.js e stampa, per ogni pista,
+"""Controllo dei tracciati delle città (R-312): legge TRACKS e CURVE da moduli/pista.js (dalla 0.2x non sono più in game.js; B-09) e stampa, per ogni pista,
 ampiezza, pendenza laterale massima, raggio di curva minimo, quota di rettilineo e fattore di tempo.
 
 Fattore di tempo: con la fisica del gioco la velocità vale vmax·cos(angolo)^1,6 e si avanza di cos(angolo),
@@ -7,16 +7,20 @@ Uso: python3 piste.py   (serve numpy)"""
 import os, re, json
 import numpy as np
 REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
-src = open(os.path.join(REPO, 'public', 'pista-nera', 'game.js'), encoding='utf-8').read()
+src = open(os.path.join(REPO, 'public', 'pista-nera', 'moduli', 'pista.js'), encoding='utf-8').read()
 block = src[src.index('const TRACKS = {') + len('const TRACKS = '):src.index('let TRK = TRACKS.neve;')].strip().rstrip(';')
 block = re.sub(r'//[^\n]*', '', block)
 block = re.sub(r'(\w+):', r'"\1":', block)
 block = re.sub(r",\s*}$", "}", block)
 TRACKS = json.loads(block)
+# R-527 / R-539: onda corta delle curve uguale per tutti, con la fase della città (vedi center in pista.js)
+CURVE = json.loads(re.sub(r'(\w+):', r'"\1":', re.search(r'const CURVE = (\{[^}]*\})', src).group(1)))
 Z = np.arange(0, -12000, -1.0)
 def center(T):
     s = sum(a * np.sin(Z / w + p) for a, w, p in T['w'])
     if T['lo'] < 1: s = s * (T['lo'] + (1 - T['lo']) * (0.5 + 0.5 * np.sin(Z / T['W'] + T['q'])) ** T['k'])
+    f = T['w'][0][2]
+    s = s + CURVE['a'] * np.sin(Z / CURVE['l'] + f * 1.7) * (0.55 + 0.45 * (0.5 + 0.5 * np.sin(Z / CURVE['W'] + f + 0.6)) ** CURVE['k'])
     return s
 ref = None
 print(f"{'pista':12s} {'ampiezza':>8s} {'pend.max':>8s} {'raggio min':>10s} {'rettilineo':>10s} {'tempo':>8s}")

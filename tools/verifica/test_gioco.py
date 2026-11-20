@@ -68,12 +68,14 @@ with sync_playwright() as p:
             fa: C ? [C.fa, D.tr('food_' + C.fa)] : null, fb: C ? [C.fb, D.tr('food_' + C.fb)] : null,
             style: C ? [C.style, C.style2 || ''] : null, bldH: C ? C.bldH : null, rails: null,
             // R-313 (0.19.0): con il 30% di rocce in meno nei primi 220 m ce ne può essere nessuna: si contano sul primo km
-            rocce1km: (() => { const T = PN.tracciato.dati(seed, { center: D.center }); T.avanza(-1000); return T.oggetti.filter(o => o.type === 'rock').length; })()
+            rocce1km: (() => { const T = PN.tracciato.dati(seed, { center: D.center }); T.avanza(-1000); return T.oggetti.filter(o => o.type === 'rock').length; })(),
+            // B-09: dalla 0.34.0 le porte da slalom (R-541) occupano i primi 220 m: anche gli alberi si contano sul primo km
+            alberi1km: (() => { const T = PN.tracciato.dati(seed, { center: D.center }); T.avanza(-1000); return T.oggetti.filter(o => o.type === 'tree').length; })()
           };
         }""", [key, SEED])
         if city == 'Neve':
             layout_snow = info['layout']; rel_snow = info['rel']
-            check(not info['city'] and info['snowb'] and not info['skate'] and info['ranges'] and not info['sky'] and info['flakes'], 'Neve: snowboard, montagne, nevicata, nessuno sfondo di città')
+            check(not info['city'] and info['snowb'] and not info['skate'] and info['sky'] == ['neve'] and info['flakes'], 'Neve: snowboard, cartolina dei monti (dalla 0.26.0, R-513), nevicata, nessuno sfondo di città', str(info['sky']))
             check(info['byType'].get('tree', 0) > 20 and info['byType'].get('bldg', 0) in (0, None), 'Neve: bosco ai lati, niente palazzi', json.dumps(info['byType']))
             continue
         row = {r['elemento']: r['valori'][city] for r in TAB['rows']}
@@ -83,14 +85,20 @@ with sync_playwright() as p:
         # R-307: Roma ha i ruderi dei fori al posto dei palazzi; Napoli ha i palazzi solo a sinistra (a destra il mare)
         n_bldg = info['byType'].get('bldg', 0)
         bldg_ok = (info['byType'].get('side', 0) > 10 and n_bldg == 0) if city == 'Roma' else n_bldg > (5 if city == 'Napoli' else 10)
-        check(bldg_ok and info['byType'].get('tree', 0) + info['byType'].get('rock', 0) > 0 and info['rocce1km'] > 0 and info['byType'].get('marker', 0) > 10, f'{city}: lati come la strada vera (R-307), ostacoli alti e bassi, segnaletica', json.dumps(info['byType']))
+        check(bldg_ok and info['alberi1km'] > 0 and info['rocce1km'] > 0 and info['byType'].get('marker', 0) > 10, f'{city}: lati come la strada vera (R-307), ostacoli alti e bassi, segnaletica', json.dumps(info['byType']))
         if city in ('Napoli', 'Roma', 'Parigi', 'Lisbona', 'Berlino', 'Zurigo'):
             check(info['byType'].get('sidetree', 0) > 3, f'{city}: file di alberi ai lati della strada (R-307)', json.dumps(info['byType']))
         g = info['geoOk']
         check(all(g.values()), f'{city}: ogni oggetto di gioco usa il modello della città (alto, basso, bonus, rampa, porte, paletti)', json.dumps(g))
-        same_rel = len(info['rel']) == len(rel_snow) and all(a[0] == b[0] and abs(a[1] - b[1]) < 0.03 and abs(a[2] - b[2]) < 0.03 for a, b in zip(info['rel'], rel_snow))
+        # B-09 (0.37.1): dalla 0.34.0 le curve di R-539 sono forti e le zone libere (atterraggio dritto delle rampe B-06,
+        # porte da slalom R-541) seguono la forma vera della strada: in 220 m possono togliere o lasciare 1-2 oggetti
+        # diversi dalla Neve. Il resto della sequenza (stessi numeri casuali, R-309) deve coincidere.
+        key_of = lambda a: (a[0], round(a[1], 1), round(a[2], 1))
+        snow_set = {key_of(b) for b in rel_snow}; city_set = {key_of(a) for a in info['rel']}
+        diff = len(snow_set ^ city_set)
+        same_rel = diff <= 3 and len(snow_set & city_set) >= 0.8 * max(len(snow_set), 1)
         if not same_rel: print('   primo diverso:', next(((a, b) for a, b in zip(info['rel'], rel_snow) if a[0] != b[0] or abs(a[1] - b[1]) >= 0.03 or abs(a[2] - b[2]) >= 0.03), None))
-        check(info['layout'] != layout_snow and same_rel, f'{city}: forma della strada propria (R-312), ma stessa sequenza di ostacoli, bonus, rampe e porte della neve rispetto alla strada (R-309)', f'{len(info["rel"])} vs {len(rel_snow)}')
+        check(info['layout'] != layout_snow and same_rel, f'{city}: forma della strada propria (R-312), ma stessa sequenza di ostacoli, bonus, rampe e porte della neve rispetto alla strada (R-309)', f'{len(info["rel"])} vs {len(rel_snow)}, diversi {diff}')
         again = pg.evaluate("([key, seed]) => { const D = window.__dbg; D.mode = 'solo'; D.reset(seed, null, false); D.mode = 'menu'; return D.objs.filter(o => o.z > -220 && (['rock', 'gem', 'ramp', 'gate', 'marker'].includes(o.type) || (o.type === 'tree' && Math.abs(o.x - D.center(o.z)) < 16))).map(o => [o.type, +o.x.toFixed(2), +o.z.toFixed(2)]); }", [key, SEED])
         check(again == info['layout'], f'{city}: stessa città e stesso seed → pista identica (tutti i giocatori della gara)')
         check(info['groundTex'], f'{city}: fondo stradale proprio')
@@ -123,7 +131,7 @@ with sync_playwright() as p:
       } D.applyTheme('neve'); return out; }""")
     for k, v in tracks.items(): print(f'   {k:12s} {json.dumps(v)}')
     ref = tracks['neve']['tf']
-    check(all(v['span'] > 20 and v['maxSlope'] < 0.5 for v in tracks.values()), 'ogni pista curva in modo naturale (ampiezza > 20 m, pendenza laterale < 0,5)')
+    check(all(v['span'] > 20 and v['maxSlope'] < 0.75 for v in tracks.values()), 'ogni pista curva in modo naturale (ampiezza > 20 m, pendenza laterale < 0,75: curve di R-539)', ', '.join(f"{k} {v['maxSlope']}" for k, v in tracks.items()))
     check(all(abs(v['tf'] / ref - 1) < 0.005 for v in tracks.values()), 'tempi simili in tutte le città: fattore di tempo entro ±0,5% della neve (R-312)', ', '.join(f"{k} {v['tf']}" for k, v in tracks.items()))
     check(len({v['c400'] for v in tracks.values()}) == len(tracks), 'tracciati tutti diversi tra loro (posizione della pista a 400 m)')
     check(max(v['straight'] for v in tracks.values()) - min(v['straight'] for v in tracks.values()) >= 0.06, 'alcune città hanno più rettilinei, altre più curve', ', '.join(f"{k} {v['straight']}" for k, v in tracks.items()))
@@ -191,8 +199,8 @@ with sync_playwright() as p:
 
     print('G4 · velocità: accelerazione, raccolto e frenata (R-206, R-207, R-208)')
     vm = pg.evaluate("[0, 2000, 3000].map(d => PN.fisica.vmax(d)).concat([PN.fisica.MAX])")
-    check(abs(vm[0] - 11.5) < 0.01 and abs(vm[1] - 18.5) < 0.01 and abs(vm[2] - 19.84) < 0.01 and abs(vm[3] * 3.6 - 80) < 0.01 and abs(vm[2] * 1.12 * 3.6 - 80) < 0.1,
-          'velocità come nella realtà (R-242): 41 km/h al via, 67 a 2 km, 71 oltre 2,4 km, 80 solo in posizione raccolta e mai di più', json.dumps(vm))
+    check(abs(vm[0] - 11.5 * 1.3) < 0.01 and abs(vm[1] - 18.5 * 1.3) < 0.01 and abs(vm[2] - 19.84 * 1.3) < 0.01 and abs(vm[3] * 3.6 - 104) < 0.01 and abs(vm[2] * 1.12 * 3.6 - 104) < 0.2,
+          'velocità (R-242 ×1,3 di R-529): 54 km/h al via, 87 a 2 km, 93 oltre 2,4 km, 104 solo in posizione raccolta e mai di più', json.dumps(vm))
     r = pg.evaluate("""() => { const D = window.__dbg; D.mode = 'solo'; D.reset(5, null, false); D.god(); D.P.z = -30; D.P.x = D.center(-30); D.P.speed = 14; D.keys.down = true;
       return D.frames(45).then(() => { const a = { tuck: +D.tuckS.toFixed(2), v: +D.P.speed.toFixed(1), air: D.P.air }; D.keys.down = false; D.keys.up = true; return D.frames(45).then(() => { D.keys.up = false; return { ...a, brake: +D.brakeS.toFixed(2), v2: +D.P.speed.toFixed(1) }; }); }); }""")
     check(r['tuck'] > 0.95 and r['brake'] > 0.95 and r['v'] > r['v2'] + 2.5, 'freccia giù: posa raccolta e più veloce; freccia su: peso avanti e frenata', json.dumps(r))
@@ -239,12 +247,12 @@ with sync_playwright() as p:
     r = pg.evaluate("""() => { const D = window.__dbg; return { mode: D.mode, finish: !!D.finishObj, finishZ: D.finishObj ? D.finishObj.children[0].position.z : null, raceLen: D.raceLen, remotes: D.remotes.size, live: document.querySelectorAll('#liveList li').length }; }""")
     check(r['mode'] == 'race' and r['finish'] and abs(r['finishZ'] + r['raceLen']) < 1 and r['raceLen'] == 4200, 'in gara c\'è il traguardo a 4.200 m (R-242)', json.dumps(r))
     check(r['remotes'] == 1 and r['live'] == 2, 'avversario in pista e classifica dal vivo con 2 nomi', json.dumps(r))
-    r = pg.evaluate("""() => { const D = window.__dbg; D.god(); D.bonus = 200; window.__toasts.length = 0; const cvs = document.getElementById('game'); const rc = cvs.getBoundingClientRect();
+    r = pg.evaluate("""() => { const D = window.__dbg; D.god(); D.bonus = 2000; window.__toasts.length = 0; const cvs = document.getElementById('game'); const rc = cvs.getBoundingClientRect();
       const ev = () => new PointerEvent('pointerdown', { clientX: rc.left + rc.width / 2, clientY: rc.top + rc.height * 0.7, bubbles: true, pointerId: 3 });
       cvs.dispatchEvent(ev()); cvs.dispatchEvent(ev());
       const h = [...D.hazards.values()][0];
       return { n: D.hazards.size, kind: h && h.kind, fly: !!(h && h.fly), ahead: h ? h.z < D.P.z : null, bonus: D.bonus, toast: window.__toasts.join('|') }; }""")
-    check(r['n'] == 1 and r['kind'] == 'banana' and r['fly'] and r['ahead'] and r['bonus'] == 150, 'doppio clic sulla pista: banana lanciata davanti, 50 punti spesi', json.dumps(r))
+    check(r['n'] == 1 and r['kind'] == 'banana' and r['fly'] and r['ahead'] and r['bonus'] == 500, 'doppio clic sulla pista: banana lanciata davanti, 1.500 punti spesi (R-520)', json.dumps(r))
     gp.wait_for_function("window.__dbg.hazards.size === 1", timeout=20000)
     gh = gp.evaluate("() => ({ n: window.__dbg.hazards.size, kind: [...window.__dbg.hazards.values()][0].kind })")
     check(gh['n'] == 1 and gh['kind'] == 'banana', 'l\'avversario vede la banana', json.dumps(gh))
@@ -252,10 +260,10 @@ with sync_playwright() as p:
     gp.evaluate("() => { const D = window.__dbg; D.P.z -= 30; D.P.x = D.center(D.P.z); D.invuln = 0; window.__toasts.length = 0; }")
     pg.wait_for_function("(() => { const D = window.__dbg; const r = D.remotes.get('pGuest2'); return !!r && D.P.z - r.z > 5; })()", timeout=20000)
     pg.wait_for_timeout(1100)
-    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 200; window.__toasts.length = 0; const cvs = document.getElementById('game'); const rc = cvs.getBoundingClientRect();
+    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 2000; window.__toasts.length = 0; const cvs = document.getElementById('game'); const rc = cvs.getBoundingClientRect();
       const ev = () => new PointerEvent('pointerdown', { clientX: rc.left + rc.width / 2, clientY: rc.top + rc.height * 0.7, bubbles: true, pointerId: 4 });
       cvs.dispatchEvent(ev()); cvs.dispatchEvent(ev()); return D.frames(2).then(() => ({ bonus: D.bonus, toast: window.__toasts.join('|') })); }""")
-    check(r['bonus'] == 150 and 'Ospite' in r['toast'], 'doppio clic con un avversario davanti: la banana è lanciata a lui (R-224)', json.dumps(r))
+    check(r['bonus'] == 500 and 'Ospite' in r['toast'], 'doppio clic con un avversario davanti: la banana è lanciata a lui (R-224)', json.dumps(r))
     try:
         gp.wait_for_function("window.__dbg.P.stop > 0", timeout=10000)
         # durata decisa al colpo (P.stopFor), non il tempo che resta: con il processore carico ne restavano 0,23 s
@@ -265,9 +273,9 @@ with sync_playwright() as p:
     check(gr['stop'] == 2 and gr['left'] > 0 and 'Banana' in gr['toast'], 'chi la riceve cade e resta fermo 2 s (R-224)', json.dumps(gr))
     # il pulsante 🍌 lancia come il doppio clic, con il gesto del braccio (R-230)
     pg.wait_for_timeout(1100)
-    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 200; window.__toasts.length = 0; document.getElementById('btnBanana').click();
+    r = pg.evaluate("""() => { const D = window.__dbg; D.bonus = 2000; window.__toasts.length = 0; document.getElementById('btnBanana').click();
       return D.frames(3).then(() => ({ bonus: D.bonus, toast: window.__toasts.join('|'), gesto: D.throwT })); }""")
-    check(r['bonus'] == 150 and 'Ospite' in r['toast'] and r['gesto'] > 0, 'pulsante della banana: gesto del braccio e banana lanciata al giocatore davanti (R-230)', json.dumps(r))
+    check(r['bonus'] == 500 and 'Ospite' in r['toast'] and r['gesto'] > 0, 'pulsante della banana: gesto del braccio e banana lanciata al giocatore davanti (R-230)', json.dumps(r))
     # bananone (R-231): con 2.999 punti dice quanti ne servono; con 3.100 si lancia (R-532: 3.000) all'ospite davanti, che si ferma 4 s
     gp.evaluate("() => { const D = window.__dbg; D.P.z -= 40; D.P.x = D.center(D.P.z); D.invuln = 0; D.P.crash = 0; D.P.stop = 0; window.__toasts.length = 0; }")
     pg.wait_for_function("(() => { const D = window.__dbg; const r = D.remotes.get('pGuest2'); return !!r && D.P.z - r.z > 5; })()", timeout=20000)
