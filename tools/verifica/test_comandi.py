@@ -66,7 +66,7 @@ with sync_playwright() as p:
         if menu_vis != ['none', 'none']: problems.append(f'{orient}: comandi visibili nel menu')
         sx, sy, sw, sh = info['stick'][1]
         cx, cy = sx + sw * 0.6, sy + sh * 0.6
-        # 1. accelera (su) e frena (giù): velocità a confronto (senza cadute, che falserebbero la velocità)
+        # 1. frena (su) e accelera (giù), come la tastiera (R-523, 0.27.0): velocità a confronto (senza cadute, che falserebbero la velocità)
         pg.evaluate('__dbg.god()')
         pg.wait_for_timeout(2500)
         st = drag_hold(pg, cx, cy, 0, -70, 3.0); v_up = pg.evaluate('__dbg.P.speed')
@@ -75,7 +75,7 @@ with sync_playwright() as p:
         st2 = drag_hold(pg, cx, cy, 0, 70, 3.0); v_dn = pg.evaluate('__dbg.P.speed')
         end(pg, cx, cy + 70)
         print(f'  su: stick={st}  velocità {v_up:.1f} m/s | giù: stick={st2}  velocità {v_dn:.1f} m/s')
-        if not (st['y'] < -0.9 and st2['y'] > 0.9 and v_up > v_dn + 2): problems.append(f'{orient}: accelera/frena non funziona ({v_up:.1f} vs {v_dn:.1f})')
+        if not (st['y'] < -0.9 and st2['y'] > 0.9 and v_dn > v_up + 2): problems.append(f'{orient}: accelera/frena non funziona ({v_up:.1f} vs {v_dn:.1f})')
         # 2. curva: destra poi sinistra, l'angolo del rider cambia segno
         drag_hold(pg, cx, cy, 60, 0, 0.6); a_r = pg.evaluate('__dbg.P.ang'); end(pg, cx + 60, cy)
         drag_hold(pg, cx, cy, -60, 0, 0.9); a_l = pg.evaluate('__dbg.P.ang'); end(pg, cx - 60, cy)

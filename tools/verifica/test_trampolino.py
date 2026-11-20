@@ -92,7 +92,8 @@ with sync_playwright() as p:
     for scena, big in [('neve', False), ('neve', True), ('napoli', True)]:
         for frac in (0.2, 0.5, 0.8):
             r = pg.evaluate(SALTO, [scena, big, frac])
-            ok = r['onRampAtJump'] and r['landed'] and r['minY'] > -0.1
+            # dal 0.31.0 il gioco è più veloce del 30%: sulla rampa normale a 80% della salita il rider può già essere fuori (R-529)
+            ok = (r['onRampAtJump'] or (not big and frac >= 0.8)) and r['landed'] and r['minY'] > -0.1
             tag = f"salto {scena} {'gigante' if big else 'normale'} a {int(frac * 100)}% della salita"
             print(('OK   ' if ok else 'NO   ') + tag + (': atterra' if r['landed'] else ': NON ATTERRA'), json.dumps(r), flush=True)
             if not ok: problems.append(tag)
@@ -105,7 +106,7 @@ with sync_playwright() as p:
                 r = pg.evaluate(MISURA, [scena, big, side])
                 # worst: solo fotogrammi normali (tetto 5 cm); worstSlow: anche quelli lenti (tetto largo 25 cm,
                 # basta a trovare il baco da 1 m della 0.11.0 anche sulla macchina carica)
-                ok = r['launched'] and r['onRampFrames'] > 3 and r["worst"] <= 0.05 and r["worstSlow"] <= 0.25
+                ok = r['launched'] and r['onRampFrames'] >= 2 and r["worst"] <= 0.05 and r["worstSlow"] <= 0.25
                 tag = f"{scena} {'gigante' if big else 'normale'} {'centro' if side == 0 else 'di lato'}"
                 print(('OK   ' if ok else 'NO   ') + tag + ': rider dentro la rampa al massimo di ' + f"{r['worst'] * 100:.0f} cm", json.dumps(r), flush=True)
                 if not ok: problems.append(tag)

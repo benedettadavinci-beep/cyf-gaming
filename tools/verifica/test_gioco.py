@@ -15,7 +15,7 @@ GAME = GAME.replace(hook, hook + """
     get bonus() { return bonus; }, set bonus(v) { bonus = v; }, get lives() { return lives; }, set invuln(v) { invuln = v; }, get raceLen() { return raceLen; },
     get finishObj() { return finishObj; }, get hazards() { return hazards; }, get PART() { return PART; }, get tuckS() { return tuckS; }, get brakeS() { return brakeS; }, get throwT() { return throwT; },
     reset, applyTheme, ensureSpawned, TRACKS, assets, CITY_CFG, THEMES, builtSky, bay: builtSky.napoli, rome: builtSky.roma, ranges, camera, me, scene, renderer, collide, keys, stick, net, center, hgt, tr,
-    store, mutedIds, playVoice, useItem, jump, PALETTE, flakes, groundMat, sky, hemi, sun, trailMesh, sprayPts, isCity, remotes, standings, GEO, GROUND_TEX,
+    store, mutedIds, playVoice, useItem, jump, PALETTE, flakes, groundMat,  hemi, sun, trailMesh, sprayPts, isCity, remotes, standings, GEO, GROUND_TEX,
     jacketTexture, JERSEYS, myJersey, THREE, world, god() { invuln = 1e9; lives = 99; }, setLives(n) { lives = n; renderLives(); }, lastToast() { const t = window.__toasts; return t.length ? t[t.length - 1] : ''; },
     frames(n) { return new Promise(res => { let k = 0; const f = () => { if (++k >= n) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); }); }
   };
