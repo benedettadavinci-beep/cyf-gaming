@@ -6,6 +6,8 @@ subtitle: "Versione online 0.37.1 · aggiornato al 20 novembre 2026 (mattina del
 
 # Prossimi passi
 
+**Notte del 21/11/2026 (blocco 1, 00:03–00:58)**: verifica su `main` 0.37.1, nessun ramo da unire; giro completo 16/17, poi B-10 (prova con attesa troppo corta) corretto e rilanciato verde. **COSA PROVARE dal telefono**: niente di nuovo, il gioco è identico alla 0.37.1 (provare ancora presa della tavola con freccia giù in aria e scudi sulla pista, `/pista-nera/`). Il blocco 2 della notte non ha ancora lasciato nessun ramo `giorno/<data>-notte`.
+
 **Notte del 20/11/2026 (blocco 1, 00:02–01:15) — NON pubblicato**: sul ramo `verifica/2026-11-20` (da `main` 0.35.0, nessun ramo giorno/* da unire) ci sono solo correzioni alle prove (B-08). Giro rapido verde (4 min); giro completo 1: 6 prove ✗ (30 min), corrette e rilanciate una per una (verdi); giro completo 2 interrotto alle 01:10 dall'ambiente, e comunque non c'era più tempo per un giro intero prima delle 01:35. Aperto: B-09 (`test_gioco.py`). **Da fare nella prossima notte**: partire alle 00:00 con le prove già corrette; sistemare B-09; pubblicare. Dal telefono: niente di nuovo da provare (il gioco è identico alla 0.35.0). Il sito online non si legge dal cloud (proxy 403), errori dei telefoni non letti; il cancello di GitHub è verde da 24 ore.
 
 **Giro notturno 00:00–07:00 (R-537, deciso da Luigi il 18/11/2026 alle 22:48).** Tutto il lavoro automatico si fa di notte, in quattro blocchi in fila; di giorno non gira niente e non si fanno prove. Le cinque attività pianificate sono accese dal 18/11 sera e partono a gradini: fino alla sua data di partenza un blocco risponde solo «non ancora attivo» e si chiude. Chi scrive non pubblica: il blocco 2 lascia il codice su `giorno/<data>-notte`, lo controlla e lo pubblica il blocco 1 la notte dopo. Orari, compiti e modelli: «Regole di lavoro», punto 3.
@@ -14,7 +16,7 @@ subtitle: "Versione online 0.37.1 · aggiornato al 20 novembre 2026 (mattina del
 
 | N. | Blocco | Inizio | Fine | Token (stima) | Esito |
 |---|---|---|---|---|---|
-| 1 | Verifica e pubblicazione (00:00–01:45) | 00:02 (+ 07:40 di giorno) | 01:15 (+ 09:35) | ~400k + ~450k (stima) | Notte: 6 prove vecchie corrette, B-09 aperto, non pubblicato. **Mattina, rifatto su richiesta di Luigi («tutto ora», 07:50)**: prove della notte unite a main, B-09 chiuso, prove nuove della presa e degli scudi; giro completo sulla 0.37.1: **17 prove su 17 verdi in 46 min**. **Pubblicata la 0.37.1** |
+| 1 | Verifica e pubblicazione (00:00–01:45) | 00:03 | 00:58 | ~150k (stima) | Notte del 21/11: nessun ramo giorno/* da unire (tutti già in main). Giro completo su main 0.37.1: **16 prove su 17 verdi in 46 min**; la 17ª (`test_oggetti_allenamento.py`, avversari che usano da soli gli oggetti) era rossa per un'attesa di 20 s troppo corta (B-10), corretta a 60 s e verde 3 volte su 3. Gioco identico alla 0.37.1, resta **0.37.1** (cambiata solo la prova). Sito online non raggiungibile dal cloud (proxy 403): errori dei telefoni non letti |
 | 2 | Implementazione (01:50–05:10; la notte tra domenica e lunedì: Revisione settimanale) | — | — | — | Non ancora partito: primo giro vero la notte del 21/11 (Revisione: 23/11) |
 | 3 | Confronto con le altre app (05:15–05:55) | — | — | — | Non ancora partito: primo giro vero la notte del 21/11 |
 | 4 | Rapporto del mattino (06:05–06:35) | — | — | — | Non scrive qui: legge questa tabella. Primo rapporto la mattina del 20/11 |
