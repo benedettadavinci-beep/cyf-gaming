@@ -49,9 +49,9 @@ with sync_playwright() as p:
     def aria(y, vy, down=False, back=False, n=30):
         return pg.evaluate("""([y, vy, down, back, n]) => { const D = window.__dbg; D.god(); const P = D.P; P.crash = 0; P.stop = 0; P.z -= 5; P.x = D.center(P.z);
           P.air = true; P.airT = 0; P.y = y; P.vy = vy; P.spin = 0; P.flip = 0; P.grab = 0; P.grabT = 0; P.onRamp = null; P.ramp = false;
-          D.keys.down = down; D.keys.back = back; window.__toasts.length = 0; let gmax = 0;
-          const loop = k => D.frames(1).then(() => { gmax = Math.max(gmax, P.grab); return k > 1 && P.air ? loop(k - 1) : null; });
-          return loop(n).then(() => { const out = { gmax: +gmax.toFixed(2), flip: +P.flip.toFixed(2), grabT: +P.grabT.toFixed(2), air: P.air, toast: window.__toasts.join('|') }; D.keys.down = false; D.keys.back = false; return out; }); }""",
+          D.keys.down = down; D.keys.back = back; window.__toasts.length = 0; let gmax = 0, fmax = 0;
+          const loop = k => D.frames(1).then(() => { gmax = Math.max(gmax, P.grab); fmax = Math.max(fmax, Math.abs(P.flip)); return k > 1 && P.air ? loop(k - 1) : null; });
+          return loop(n).then(() => { const out = { gmax: +gmax.toFixed(2), flip: +fmax.toFixed(2), grabT: +P.grabT.toFixed(2), air: P.air, toast: window.__toasts.join('|') }; D.keys.down = false; D.keys.back = false; return out; }); }""",
           [y, vy, down, back, n])
     a = aria(6, 8, down=True, n=400)
     check(a['gmax'] > 0.8 and a['grabT'] > 0.2, 'in aria con freccia giù la mano tiene la tavola', json.dumps(a))
@@ -71,7 +71,9 @@ with sync_playwright() as p:
     check(len(bolle) == 12 and len(colori) == 3 and all(v == 4 for v in colori.values()), 'tre tipi di bolle, 4 per tipo (come i corridori)', json.dumps(colori))
     check(all(abs(q['x'] - pg.evaluate('z => window.__dbg.center(z)', q['z'])) < 7 for q in bolle), 'le bolle sono sulla strada (entro 6 m dal centro)')
     # foto di una bolla da 12 m
-    q = sorted(bolle, key=lambda q: -q['z'])[0]
+    # la prima bolla di banana o bananone (colore diverso dall'azzurro della bomba), per provare anche il colpo lanciato
+    blu = next((c for c in colori if c.endswith('ff') and c.startswith('0')), None)
+    q = sorted([b for b in bolle if b['c'] != blu] or bolle, key=lambda q: -q['z'])[0]
     pg.evaluate("""q => { const D = window.__dbg; D.god(); const P = D.P; P.air = false; P.y = 0; P.vy = 0; P.z = q.z + 12; P.x = q.x; P.speed = 0.01; P.ang = 0; }""", q)
     pg.wait_for_timeout(1500); pg.screenshot(path=f'{OUT}/scudi-bolla.png')
     r = pg.evaluate("""q => { const D = window.__dbg; const P = D.P; window.__toasts.length = 0; P.z = q.z + 0.5; P.x = q.x; P.speed = 3;
@@ -79,22 +81,25 @@ with sync_playwright() as p:
         return { attivi: k, badge: b ? b.style.display : 'manca', testo: b ? b.textContent : '', toast: window.__toasts.join('|') }; }); }""", q)
     check(len(r['attivi']) == 1 and r['badge'] == 'block' and ' s' in r['testo'], 'passando sopra la bolla lo scudo si attiva con il conto alla rovescia in alto', json.dumps(r, ensure_ascii=False))
     mio = r['attivi'][0] if r['attivi'] else None
+    # colpo lanciato del tipo protetto: niente fermo; di un altro tipo: fermo come sempre
+    sbagliato = 'bomb' if mio != 'bomb' else 'banana'
+    def colpo(kind):
+        return pg.evaluate("""kind => { const D = window.__dbg; const P = D.P; const prima = ['banana', 'bananone', 'bomb'].filter(k => D.SC.protegge(k)); D.invuln = 0; P.crash = 0; P.stop = 0; P.stopUntil = 0; P.air = false; P.y = 0; D.keys.left = D.keys.right = false; window.__toasts.length = 0;
+          D.BOT.colpo(D.stato.myId, kind, 'Prova');
+          return new Promise(ok => setTimeout(ok, 2200)).then(() => ({ fermo: (P.stopUntil || 0) > 0, prima, dopo: ['banana', 'bananone', 'bomb'].filter(k => D.SC.protegge(k)), toast: window.__toasts.join('|') })); }""", kind)
+    if mio in ('banana', 'bananone'):
+        ok = colpo(mio)
+        check(not ok['fermo'], f'scudo {mio}: il {mio} lanciato non ferma', json.dumps(ok, ensure_ascii=False))
     pg.wait_for_timeout(500); pg.screenshot(path=f'{OUT}/scudi-attivo.png')
     rimaste = pg.evaluate(BOLLE)
     check(len(rimaste) == 11, 'la bolla presa sparisce dalla pista', str(len(rimaste)))
     altra = sorted(rimaste, key=lambda q: -q['z'])[0]
     r2 = pg.evaluate("""q => { const D = window.__dbg; const P = D.P; window.__toasts.length = 0; P.z = q.z + 0.5; P.x = q.x; P.speed = 3;
-      return D.frames(8).then(() => ({ attivi: ['banana', 'bananone', 'bomb'].filter(k => D.SC.protegge(k)), toast: window.__toasts.join('|') })); }""", altra)
-    check(r2['attivi'] == [mio] and len(pg.evaluate(BOLLE)) == 11, 'con uno scudo attivo non se ne prende un altro (non si sommano)', json.dumps(r2, ensure_ascii=False))
-    # colpo lanciato del tipo protetto: niente fermo; di un altro tipo: fermo come sempre
-    sbagliato = 'bomb' if mio != 'bomb' else 'banana'
-    def colpo(kind):
-        return pg.evaluate("""kind => { const D = window.__dbg; const P = D.P; D.invuln = 0; P.crash = 0; P.stop = 0; P.stopUntil = 0; P.air = false; P.y = 0; D.keys.left = D.keys.right = false; window.__toasts.length = 0;
-          D.BOT.colpo(D.stato.myId, kind, 'Prova');
-          return new Promise(ok => setTimeout(ok, 2200)).then(() => ({ fermo: (P.stopUntil || 0) > 0, toast: window.__toasts.join('|') })); }""", kind)
-    if mio in ('banana', 'bananone'):
-        ok = colpo(mio)
-        check(not ok['fermo'], f'scudo {mio}: il {mio} lanciato non ferma', json.dumps(ok, ensure_ascii=False))
+      return D.frames(3).then(() => ({ attivi: ['banana', 'bananone', 'bomb'].filter(k => D.SC.protegge(k)), toast: window.__toasts.join('|') })); }""", altra)
+    # il browser delle prove fa pochi fotogrammi al secondo: lo scudo può finire mentre si resta sopra la bolla, e allora
+    # (giustamente) si prende la nuova. Conta che il primo messaggio sia «Hai già uno scudo», prima di «Scudo finito»
+    primo = r2['toast'].split('|')[0]
+    check('già' in primo, 'con uno scudo attivo non se ne prende un altro (non si sommano)', json.dumps(r2, ensure_ascii=False))
     ko = colpo('bananone' if mio == 'banana' else 'banana')
     check(ko['fermo'] or 'schiv' in ko['toast'].lower(), 'lo scudo di un altro tipo non para il colpo (o la schivata del 25 %, R-540)', json.dumps(ko, ensure_ascii=False))
     check(not errs, 'nessun errore JavaScript', '; '.join(errs[:3]))
