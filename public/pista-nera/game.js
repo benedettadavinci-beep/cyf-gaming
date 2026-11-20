@@ -153,6 +153,7 @@
   let best = parseInt(store.get('pistaNera.best') || '0', 10) || 0;
   let wallT = 0, tricksN = 0, crashN = 0, near500 = false, P, bonus, lives, invuln, combo, trailT, shake, maxSpeed, bestSpin, overTimer, overReason, t = 0, camYaw, lean, camY, squash, armsUp;
   let finishObj = null, raceLen = 2000;
+  let SC = null;   // scudi sulla pista (R-545, moduli/scudi.js): si crea più sotto, dopo gli oggetti
   const racing = () => mode === 'countdown' || mode === 'race' || mode === 'finished';
   const distM = () => Math.max(0, -P.z);
   const score = () => Math.floor(distM()) + bonus;
@@ -172,6 +173,8 @@
     // allenamento con gli avversari del computer (R-515): banane, bombe e bananoni come in gara, simulati su questo dispositivo
     get allenaConAvversari() { return mode === 'solo' && BOT.modo === 'allenamento' && BOT.lista.length > 0; },
     get sterza() { return inSteer() !== 0; },
+    immune: kind => !!(SC && SC.protegge(kind)), parato: kind => { if (SC) SC.parato(kind); },   // R-545: scudo attivo
+    conta: () => mode === 'race' ? net.racers.length : (BOT.modo === 'allenamento' ? BOT.lista.length + 1 : 1),
     arriva: (chi, big, durata) => SCHERMATE.arriva(chi, big, durata),   // R-525: popup "banana in arrivo"
     arrivata: schivata => SCHERMATE.arrivata(schivata),   // sta curvando (← → o A/D premuti, rotellina di lato oltre la zona morta): schiva banana e bananone lanciati (R-522)
     nome: () => inName.value.trim() || 'Rider',
@@ -196,6 +199,7 @@
     diag.log('pista', 'seed ' + seed + ' · ' + theme + (withFinish ? ' · con traguardo' : ''));
     clearWorld();
     GEN.riparti(seed);
+    if (SC) SC.nuova(seed);
     P = { x: x0 != null ? x0 : center(0), y: 0, z: 0, prevZ: 0, ang: 0, speed: F.PARTENZA, vy: 0, spin: 0, flip: 0, grab: 0, grabT: 0, idleAir: 0, airT: 0, air: false, crash: 0, stop: 0, ramp: false, onRamp: null };
     trailPts = [];
     bonus = 0; lives = 3; invuln = 0; combo = 0; trailT = 0; shake = 0;
@@ -419,6 +423,7 @@
     if (!auto && !frozen && !braking) collide();
     if (mode === 'race' || stato.allenaConAvversari) collideHazards();
     updateHazards(dt);
+    if (SC) SC.aggiorna(dt);
     for (const o of GEN.objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = (o.y0 ?? (o.y0 = hgt(o.x, o.z) + 0.9)) + Math.sin(t * 3 + o.phase) * 0.15; }   // y0: terreno sotto il cristallo, calcolato una volta (A-27)
     updateSpray(dt);
     updateSparks(dt);
@@ -926,6 +931,7 @@
   }
 
   const OGG = PN.oggetti({ world, ground, camera, cvs, pista: PISTA, effetti: EFF, audio: AUDIO, net, say, crash, stato });
+  SC = PN.scudi({ world, pista: PISTA, say, stato }); SC.nuova(lastSeed);
   const { hazards, addHazard, removeHazard, clearHazards, updateHazards, collideHazards, useItem } = OGG;
   const AVV = PN.avversari({ world, pista: PISTA, net, stato });
   const { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive } = AVV;

@@ -413,6 +413,7 @@ PN.bot = ({ pista, rampTop, net, stato, oggetti, avversari, say, crash }) => {
     setTimeout(() => {
       if (!stato.racing() && !(stato.mode === 'solo' && modo === 'allenamento')) { if (stato.arrivata) stato.arrivata(null); return; }
       if (bersaglio === stato.myId) {
+        if (stato.immune && stato.immune(kind)) { stato.parato(kind); if (stato.arrivata) stato.arrivata(true); return; }   // R-545: scudo attivo
         if ((stato.P.air || stato.sterza) && Math.random() < SCHIVA) { say(tr(stato.P.air ? 'dodgedAir' : 'dodgedSteer'), '#1f8a4c'); if (stato.arrivata) stato.arrivata(true); return; }
         if (stato.arrivata) stato.arrivata(false);
         crash(tr(big ? 'crashBananoneThrown' : 'crashBananaThrown', { n: chi || tr('someone') }), FERMO[big ? 'bananone' : 'banana'], true);
