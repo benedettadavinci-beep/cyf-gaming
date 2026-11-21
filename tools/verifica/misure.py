@@ -1,7 +1,7 @@
 """Misure delle prestazioni a ogni giro notturno, con soglie (A-14, riga 2 della tabella «Cosa fa Claude»).
 
 Per il PC e per il telefono simulato misura:
-  - peso della pagina: KB di pagina e file scaricati fino a 1,5 s dopo gioco pronto (corpi decompressi, Resource Timing);
+  - peso della pagina: KB di pagina e file scaricati fino alla fine di 15 s di allenamento (corpi decompressi, Resource Timing);
   - caricamento: millisecondi dall'apertura a gioco pronto (scritta della versione in basso);
   - fps nel browser delle prove: media degli fps di gioco dopo 15 s di allenamento (qualità alta fissa, così la discesa
     automatica non cambia la misura). Il browser delle prove disegna con il processore (swiftshader): i numeri non sono
@@ -42,13 +42,13 @@ with sync_playwright() as p:
         pg.goto(BASE + '/pista-nera/?qualita=alta', wait_until='domcontentloaded')
         pg.wait_for_function("() => { const v = document.getElementById('verLabel'); return v && /^v\\d/.test(v.textContent) && window.__m; }")
         ms = pg.evaluate('() => Math.round(performance.now())')
-        pg.wait_for_timeout(1500)   # le ultime risposte della partenza (cartolina, suoni) entrano nel peso
-        # peso = corpi decompressi di pagina e risorse (Resource Timing); game.js è quello della prova, con 1 riga in più
-        kb = pg.evaluate("""() => Math.round(performance.getEntriesByType('navigation').concat(performance.getEntriesByType('resource'))
-          .reduce((s, e) => s + (e.decodedBodySize || 0), 0) / 1024)""")
         fps = pg.evaluate("""() => { const M = window.__m; M.startSolo(); const t0 = performance.now();
           return new Promise(ok => { const w = () => (M.mode === 'race' || performance.now() - t0 > 30000) ? ok() : setTimeout(w, 200); w(); })
             .then(() => new Promise(ok => setTimeout(ok, 15000))).then(() => M.QUALITA.fps()); }""")
+        # peso = pagina e tutti i file scaricati fino a qui (anche modelli, cartolina e suoni caricati dopo la partenza):
+        # corpi decompressi (Resource Timing); game.js è quello della prova, con 1 riga in più
+        kb = pg.evaluate("""() => Math.round(performance.getEntriesByType('navigation').concat(performance.getEntriesByType('resource'))
+          .reduce((s, e) => s + (e.decodedBodySize || 0), 0) / 1024)""")
         s = SOGLIE[nome]
         risultati[nome] = {'peso_kb': kb, 'caricamento_ms': ms, 'fps': fps}
         check(kb <= s['peso_kb_max'], f'peso della pagina {kb} KB (massimo {s["peso_kb_max"]})')

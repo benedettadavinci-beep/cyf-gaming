@@ -425,7 +425,7 @@
     updateHazards(dt);
     if (SC) SC.aggiorna(dt);
     for (const o of GEN.objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = (o.y0 ?? (o.y0 = hgt(o.x, o.z) + 0.9)) + Math.sin(t * 3 + o.phase) * 0.15; }   // y0: terreno sotto il cristallo, calcolato una volta (A-27)
-    updateSpray(dt);
+    updateSpray(dt); POLVERE.passo(dt);   // polvere di neve dietro la tavola (R-513, moduli/polvere.js)
     updateSparks(dt);
     updateFlakes(dt, P.x, P.z, P.speed);
     soundLevels(P.speed, Math.abs(P.ang) + Math.abs(steer) * 0.5, onSnow);
@@ -931,7 +931,7 @@
   }
 
   const OGG = PN.oggetti({ world, ground, camera, cvs, pista: PISTA, effetti: EFF, audio: AUDIO, net, say, crash, stato });
-  SC = PN.scudi({ world, pista: PISTA, say, stato }); SC.nuova(lastSeed);
+  SC = PN.scudi({ world, pista: PISTA, say, stato }); SC.nuova(lastSeed); const POLVERE = PN.polvere({ world, hgt, renderer, stato, grafica: QUALITA });   // polvere di neve (R-513)
   const { hazards, addHazard, removeHazard, clearHazards, updateHazards, collideHazards, useItem } = OGG;
   const AVV = PN.avversari({ world, pista: PISTA, net, stato });
   const { remotes, nameSprite, remoteFor, remoteUpdate, updateRemotes, hideRemotes, removeRemote, clearRemotes, standings, racePlace, renderLive } = AVV;

@@ -16,7 +16,7 @@ usano a vicenda. Il cancello dei test la esegue a ogni modifica: così la matric
 ## Come sono fatti i moduli
 
 - **Puri** (`PN.base`, `PN.lingua`, `PN.portale`, `PN.calendario`, `PN.geometria`, `PN.rider`, `PN.tracciato`, `PN.fisica`, `PN.panorami`): un oggetto pronto all'uso, creato quando il file si carica. `base` e `panorami` girano anche dentro un worker (niente `document`, niente THREE): `sfondi` li ricarica lì per dipingere le cartoline senza fermare il gioco (A-22).
-- **Con istanza** (`PN.pista`, `PN.sfondi`, `PN.citta`, `PN.generazione`, `PN.effetti`, `PN.audio`, `PN.vocali`, `PN.profilo`, `PN.personaggio`, `PN.oggetti`, `PN.avversari`, `PN.bot`, `PN.comandi`, `PN.schermate`, `PN.settimana`, `PN.granpremio`, `PN.missioni`, `PN.sfida`):
+- **Con istanza** (`PN.pista`, `PN.sfondi`, `PN.citta`, `PN.generazione`, `PN.effetti`, `PN.polvere`, `PN.audio`, `PN.vocali`, `PN.profilo`, `PN.personaggio`, `PN.oggetti`, `PN.avversari`, `PN.bot`, `PN.comandi`, `PN.schermate`, `PN.settimana`, `PN.granpremio`, `PN.missioni`, `PN.sfida`):
   una funzione che il gioco chiama una volta sola passando quello che serve (la scena 3D, il terreno, la rete…) e che
   restituisce l'istanza. Quello che un modulo riceve è scritto nel commento in testa al file.
 - **Lo stato del gioco** (posizione del rider, modalità, punti…) resta in `game.js`. I moduli che devono leggerlo
@@ -58,6 +58,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/panorami.js` | panorami | 1158 | base (mulberry32) |
 | `moduli/personaggio.js` | personaggio | 123 | base (store, lin); lingua (tr, cityName); rider (jerseyOf, myJersey, myHair, myGear, makeRider); calendario (numeroDelPremio, scenaDi) |
 | `moduli/pista.js` | pista | 183 | base (TAU, clamp, isPhone, lin, mulberry32) |
+| `moduli/polvere.js` | polvere | 94 | base (isPhone, rand, reduceMotion) |
 | `moduli/portale.js` | portale | 44 | nessuno |
 | `moduli/profilo.js` | profilo | 101 | base (store); lingua (tr) |
 | `moduli/pubblicita.js` | pubblicita | 142 | portale (attivo); lingua (tr) |
@@ -71,7 +72,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | `moduli/sfondi.js` | sfondi | 216 | panorami (dipingiPiani); base (reduceMotion) |
 | `moduli/tracciato.js` | tracciato | 139 | base (TAU, clamp, mulberry32) |
 | `moduli/vocali.js` | vocali | 194 | audio (initAudio, audio, muted); base (isPhone, store, PALETTE); lingua (tr); portale (attivo) |
-| `game.js` | — | 1124 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); aerei (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); scudi (); avversari (); bot (); sfida (); settimana (); granpremio (); sala () |
+| `game.js` | — | 1124 | base (TAU, SLOPE_DEG, SLOPE, START_ALT, HORIZON, PALETTE, …); lingua (); cielo (); aerei (); qualita (); pista (); sfondi (); geometria (merge, lumpy, vcMat, GEO, gateGeo); citta (); rider (JERSEYS, myJersey, myHair, myGear, jacketTexture, switchOf, …); effetti (); audio (); fisica (); generazione (); comandi (); schermate (); pubblicita (); profilo (); missioni (); personaggio (); protocollo (VERSIONE, THROW_KINDS); vocali (); portale (); oggetti (); scudi (); polvere (); avversari (); bot (); sfida (); settimana (); granpremio (); sala () |
 | `diagnosi.js` | — | 177 | nessuno |
 | `i18n.js` | — | 399 | nessuno |
 | `shared/calendario.js` | calendario | 35 | nessuno |

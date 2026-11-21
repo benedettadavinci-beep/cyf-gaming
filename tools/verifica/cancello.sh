@@ -66,6 +66,7 @@ if [ "$MODO" = "tutto" ]; then
   prova "Novità 0.21-0.25: batti il mio tempo, missioni, portale, settimana, Gran Premio" python3 tools/verifica/test_novita.py
   prova "Presa della tavola e scudi sulla pista (R-544, R-545)" python3 tools/verifica/test_presa_scudi.py
   prova "Qualità automatica: livelli, discesa sotto i 28/45 fps (A-14, R-524)" python3 tools/verifica/test_qualita.py
+  prova "Polvere di neve (R-513, 0.38.0)" python3 tools/verifica/test_polvere.py
   prova "Misure con soglie: peso, caricamento, fps (A-14)" python3 tools/verifica/misure.py
   echo; echo "════ Rotellina contro tastiera (solo informativa)"; python3 tools/verifica/cmp_input.py || true
 fi
