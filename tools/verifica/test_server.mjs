@@ -688,6 +688,32 @@ console.log('T16 · Gran Premio delle 21 (R-247, S-49): orario, finestra d\'ingr
   P.close();
 }
 
+console.log('T17 · fps veri dei giocatori (A-14): /api/fps accetta una media valida e la conta in /api/stats per fasce, telefono o PC e livello');
+{
+  const today = new Date().toISOString().slice(0, 10);
+  const giorno = async () => ((await api('/api/stats')).body || []).find(r => r.day === today) || {};
+  const fps = b => fetch(BASE + '/api/fps', { method: 'POST', body: typeof b === 'string' ? b : JSON.stringify(b), headers: { 'content-type': 'application/json' } }).then(r => r.status);
+  const id = 'f' + rnd();
+  const s0 = await giorno();
+  ok(await fps({ id, fps: 60, tel: 0, q: 'alta' }) === 200, 'POST /api/fps valido accettato (PC, 60 fps, alta)');
+  ok(await fps({ id, fps: 30.5, tel: 1, q: 'media' }) === 200 && await fps({ id, fps: 12, tel: 1, q: 'bassa' }) === 200 && await fps({ id, fps: 45, tel: 0, q: 'boh' }) === 200,
+    'POST /api/fps accettato anche per telefono, fps bassi e livello sconosciuto');
+  const s1 = await giorno();
+  const e = k => (s1[k] || 0) - (s0[k] || 0);
+  ok(e('fps_pc_gt55') === 1 && e('fps_pc_40_55') === 1 && e('fps_pc_n') === 2 && e('fps_pc_sum') === 1050,
+    'PC: 60 fps nella fascia oltre 55, 45 fps nella fascia 40-55, somma ×10 = 1.050', JSON.stringify({ gt55: e('fps_pc_gt55'), f40: e('fps_pc_40_55'), n: e('fps_pc_n'), somma: e('fps_pc_sum') }));
+  ok(e('fps_tel_20_40') === 1 && e('fps_tel_lt20') === 1 && e('fps_tel_n') === 2 && e('fps_tel_sum') === 425,
+    'telefono: 30,5 fps nella fascia 20-40, 12 sotto i 20, somma ×10 = 425', JSON.stringify({ f20: e('fps_tel_20_40'), lt20: e('fps_tel_lt20'), n: e('fps_tel_n'), somma: e('fps_tel_sum') }));
+  ok(e('q_alta') === 1 && e('q_media') === 1 && e('q_bassa') === 1 && e('q_altro') === 1, 'livelli di qualità contati (alta, media, bassa, altro)',
+    JSON.stringify({ alta: e('q_alta'), media: e('q_media'), bassa: e('q_bassa'), altro: e('q_altro') }));
+  const rifiuti = [await fps({ id, fps: 0 }), await fps({ id, fps: 400 }), await fps({ id, fps: -3 }), await fps({ id, fps: '60' }), await fps({ fps: 60 }), await fps('{non json')];
+  ok(rifiuti.every(s => s === 400), 'fps fuori misura (0, 400, negativi, testo), senza id o non JSON rifiutati con 400', rifiuti.join(','));
+  ok(await fps(JSON.stringify({ id, fps: 60, x: 'y'.repeat(200) })) === 413, 'corpo oltre 200 caratteri rifiutato con 413');
+  ok((await fetch(BASE + '/api/fps')).status === 405, '/api/fps accetta solo POST');
+  const s2 = await giorno();
+  ok((s2.fps_pc_n || 0) === (s1.fps_pc_n || 0) && (s2.fps_tel_n || 0) === (s1.fps_tel_n || 0), 'le richieste rifiutate non si contano');
+}
+
 if (process.env.VELOCE === '1') console.log('T8 saltata (VELOCE=1: giro rapido del cancello; il giro completo la fa ogni notte)');
 else {
 console.log('T8 · gara valida con attesa reale (≥ 175 s), classifica, punti, chi esce è "non arrivato", contatori');

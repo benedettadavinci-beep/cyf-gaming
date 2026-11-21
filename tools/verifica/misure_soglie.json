@@ -1,0 +1,5 @@
+{
+ "nota": "Soglie di A-14 fissate il 21/11/2026 (blocco 2) dalle misure di quella notte su 0.37.1 nel browser delle prove: peso 1.959 KB, caricamento 4,7 s PC e 2,7 s telefono simulato, 10 fps. Peso massimo = misura + ~20 %; caricamento e fps con margine largo perché dipendono dal computer delle prove. Si alzano solo con una novità approvata che pesa di più, scrivendolo nello storico.",
+ "pc": { "peso_kb_max": 2400, "caricamento_ms_max": 9000, "fps_min": 6 },
+ "tel": { "peso_kb_max": 2400, "caricamento_ms_max": 9000, "fps_min": 6 }
+}
