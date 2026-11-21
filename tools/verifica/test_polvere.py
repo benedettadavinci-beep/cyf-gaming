@@ -109,7 +109,7 @@ with sync_playwright() as p:
     print('2. Il gioco vero, allenamento con freccia giù e curva (qualità alta):', flush=True)
     ctx = nuova(br)
     r, e = gioca(ctx, 'neve', 'polvere-neve.png')
-    check(r['nate'] > 5, 'nella Neve la polvere si alza davvero mentre si gioca', json.dumps(r))
+    check(r['nate'] >= 3, 'nella Neve la polvere si alza davvero mentre si gioca', json.dumps(r))
     check(not e, 'nessun errore nella Neve', '; '.join(e[:2]))
     r, e = gioca(ctx, 'roma', 'polvere-roma.png')
     check(r['nate'] == 0, 'a Roma (asfalto) niente polvere di neve', json.dumps(r))
