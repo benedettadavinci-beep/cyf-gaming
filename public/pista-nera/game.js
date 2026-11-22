@@ -70,7 +70,7 @@
   const QUALITA = PN.qualita({ renderer, ombra: sun.shadow, telefono: isPhone, dopoCambio: () => { if (avviato) resize(); } });
 
   const PISTA = PN.pista({ scene, world, ANISO, TEX });
-  const { TRACKS, center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_TEX, GROUND_MAKE, groundMat, ground, updateGround, ranges } = PISTA;
+  const { TRACKS, center, hgt, groundCanvas, stoneTexture, sampietriniTexture, GROUND_TEX, GROUND_MAKE, groundMat, ground, updateGround, ranges } = PISTA; const RILIEVO = PN.rilievo({ materiale: groundMat, grafica: QUALITA, telefono: isPhone });   // rilievo di neve e asfalto (R-513, moduli/rilievo.js)
 
   const SFONDI = PN.sfondi({ scene, telefono: isPhone });
   const { builtSky, skylineFor } = SFONDI;
@@ -117,7 +117,7 @@
     if (!GROUND_TEX[theme]) GROUND_TEX[theme] = GROUND_MAKE[theme]();
     groundMat.map = GROUND_TEX[theme];
     groundMat.roughness = T.rough || 0.9;
-    groundMat.needsUpdate = true;
+    groundMat.needsUpdate = true; RILIEVO.applica(theme);
     PISTA.resetGround();
     // la cartolina dello scenario (città, e dalla 0.26.0 anche la Neve: i coni 3D restano solo se la Neve non ha la sua)
     const sg = SFONDI.ha(theme) ? skylineFor(theme, { orizzonte: T.sky[2], nebbia: T.fog, sole: T.sun }) : null;
@@ -425,7 +425,7 @@
     updateHazards(dt);
     if (SC) SC.aggiorna(dt);
     for (const o of GEN.objs) if (o.type === 'gem') { if (!o.food) o.mesh.rotation.y += dt * 2.5; o.mesh.position.y = (o.y0 ?? (o.y0 = hgt(o.x, o.z) + 0.9)) + Math.sin(t * 3 + o.phase) * 0.15; }   // y0: terreno sotto il cristallo, calcolato una volta (A-27)
-    updateSpray(dt); POLVERE.passo(dt);   // polvere di neve dietro la tavola (R-513, moduli/polvere.js)
+    updateSpray(dt); POLVERE.passo(dt); RILIEVO.passo();   // polvere di neve dietro la tavola e rilievo del terreno (R-513, moduli/polvere.js, moduli/rilievo.js)
     updateSparks(dt);
     updateFlakes(dt, P.x, P.z, P.speed);
     soundLevels(P.speed, Math.abs(P.ang) + Math.abs(steer) * 0.5, onSnow);
