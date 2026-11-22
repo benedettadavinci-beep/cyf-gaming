@@ -63,7 +63,7 @@
   Object.assign(sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 140 });
   sun.shadow.bias = -0.0006;
   sun.shadow.normalBias = 0.02;
-  scene.add(sun, sun.target);
+  scene.add(sun, sun.target); const LUCE = PN.luce({ renderer, hemi, sun });   // tone mapping ACES e luce di ogni scenario (R-513, moduli/luce.js)
   // qualità scelta in automatico (A-14): pixel per pixel dello schermo e misura delle ombre (prima: 2 e 2048/1024 fissi);
   // misura gli fps veri mentre si gioca e li manda una volta a /api/fps
   let avviato = false;
@@ -113,7 +113,7 @@
     scene.fog.near = T.fogN || 60;
     scene.fog.far = T.fogF || 200;
     hemi.color.copy(lin(T.hemi[0])); hemi.groundColor.copy(lin(T.hemi[1]));
-    sun.color.copy(lin(T.sun));
+    sun.color.copy(lin(T.sun)); LUCE.applica(theme, T);
     if (!GROUND_TEX[theme]) GROUND_TEX[theme] = GROUND_MAKE[theme]();
     groundMat.map = GROUND_TEX[theme];
     groundMat.roughness = T.rough || 0.9;

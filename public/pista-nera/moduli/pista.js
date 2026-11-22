@@ -139,7 +139,7 @@ PN.pista = ({ scene, world, ANISO, TEX }) => {
   scene.add(ranges);
   (function buildRanges() {
     const rr = mulberry32(7);
-    const mk = c => new THREE.MeshBasicMaterial({ color: lin(c), fog: false });
+    const mk = c => new THREE.MeshBasicMaterial({ color: lin(c), fog: false, toneMapped: false });
     const near = mk('#8faccb'), far = mk('#b4c9dd'), snowN = mk('#eef4fa'), snowF = mk('#e3edf6');
     for (const m of [snowN, snowF]) { m.polygonOffset = true; m.polygonOffsetFactor = -4; m.polygonOffsetUnits = -4; }
     for (let layer = 1; layer >= 0; layer--) {

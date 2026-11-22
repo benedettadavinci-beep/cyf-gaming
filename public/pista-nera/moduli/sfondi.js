@@ -90,7 +90,7 @@ PN.sfondi = (() => {
       // nel cilindro l'angolo cresce verso sinistra, sulla tela verso destra; la tela non si capovolge (flipY = false,
       // come vuole un'immagine che arriva dal worker), quindi si capovolge qui la coordinata verticale
       for (let i = 0; i < uv.count; i++) uv.setXY(i, 1 - uv.getX(i), 1 - uv.getY(i));
-      const mat = new THREE.MeshBasicMaterial({ transparent: true, fog: false, side: THREE.DoubleSide, depthWrite: false });
+      const mat = new THREE.MeshBasicMaterial({ transparent: true, fog: false, toneMapped: false, side: THREE.DoubleSide, depthWrite: false });
       const m = new THREE.Mesh(geo, mat);
       m.position.y = (G.alto + G.basso) / 2;
       m.renderOrder = ordine;
@@ -121,9 +121,9 @@ PN.sfondi = (() => {
       if (PAN.acqua(name)) {
         // il sole sta davanti a sinistra (moduli/cielo.js, SOLE): sul disco visto dall'alto, con la rotazione di -90° su x,
         // uv.x cresce verso +x e uv.y verso -z (davanti), quindi la direzione del sole in uv è (-0.6, 0.8)
-        mat = new THREE.ShaderMaterial({ fog: false, uniforms: { map: { value: tex }, time: { value: 0 }, sole: { value: new THREE.Vector2(-0.6, 0.8) }, sunCol: { value: new THREE.Color(cielo.sole || '#fff4dc') } }, vertexShader: VERTICE_ACQUA, fragmentShader: FRAMMENTO_ACQUA });
+        mat = new THREE.ShaderMaterial({ fog: false, toneMapped: false, uniforms: { map: { value: tex }, time: { value: 0 }, sole: { value: new THREE.Vector2(-0.6, 0.8) }, sunCol: { value: new THREE.Color(cielo.sole || '#fff4dc') } }, vertexShader: VERTICE_ACQUA, fragmentShader: FRAMMENTO_ACQUA });
         acque.push(mat);
-      } else mat = new THREE.MeshBasicMaterial({ map: tex, fog: false });
+      } else mat = new THREE.MeshBasicMaterial({ map: tex, fog: false, toneMapped: false });
       const disco = new THREE.Mesh(new THREE.CircleGeometry(1150, 64), mat);
       disco.rotation.x = -Math.PI / 2;
       disco.position.y = G.basso;
