@@ -521,3 +521,4 @@ Che cosa dice: con 50 persone in 7 gare il server non perde messaggi e non ralle
 
 | Versione | Data | Cosa è cambiato |
 |---|---|---|
+| 0.41.0 | 23/11/2026 | **Pronti per Google Play (R-547…R-551)**: sito installabile (manifest, icone, service worker «rete prima», pagina «senza rete»); pagine Privacy e Termini d'uso in 4 lingue con i link in fondo al menu e nella pagina iniziale; «Accetto i termini» prima del primo vocale; nell'app Android niente link per le donazioni; visite contate anche come "app" e "icona"; `/.well-known/assetlinks.json`; progetto dell'app Android in `android/` (Android 16) e costruzione del file `.aab` su GitHub; materiale per la scheda dello store in `docs/play/`. Prove nuove: `test_play.py`, T18 in `test_server.mjs`, termini in `test_vocale.py`. Le versioni 0.39.0 e 0.40.0 (luce e colori, rilievo) sono ancora sul ramo `giorno/2026-11-22-notte`, non provate con il giro completo e non online |

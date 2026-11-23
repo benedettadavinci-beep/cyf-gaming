@@ -37,13 +37,28 @@ with sync_playwright() as p:
     check(not vis['hidden'] and vis['label'] == 'Parla', 'pulsante del microfono presente nella stanza', json.dumps(vis))
     # registra ~2 s con il microfono finto e manda; t0/t1 misurano la finestra vera di registrazione
     # (su una macchina carica i click e le letture arrivano in ritardo e il vocale dura più dei 2 s previsti)
+    # R-549: al primo vocale compaiono i termini d'uso. Con «Non ora» il microfono resta chiuso e niente viene salvato;
+    # con «Accetto i termini» la scelta resta sul dispositivo e la registrazione parte subito.
+    TERMINI = "() => ({ box: !document.getElementById('termini').hidden, rec: __dbg.voice.recording, salvato: localStorage.getItem('cyf.termini'), titolo: document.querySelector('#termini h2').textContent, link: [...document.querySelectorAll('#termini a')].map(a => a.getAttribute('href')).join(' ') })"
+    pa.click('#btnVoice'); pa.wait_for_timeout(500)
+    t1 = pa.evaluate(TERMINI)
+    check(t1['box'] and not t1['rec'] and not t1['salvato'] and t1['titolo'] == 'Prima di mandare un vocale' and t1['link'] == '/termini/ /privacy/',
+          'al primo vocale compaiono i termini (con i link a Termini e Privacy) e il microfono resta chiuso (R-549)', json.dumps(t1, ensure_ascii=False))
+    pa.click('#btnTerminiNo'); pa.wait_for_timeout(500)
+    t2 = pa.evaluate(TERMINI)
+    check(not t2['box'] and not t2['rec'] and not t2['salvato'], 'con «Non ora» il riquadro si chiude, non si registra e niente viene salvato', json.dumps(t2, ensure_ascii=False))
+    pa.click('#btnVoice'); pa.wait_for_timeout(500)
+    check(pa.evaluate(TERMINI)['box'], 'al tocco successivo i termini ricompaiono')
     t0 = time.monotonic()
-    pa.click('#btnVoice')
+    pa.click('#btnTerminiSi')
     try: pa.wait_for_function('__dbg.voice.recording', timeout=8000)   # dalla 0.30 la pagina è più carica: il microfono può metterci più di 400 ms
     except Exception: pass
     pa.wait_for_timeout(200)
     rec = pa.evaluate("() => ({ recording: __dbg.voice.recording, rate: __dbg.voice.rate, label: document.getElementById('voiceLbl').textContent, toasts: window.__toasts.join('|') })")
     check(rec['recording'] and rec['rate'] >= 8000, 'registrazione partita con Web Audio (niente MediaRecorder)', json.dumps(rec))
+    t3 = pa.evaluate(TERMINI)
+    check(not t3['box'] and t3['salvato'] == pa.evaluate('PN.termini.VERSIONE') and pa.evaluate('PN.termini.accettati()'),
+          'con «Accetto i termini» la scelta resta sul dispositivo e la registrazione parte subito', json.dumps(t3, ensure_ascii=False))
     pa.wait_for_timeout(1600)
     pa.click('#btnVoice')
     finestra = time.monotonic() - t0

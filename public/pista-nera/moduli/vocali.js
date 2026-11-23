@@ -1,5 +1,5 @@
 // modulo: vocali
-// dipende da: base, lingua, audio, portale
+// dipende da: base, lingua, audio, portale, termini
 // Messaggi vocali nella sfida: registrazione con Web Audio (funziona su tutti i telefoni), invio in WAV, riproduzione
 // con doppia via (Web Audio, poi elemento audio), pulsante con l'attesa, silenzia e segnala (R-213, R-116).
 // Casella "Messaggi vocali" nel menu (R-244): spenti, il microfono non c'è e i vocali degli altri non si sentono;
@@ -81,6 +81,8 @@ PN.vocali = ({ net, audio: AUDIO, say, isOnline, isTraining, serverNow }) => {
     if (voice.recording) { stopVoice(); return; }
     const wait = voice.next - serverNow();
     if (wait > 0) { say(tr('voiceWait', { t: fmtWait(wait) }), '#13233a'); return; }
+    // R-549: i termini d'uso si accettano una volta sola, prima del primo vocale; con «Non ora» il microfono non si apre
+    if (!PN.termini.accettati()) { if (!(await PN.termini.chiedi()) || !online() || voice.recording) return; }
     const md = navigator.mediaDevices;
     const ac = voiceContext();
     if (!md || !md.getUserMedia || !ac || !ac.createScriptProcessor) { say(tr('voiceNoRec'), '#d8302a'); return; }

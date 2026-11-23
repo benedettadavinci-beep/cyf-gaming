@@ -714,6 +714,76 @@ console.log('T17 · fps veri dei giocatori (A-14): /api/fps accetta una media va
   ok((s2.fps_pc_n || 0) === (s1.fps_pc_n || 0) && (s2.fps_tel_n || 0) === (s1.fps_tel_n || 0), 'le richieste rifiutate non si contano');
 }
 
+console.log('T18 · Google Play (R-547…R-551): fonti "app" e "icona", assetlinks.json, progetto Android, manifest, icone, service worker, privacy e termini');
+{
+  const fs = await import('node:fs');
+  const today = new Date().toISOString().slice(0, 10);
+  const giorno = async () => ((await api('/api/stats')).body || []).find(r => r.day === today) || {};
+  const vis = b => fetch(BASE + '/api/visita', { method: 'POST', body: JSON.stringify(b), headers: { 'content-type': 'application/json' } }).then(r => r.status);
+  const c = rnd();
+  const s0 = await giorno();
+  ok(await vis({ id: 'pa' + c, ms: 900, tel: 1, fonte: 'app' }) === 200 && await vis({ id: 'pi' + c, ms: 900, tel: 1, fonte: 'icona' }) === 200,
+    'POST /api/visita accetta le fonti "app" (app Android) e "icona" (schermata Home)');
+  const s1 = await giorno();
+  const e = k => (s1[k] || 0) - (s0[k] || 0);
+  ok(e('visit_app') === 1 && e('visit_icona') === 1 && e('visit_diretto') === 0 && e('visitors') === 2,
+    'le visite dall\'app e dall\'icona si contano a parte (visit_app, visit_icona), non come "diretto"',
+    JSON.stringify({ app: e('visit_app'), icona: e('visit_icona'), diretto: e('visit_diretto'), visitatori: e('visitors') }));
+
+  // il legame tra sito e app Android
+  const al = await fetch(BASE + '/.well-known/assetlinks.json');
+  const alj = await al.json().catch(() => null);
+  ok(al.status === 200 && /application\/json/.test(al.headers.get('content-type') || '') && Array.isArray(alj), '/.well-known/assetlinks.json risponde con un elenco JSON', al.status + ' ' + al.headers.get('content-type'));
+  const twa = JSON.parse(fs.readFileSync(new URL('../../android/twa-manifest.json', import.meta.url), 'utf8'));
+  const gradle = fs.readFileSync(new URL('../../android/app/build.gradle', import.meta.url), 'utf8');
+  const voce = (alj || [])[0] || { relation: [], target: {} };
+  const impronte = voce.target.sha256_cert_fingerprints || [];
+  ok((alj || []).length === 1 && voce.relation[0] === 'delegate_permission/common.handle_all_urls' && voce.target.namespace === 'android_app' && voce.target.package_name === twa.packageId,
+    'assetlinks: permesso di aprire tutti gli indirizzi all\'app ' + twa.packageId + ' (lo stesso nome del progetto Android)', JSON.stringify(voce.target.package_name));
+  ok(impronte.length >= 1 && impronte.every(f => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f)), 'assetlinks: almeno un\'impronta SHA-256, tutte ben formate', String(impronte.length));
+  const target = +(/targetSdkVersion (\d+)/.exec(gradle) || [])[1], compile = +(/compileSdkVersion (\d+)/.exec(gradle) || [])[1];
+  ok(target >= 36 && compile >= 36, 'progetto Android destinato ad Android 16 (API 36) o più, come chiede Google Play per le app nuove', 'target ' + target + ', compile ' + compile);
+  ok(gradle.includes("applicationId: '" + twa.packageId + "'") && gradle.includes("hostName: '" + twa.host + "'") && gradle.includes("launchUrl: '/pista-nera/?fonte=app'") && twa.startUrl === '/pista-nera/?fonte=app',
+    'progetto Android: stesso nome dell\'app, stesso sito e partenza /pista-nera/?fonte=app');
+  ok(gradle.includes('versionName "' + twa.appVersion + '"') && gradle.includes('versionCode ' + twa.appVersionCode) && /enableNotifications: false/.test(gradle),
+    'progetto Android: versione e codice come in twa-manifest.json, notifiche spente', twa.appVersion + ' / ' + twa.appVersionCode);
+
+  // sito installabile
+  const m = await fetch(BASE + '/manifest.webmanifest');
+  const mj = await m.json().catch(() => ({}));
+  ok(m.status === 200 && /manifest\+json|application\/json/.test(m.headers.get('content-type') || ''), '/manifest.webmanifest servito come manifest', m.headers.get('content-type'));
+  ok(mj.start_url === '/pista-nera/?fonte=icona' && mj.scope === '/' && ['fullscreen', 'standalone'].includes(mj.display) && mj.name && mj.short_name && mj.short_name.length <= 12 && /^#[0-9a-f]{6}$/i.test(mj.theme_color) && /^#[0-9a-f]{6}$/i.test(mj.background_color),
+    'manifest: nome, nome breve (≤ 12 caratteri), partenza con ?fonte=icona, tutto il sito, schermo intero, colori', JSON.stringify({ start: mj.start_url, display: mj.display, breve: mj.short_name }));
+  const icone = mj.icons || [];
+  const haIcona = (misura, scopo) => icone.some(i => i.sizes === misura && (i.purpose || 'any') === scopo && i.type === 'image/png');
+  ok(haIcona('192x192', 'any') && haIcona('512x512', 'any') && haIcona('512x512', 'maskable'), 'manifest: icone 192 e 512 normali e 512 «maskable»');
+  const misure = [];
+  for (const i of [...icone, { src: '/icone/apple-touch-icon.png', sizes: '180x180' }, { src: '/icone/favicon-48.png', sizes: '48x48' }]) {
+    const r = await fetch(BASE + i.src);
+    const b = Buffer.from(await r.arrayBuffer());
+    const png = r.status === 200 && b.slice(1, 4).toString() === 'PNG';
+    misure.push(i.src + '=' + (png ? b.readUInt32BE(16) + 'x' + b.readUInt32BE(20) : r.status) + (png && b.readUInt32BE(16) + 'x' + b.readUInt32BE(20) === i.sizes ? '' : ' ✗'));
+  }
+  ok(misure.every(x => !x.endsWith('✗')), 'ogni icona esiste, è un PNG e ha la misura dichiarata', misure.join(' '));
+  const sw = await fetch(BASE + '/sw.js');
+  const swt = await sw.text();
+  ok(sw.status === 200 && /javascript/.test(sw.headers.get('content-type') || '') && swt.includes("addEventListener('fetch'") && swt.includes("startsWith('/api/')"),
+    '/sw.js servito come JavaScript, con la regola che lascia stare /api/', sw.headers.get('content-type'));
+  const off = await (await fetch(BASE + '/offline.html')).text();
+  ok(['Sei senza rete', 'You are offline', 'Tu es hors ligne', 'Estás sin conexión'].every(x => off.includes(x)), 'pagina «senza rete» in 4 lingue');
+
+  // privacy e termini: indirizzi fissi, 4 lingue, i fatti che contano
+  for (const [pagina, fatti] of [['privacy', ['30 giorni', '30 days', '30 jours', '30 días', 'Cloudflare', 'Google Fonts']], ['termini', ['almeno 16 anni', 'at least 16', 'au moins 16 ans', 'al menos 16 años', 'Segnala', 'Report']]]) {
+    const r = await fetch(BASE + '/' + pagina + '/');
+    const h = await r.text();
+    ok(r.status === 200 && ['it', 'en', 'fr', 'es'].every(l => h.includes('data-lingua="' + l + '"')) && h.includes('data-contatto') && h.includes('data-titolare'),
+      '/' + pagina + '/ esiste, in 4 lingue, con responsabile e contatto', String(r.status));
+    ok(fatti.every(x => h.includes(x)), '/' + pagina + '/ dice le cose che contano (' + fatti.slice(0, 2).join(', ') + '…)', fatti.filter(x => !h.includes(x)).join(', '));
+    const corta = await fetch(BASE + '/' + pagina);
+    ok(corta.status === 200 && (await corta.text()).includes('data-lingua="it"'), '/' + pagina + ' (senza barra finale) arriva alla stessa pagina', corta.url);
+  }
+}
+
 if (process.env.VELOCE === '1') console.log('T8 saltata (VELOCE=1: giro rapido del cancello; il giro completo la fa ogni notte)');
 else {
 console.log('T8 · gara valida con attesa reale (≥ 175 s), classifica, punti, chi esce è "non arrivato", contatori');

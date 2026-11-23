@@ -1,0 +1,96 @@
+# App Android di Pista Nera (R-550): costruisce il file .aab da caricare su Google Play.
+# L'app è lo stesso sito dentro un'app (TWA): il progetto sta in android/ e si rigenera con tools/android/genera.mjs.
+# Parte da sola quando cambia qualcosa in android/, oppure a mano: Actions → «App Android» → Run workflow.
+#
+# Firma: serve il segreto ANDROID_FIRMA (Settings → Secrets and variables → Actions → New repository secret), una riga
+# sola fatta così: <password> <chiave in base64>. Senza il segreto il file si costruisce lo stesso ma NON è firmato e
+# Google Play non lo accetta. Con il segreto, il file firmato finisce in fondo alla pagina di questa esecuzione
+# (Artifacts) e nella pagina Releases del repository, pronto da scaricare.
+name: App Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: app-android
+  cancel-in-progress: true
+
+jobs:
+  aab:
+    name: Costruzione del file .aab
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Versione dell'app
+        id: versione
+        run: |
+          echo "nome=$(grep -oE 'versionName "[^"]+"' android/app/build.gradle | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+          echo "codice=$(grep -oE 'versionCode [0-9]+' android/app/build.gradle | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - name: Costruzione (Gradle, bundleRelease)
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          if ! ./gradlew --no-daemon --console=plain bundleRelease > "$RUNNER_TEMP/gradle.log" 2>&1; then
+            tail -60 "$RUNNER_TEMP/gradle.log"
+            # le ultime righe anche come avviso leggibile senza aprire il registro
+            echo "::error title=Costruzione fallita::$(tail -25 "$RUNNER_TEMP/gradle.log" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            exit 1
+          fi
+          tail -15 "$RUNNER_TEMP/gradle.log"
+          ls -la app/build/outputs/bundle/release/
+      - name: Firma
+        id: firma
+        env:
+          ANDROID_FIRMA: ${{ secrets.ANDROID_FIRMA }}
+        run: |
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          USCITA="pista-nera-${{ steps.versione.outputs.nome }}-${{ steps.versione.outputs.codice }}.aab"
+          if [ -z "$ANDROID_FIRMA" ]; then
+            cp "$AAB" "NON-FIRMATO-$USCITA"
+            echo "file=NON-FIRMATO-$USCITA" >> "$GITHUB_OUTPUT"
+            echo "firmato=no" >> "$GITHUB_OUTPUT"
+            echo "::warning title=File non firmato::Manca il segreto ANDROID_FIRMA: il file .aab è stato costruito ma non è firmato, Google Play non lo accetta."
+            echo "### File .aab costruito ma NON firmato" >> "$GITHUB_STEP_SUMMARY"
+            echo "Manca il segreto \`ANDROID_FIRMA\` (Settings → Secrets and variables → Actions). Dopo averlo aggiunto: Actions → «App Android» → Run workflow." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          PASSWORD="${ANDROID_FIRMA%% *}"
+          printf '%s' "${ANDROID_FIRMA#* }" | base64 -d > "$RUNNER_TEMP/firma.keystore"
+          jarsigner -keystore "$RUNNER_TEMP/firma.keystore" -storepass "$PASSWORD" -keypass "$PASSWORD" -sigalg SHA256withRSA -digestalg SHA-256 "$AAB" cyf > /dev/null
+          jarsigner -verify "$AAB" | grep -q "jar verified" || { echo "::error title=Firma non riuscita::Il file .aab non risulta firmato: controllare il segreto ANDROID_FIRMA."; exit 1; }
+          IMPRONTA=$(keytool -list -v -keystore "$RUNNER_TEMP/firma.keystore" -storepass "$PASSWORD" -alias cyf | grep "SHA256:" | sed 's/.*SHA256: //')
+          rm -f "$RUNNER_TEMP/firma.keystore"
+          cp "$AAB" "$USCITA"
+          echo "file=$USCITA" >> "$GITHUB_OUTPUT"
+          echo "firmato=si" >> "$GITHUB_OUTPUT"
+          echo "### File .aab firmato: $USCITA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Versione ${{ steps.versione.outputs.nome }} (codice ${{ steps.versione.outputs.codice }}), destinata ad Android $(grep -oE 'targetSdkVersion [0-9]+' android/app/build.gradle | cut -d' ' -f2)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Impronta SHA-256 della chiave di caricamento: \`$IMPRONTA\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Si scarica qui sotto (Artifacts) oppure dalla pagina Releases del repository, poi si carica in Play Console." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.firma.outputs.file }}
+          path: ${{ steps.firma.outputs.file }}
+          if-no-files-found: error
+      - name: Pagina Releases (solo file firmato)
+        if: steps.firma.outputs.firmato == 'si'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="android-${{ steps.versione.outputs.codice }}"
+          NOTE="App Android di Pista Nera ${{ steps.versione.outputs.nome }} (codice ${{ steps.versione.outputs.codice }}): file .aab firmato, da caricare in Google Play Console."
+          gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --title "App Android ${{ steps.versione.outputs.nome }} (codice ${{ steps.versione.outputs.codice }})" --notes "$NOTE" --target "$GITHUB_SHA"
+          gh release upload "$TAG" "${{ steps.firma.outputs.file }}" --clobber

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c1828">
+<title>Pista Nera · C-Y-F Gaming</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #0c1828; color: #eef4f8; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; display: grid; place-items: center; padding: 24px; box-sizing: border-box; text-align: center; }
+  main { max-width: 420px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  h1 { margin: 0; font-size: 30px; }
+  p { margin: 0; color: #9fb3c8; font-size: 18px; line-height: 1.4; }
+  button { font: 700 17px/1 inherit; color: #fff; background: #ff5a1f; border: 0; border-radius: 10px; padding: 14px 22px; cursor: pointer; }
+</style>
+</head>
+<body>
+<!-- Pagina mostrata dal service worker (public/sw.js, R-548) quando manca la rete e la pagina chiesta non è mai stata salvata -->
+<main>
+  <h1 data-t="titolo">Sei senza rete</h1>
+  <p data-t="testo">Pista Nera ha bisogno di internet per le sfide con gli amici. Controlla la connessione e riprova.</p>
+  <button type="button" id="riprova" data-t="riprova">Riprova</button>
+</main>
+<script>
+  (function () {
+    var T = {
+      it: { titolo: 'Sei senza rete', testo: 'Pista Nera ha bisogno di internet per le sfide con gli amici. Controlla la connessione e riprova.', riprova: 'Riprova' },
+      en: { titolo: 'You are offline', testo: 'Pista Nera needs the internet to race your friends. Check your connection and try again.', riprova: 'Try again' },
+      fr: { titolo: 'Tu es hors ligne', testo: 'Pista Nera a besoin d\'internet pour défier tes amis. Vérifie ta connexion et réessaie.', riprova: 'Réessayer' },
+      es: { titolo: 'Estás sin conexión', testo: 'Pista Nera necesita internet para retar a tus amigos. Revisa la conexión y vuelve a intentarlo.', riprova: 'Reintentar' }
+    };
+    var l = null;
+    try { l = localStorage.getItem('cyf.lang'); } catch (e) {}
+    if (!T[l]) l = String(navigator.language || 'it').slice(0, 2).toLowerCase();
+    if (!T[l]) l = 'it';
+    document.documentElement.lang = l;
+    document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = T[l][el.getAttribute('data-t')]; });
+    document.getElementById('riprova').addEventListener('click', function () { location.reload(); });
+    window.addEventListener('online', function () { location.reload(); });
+  })();
+</script>
+</body>
+</html>

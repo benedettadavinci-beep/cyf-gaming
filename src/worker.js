@@ -16,6 +16,7 @@ import { pistaDelGiorno } from './giorno.mjs';
 import { settimanaCorrente } from './settimana.mjs';
 import { granPremio, SALE_GP } from './granpremio.mjs';
 import { ordinaSaleOnline, ordinaSaleGp } from './sale.mjs';
+import { assetlinks } from './android.mjs';
 // le due classi dei Durable Objects devono uscire dal file principale (wrangler.jsonc)
 export { RaceRoom } from './stanza.mjs';
 export { Leaderboard } from './classifica.mjs';
@@ -162,6 +163,10 @@ export default {
       const days = Math.max(1, Math.min(30, +url.searchParams.get('giorni') || 7));
       return json(await board(env).errors(days));
     }
+
+    // /.well-known/assetlinks.json (R-550): il legame tra questo sito e l'app Android di Google Play; con le impronte
+    // giuste l'app apre il gioco a schermo intero, senza la barra dell'indirizzo. Elenco e nome dell'app: android.mjs
+    if (url.pathname === '/.well-known/assetlinks.json') return json(assetlinks(), { headers: { 'cache-control': 'public, max-age=300' } });
 
     if (url.pathname.startsWith('/api/')) return json({ error: 'Non trovato' }, { status: 404 });
     return env.ASSETS.fetch(request);

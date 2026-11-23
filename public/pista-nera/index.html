@@ -4,9 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- versione della pagina: deve essere uguale a public/config.js (R-011, controllata da tools/verifica/controlli.mjs C4) -->
-<meta name="cyf-versione" content="0.38.0">
+<meta name="cyf-versione" content="0.41.0">
 <title>Pista Nera · C-Y-F Gaming</title>
 <meta name="description" content="Sfida i tuoi amici in una discesa in 3D, in snowboard sulla neve o in skateboard per 12 città: stessa pista, stesso via, vince il tempo migliore.">
+<!-- sito installabile (R-548): manifest, icone, colore della barra del telefono -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0c1828">
+<link rel="icon" type="image/svg+xml" href="/icone/icona.svg">
+<link rel="icon" type="image/png" sizes="48x48" href="/icone/favicon-48.png">
+<link rel="apple-touch-icon" href="/icone/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pista Nera">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -209,6 +218,10 @@
   /* modalità portale (R-244): niente link verso l'esterno; il titolo resta ma non si clicca */
   .portale .brand { pointer-events: none; }
   .portale [data-donate] { display: none !important; }
+  /* link a Privacy e Termini (R-549): in fondo al menu e nel riquadro dei termini; sul portale niente link verso l'esterno nel menu */
+  .legali, .legali-box { text-align: center; font-size: 13px; margin: 8px 0 0; }
+  .legali a, .legali-box a { color: inherit; }
+  .portale .legali { display: none !important; }
   /* toccando la pista non devono comparire la lente e il menu del testo (telefono, richiesto dai portali) */
   .stage { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   .stage input, .stage #linkText, .stage #lobbyCode, .stage #profCode { user-select: text; -webkit-user-select: text; }
@@ -470,6 +483,7 @@
           <h3 data-i18n="boardTitle"></h3>
           <ol id="board"></ol>
         </div>
+        <p class="muted legali"><a href="/privacy/" target="_blank" rel="noopener" data-i18n="privacyLink"></a> · <a href="/termini/" target="_blank" rel="noopener" data-i18n="termsLink"></a></p>
         <span class="muted" id="verLabel" style="display:block;text-align:center;font-size:11px;opacity:.6;margin-top:6px;user-select:none"></span>
       </div>
     </div>
@@ -699,6 +713,17 @@
       </div>
     </div>
 
+    <!-- termini d'uso prima del primo vocale (R-549, moduli/termini.js) -->
+    <div class="overlay" id="termini" hidden>
+      <div class="panel">
+        <h2 data-i18n="termsTitle"></h2>
+        <p data-i18n="termsText"></p>
+        <p class="muted legali-box"><a href="/termini/" target="_blank" rel="noopener" data-i18n="termsLink"></a> · <a href="/privacy/" target="_blank" rel="noopener" data-i18n="privacyLink"></a></p>
+        <button type="button" class="go" id="btnTerminiSi" data-i18n="termsAccept"></button>
+        <button type="button" class="ghost" id="btnTerminiNo" data-i18n="termsLater"></button>
+      </div>
+    </div>
+
     <span class="err" id="glErr" hidden>Questo browser non supporta la grafica 3D (WebGL) · This browser does not support 3D graphics (WebGL). Chrome, Edge, Firefox.</span>
   </div>
 
@@ -716,6 +741,7 @@
 <script src="moduli/base.js"></script>
 <script src="moduli/lingua.js"></script>
 <script src="moduli/portale.js"></script>
+<script src="moduli/app.js"></script>
 <script src="moduli/pubblicita.js"></script>
 <script src="moduli/geometria.js"></script>
 <script src="moduli/cielo.js"></script>
@@ -746,6 +772,7 @@
 <script src="moduli/effetti.js"></script>
 <script src="moduli/polvere.js"></script>
 <script src="moduli/audio.js"></script>
+<script src="moduli/termini.js"></script>
 <script src="moduli/vocali.js"></script>
 <script src="moduli/profilo.js"></script>
 <script src="moduli/personaggio.js"></script>

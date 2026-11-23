@@ -920,9 +920,9 @@
   const VOCALI = PN.vocali({ net, audio: AUDIO, say, isOnline: () => !net.daily && !net.locale && !!(net.ws && net.ws.readyState === 1) && (mode === 'lobby' || mode === 'results' || racing()), isTraining: () => mode === 'solo' || mode === 'pause' || !!net.daily || !!net.locale, serverNow });
   const { voice, fmtWait, updateVoiceBtn, voiceButton, stopVoice, playVoice, mutedIds } = VOCALI;
   // ---------- donazioni ----------
-  // sul portale (R-244, S-46) niente donazioni e il titolo non è un link: il portale vieta i link verso l'esterno
+  // sul portale (R-244, S-46) niente donazioni e titolo senza link (il portale vieta i link esterni); niente donazioni anche nell'app Android (R-547, regole di Google Play)
   const PORTALE = PN.portale;
-  const DONATE_URL = PORTALE.attivo ? '' : (window.CYF && window.CYF.donateUrl) || '';
+  const DONATE_URL = (PORTALE.attivo || PN.app.attivo) ? '' : (window.CYF && window.CYF.donateUrl) || '';
   document.querySelectorAll('[data-donate]').forEach(a => { if (DONATE_URL) { a.href = DONATE_URL; a.hidden = false; } });
   if (PORTALE.attivo) {
     document.documentElement.classList.add('portale');

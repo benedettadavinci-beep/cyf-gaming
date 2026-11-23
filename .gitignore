@@ -4,3 +4,11 @@ node_modules
 .dev.vars
 *.log
 __pycache__/
+# app Android (R-550): prodotti della costruzione e chiavi di firma non vanno mai nel repository
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.keystore
+*.jks
+ANDROID_FIRMA*

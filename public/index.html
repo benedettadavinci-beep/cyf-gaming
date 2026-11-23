@@ -19,6 +19,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>C-Y-F Gaming · Challenge Your Friends</title>
 <meta name="description" content="Giochi nel browser per sfidare gli amici in tempo reale. Crea una sfida, condividi il link, vince il migliore.">
+<!-- sito installabile (R-548): manifest, icone, colore della barra del telefono -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0c1828">
+<link rel="icon" type="image/svg+xml" href="/icone/icona.svg">
+<link rel="icon" type="image/png" sizes="48x48" href="/icone/favicon-48.png">
+<link rel="apple-touch-icon" href="/icone/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pista Nera">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -70,6 +79,7 @@
   .donate { display: inline-block; font-weight: 700; color: #fff; background: transparent; border: 2px solid var(--flare); padding: 10px 16px; border-radius: 10px; text-decoration: none; align-self: flex-start; }
   .donate:hover { background: var(--flare); }
   footer { color: var(--soft); font-size: 15px; border-top: 1px solid var(--line); padding-top: 14px; }
+  footer a { color: inherit; }
   @media (max-width: 640px) { .game { grid-template-columns: 1fr; } .art { min-height: 170px; } }
   @media (prefers-reduced-motion: reduce) { .play { transition: none; } }
 
@@ -122,14 +132,26 @@
 
   <a class="donate" data-donate hidden target="_blank" rel="noopener" data-i18n="donate">Sostieni C-Y-F Gaming con una donazione</a>
 
-  <footer>C-Y-F Gaming · Challenge Your Friends</footer>
+  <footer>C-Y-F Gaming · Challenge Your Friends · <a href="/privacy/" data-i18n="privacy">Privacy</a> · <a href="/termini/" data-i18n="terms">Termini d'uso</a></footer>
 </main>
 <script src="/config.js"></script>
 <script>
   (function () {
+    // nell'app Android di Google Play (R-547) niente link per le donazioni: le regole di Google sui pagamenti non li
+    // ammettono. L'app si riconosce come nel gioco (moduli/app.js): ?fonte=app, riferimento android-app://, o già vista.
+    var app = false;
+    try {
+      app = new URLSearchParams(location.search).get('fonte') === 'app' || String(document.referrer || '').indexOf('android-app://') === 0 || sessionStorage.getItem('cyf.app') === 'app';
+      if (app) sessionStorage.setItem('cyf.app', 'app');
+    } catch (e) {}
     var u = window.CYF && window.CYF.donateUrl;
-    if (!u) return;
-    document.querySelectorAll('[data-donate]').forEach(function (a) { a.href = u; a.hidden = false; });
+    if (u && !app) document.querySelectorAll('[data-donate]').forEach(function (a) { a.href = u; a.hidden = false; });
+    // service worker «rete prima» (R-548), come nel gioco: in locale solo con ?sw=1, mai dentro un riquadro
+    try {
+      var locale = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+      var sw = new URLSearchParams(location.search).get('sw');
+      if (navigator.serviceWorker && window.top === window.self && sw !== '0' && (!locale || sw === '1')) navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(function () {});
+    } catch (e) {}
   })();
 
   // Testi della home in italiano, inglese, francese e spagnolo (stessa lingua del gioco: chiave cyf.lang).
@@ -145,7 +167,8 @@
         gameDesc: 'Discesa in 3D fino al traguardo: in snowboard sulla neve o in skateboard per 12 città, da Napoli (pizze, caffè e Vesuvio) a Roma con il Colosseo, fino a Parigi, Londra, New York e altre. Acrobazie, banane e bombe, sfide online, classifica dal vivo e messaggi vocali, in 4 lingue.',
         chipPlayers: '2–8 giocatori', chipScenes: '13 scenari', chipRaces: 'Gare da 5, 10 o 15 minuti', chipDevices: 'PC e telefono',
         play: 'Gioca →',
-        donate: 'Sostieni C-Y-F Gaming con una donazione'
+        donate: 'Sostieni C-Y-F Gaming con una donazione',
+        privacy: 'Privacy', terms: 'Termini d\'uso'
       },
       en: {
         desc: 'Browser games to challenge your friends in real time. Create a challenge, share the link, and may the best player win.',
@@ -157,7 +180,8 @@
         gameDesc: 'A 3D descent to the finish line: snowboarding on snow or skateboarding through 12 cities, from Naples (pizza, espresso and Vesuvius) to Rome and the Colosseum, all the way to Paris, London, New York and more. Tricks, bananas and bombs, online races, a live leaderboard and voice messages, in 4 languages.',
         chipPlayers: '2–8 players', chipScenes: '13 locations', chipRaces: '5, 10 or 15-minute races', chipDevices: 'PC and mobile',
         play: 'Play →',
-        donate: 'Support C-Y-F Gaming with a donation'
+        donate: 'Support C-Y-F Gaming with a donation',
+        privacy: 'Privacy', terms: 'Terms of use'
       },
       fr: {
         desc: 'Des jeux dans le navigateur pour défier tes amis en temps réel. Crée un défi, partage le lien, et que le meilleur gagne.',
@@ -169,7 +193,8 @@
         gameDesc: 'Une descente en 3D jusqu\u2019à l\u2019arrivée\u00a0: en snowboard sur la neige ou en skateboard dans 12 villes, de Naples (pizzas, café et Vésuve) à Rome et son Colisée, jusqu\u2019à Paris, Londres, New York et bien d\u2019autres. Figures, bananes et bombes, défis en ligne, classement en direct et messages vocaux, en 4 langues.',
         chipPlayers: '2 à 8 joueurs', chipScenes: '13 décors', chipRaces: 'Courses de 5, 10 ou 15 minutes', chipDevices: 'PC et mobile',
         play: 'Jouer →',
-        donate: 'Soutiens C-Y-F Gaming avec un don'
+        donate: 'Soutiens C-Y-F Gaming avec un don',
+        privacy: 'Confidentialité', terms: 'Conditions d\'utilisation'
       },
       es: {
         desc: 'Juegos en el navegador para desafiar a tus amigos en tiempo real. Crea un desafío, comparte el enlace y que gane el mejor.',
@@ -181,7 +206,8 @@
         gameDesc: 'Un descenso en 3D hasta la meta: en snowboard sobre la nieve o en monopatín por 12 ciudades, de Nápoles (pizza, café y el Vesubio) a Roma con el Coliseo, hasta París, Londres, Nueva York y muchas más. Acrobacias, plátanos y bombas, desafíos en línea, clasificación en directo y mensajes de voz, en 4 idiomas.',
         chipPlayers: '2–8 jugadores', chipScenes: '13 escenarios', chipRaces: 'Carreras de 5, 10 o 15 minutos', chipDevices: 'PC y móvil',
         play: 'Jugar →',
-        donate: 'Apoya C-Y-F Gaming con una donación'
+        donate: 'Apoya C-Y-F Gaming con una donación',
+        privacy: 'Privacidad', terms: 'Términos de uso'
       }
     };
     var meta = document.querySelector('meta[name="description"]');

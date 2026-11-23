@@ -138,7 +138,8 @@
 
   // R-246: da dove arriva questa visita, letto subito (prima che il gioco tolga i parametri dall'indirizzo):
   // sfida (link ?sfida=), batti (link "batti il mio tempo"), portale (?portale= o già in modalità portale), home (dalla
-  // pagina iniziale del sito), diretto (tutto il resto). Niente dati personali.
+  // pagina iniziale del sito), app (l'app Android di Google Play, R-547), icona (il sito aggiunto alla schermata
+  // Home, R-548), diretto (tutto il resto). Niente dati personali.
   const fonte = (() => {
     try {
       const q = new URLSearchParams(location.search);
@@ -146,6 +147,11 @@
       if (q.has('sfida')) return 'sfida';
       if (q.has('portale') && !['0', 'no'].includes(String(q.get('portale')).toLowerCase())) return 'portale';
       if (sessionStorage.getItem('cyf.portale')) return 'portale';
+      const f = String(q.get('fonte') || '').toLowerCase();
+      if (f === 'app' || f === 'icona') return f;
+      if (String(document.referrer || '').indexOf('android-app://') === 0) return 'app';
+      const a = sessionStorage.getItem('cyf.app');
+      if (a === 'app' || a === 'icona') return a;
       const r = document.referrer || '';
       if (r && r.indexOf(location.origin + '/') === 0 && r.indexOf('/pista-nera') < 0) return 'home';
     } catch (e) {}
