@@ -37,7 +37,11 @@ PN.app = (() => {
     const locale = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
     const riquadro = window.top !== window.self;
     if (navigator.serviceWorker && !riquadro && chiesto !== '0' && (!locale || chiesto === '1')) {
-      sw = navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(() => null);
+      // si registra a pagina caricata, per non rubare tempo all'apertura del gioco
+      sw = new Promise(fatto => {
+        const vai = () => navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).then(fatto, () => fatto(null));
+        if (document.readyState === 'complete') vai(); else window.addEventListener('load', vai, { once: true });
+      });
     }
   } catch (e) {}
 

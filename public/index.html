@@ -150,7 +150,9 @@
     try {
       var locale = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
       var sw = new URLSearchParams(location.search).get('sw');
-      if (navigator.serviceWorker && window.top === window.self && sw !== '0' && (!locale || sw === '1')) navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(function () {});
+      if (navigator.serviceWorker && window.top === window.self && sw !== '0' && (!locale || sw === '1')) {
+        window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(function () {}); });
+      }
     } catch (e) {}
   })();
 
