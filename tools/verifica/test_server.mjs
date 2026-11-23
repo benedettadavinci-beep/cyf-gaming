@@ -745,6 +745,9 @@ console.log('T18 · Google Play (R-547…R-551): fonti "app" e "icona", assetlin
   ok(impronte.length >= 1 && impronte.every(f => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f)), 'assetlinks: almeno un\'impronta SHA-256, tutte ben formate', String(impronte.length));
   const target = +(/targetSdkVersion (\d+)/.exec(gradle) || [])[1], compile = +(/compileSdkVersion (\d+)/.exec(gradle) || [])[1];
   ok(target >= 36 && compile >= 36, 'progetto Android destinato ad Android 16 (API 36) o più, come chiede Google Play per le app nuove', 'target ' + target + ', compile ' + compile);
+  // la libreria di Google che apre il sito (androidbrowserhelper 2.7.4) chiede Android 7 (API 24) o più: con meno la costruzione su GitHub fallisce (visto il 23/11)
+  const minimo = +(/minSdkVersion (\d+)/.exec(gradle) || [])[1];
+  ok(minimo >= 24 && twa.minSdkVersion === minimo, 'progetto Android: versione minima Android 7 (API 24) o più, uguale in twa-manifest.json', String(minimo));
   ok(gradle.includes("applicationId: '" + twa.packageId + "'") && gradle.includes("hostName: '" + twa.host + "'") && gradle.includes("launchUrl: '/pista-nera/?fonte=app'") && twa.startUrl === '/pista-nera/?fonte=app',
     'progetto Android: stesso nome dell\'app, stesso sito e partenza /pista-nera/?fonte=app');
   ok(gradle.includes('versionName "' + twa.appVersion + '"') && gradle.includes('versionCode ' + twa.appVersionCode) && /enableNotifications: false/.test(gradle),
