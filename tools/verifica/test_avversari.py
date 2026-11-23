@@ -127,9 +127,12 @@ with sync_playwright() as p:
     t = pg.evaluate("""() => { const D = window.__dbg; const b = D.BOT.lista[0]; D.P.z = b.z + 25; D.P.x = b.x; D.bonus = 5000; window.__toasts.length = 0;
       for (const x of D.BOT.lista) { x.air = false; x.y = 0; x.vy = 0; x.inv = 0; x.crash = 0; }
       for (const [id, r] of D.remotes) if (!D.BOT.guida(id)) r.model.group.visible = false;   // davanti c'è solo l'avversario
+      // B-13 (23/11): se in quell'istante l'avversario sta curvando, 3 volte su 4 schiva (R-540, R-522) e la prova falliva
+      // per caso. Qui il caso è fissato su «non schiva»: si prova R-224 (la banana ferma), la schivata ha la sua prova sopra
+      const rnd = Math.random; Math.random = () => 0.99;
       document.getElementById('btnBanana').click();
       // la banana va all'avversario più vicino davanti: si controlla che quello si fermi
-      return new Promise(res => setTimeout(() => { const toast = window.__toasts.join('|'), c = D.BOT.lista.find(x => toast.includes(x.nome));
+      return new Promise(res => setTimeout(() => { Math.random = rnd; const toast = window.__toasts.join('|'), c = D.BOT.lista.find(x => toast.includes(x.nome));
         res({ toast, colpito: c ? c.nome : null, fermo: c ? c.stopUntil - performance.now() : 0 }); }, 1300)); }""")
     check(t['colpito'] and t['fermo'] > 0, "banana lanciata all'avversario davanti: lui si ferma (R-224)", json.dumps(t))
     pg.screenshot(path=os.path.join(OUT, 'avversari-sfida.png'))

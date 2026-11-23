@@ -25,9 +25,9 @@ avvocato; se il gioco cambia ciò che raccoglie, cambiano anche queste risposte 
 |---|---|---|
 | `icona-512.png` | Icona dell'app | 512×512, PNG, senza trasparenza |
 | `copertina-1024x500.png` | Immagine di presentazione | 1024×500 |
-| `schermata-1.png` … `schermata-4.png` | Schermate da telefono | almeno 2, lato tra 320 e 3840 px |
+| `schermata-1.jpg` … `schermata-4.jpg` | Schermate da telefono, 1080×1920 (neve, Napoli, Parigi, menu) | almeno 2, lato tra 320 e 3840 px |
 
-Le schermate fatte dal computer servono per partire: se Luigi ne manda di più belle dal suo telefono si sostituiscono.
+**Le schermate sono provvisorie**: le ha fatte il computer senza nessuno che guida (il rider sbatte contro i muri ed è ultimo). Per la scheda vera bastano 3-4 schermate fatte da Luigi dal telefono durante una discesa riuscita: un salto, una curva tra le porte, l'arrivo. Si mettono qui con gli stessi nomi.
 
 ## 3. Testi della scheda
 
