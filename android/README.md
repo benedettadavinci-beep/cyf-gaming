@@ -17,7 +17,7 @@ nome, l'icona, l'indirizzo del sito o le regole di Google sulla versione di Andr
 
 - Nome tecnico: `com.cyfgaming.pistanera` (**non si può più cambiare dopo il primo caricamento su Google Play**).
 - Apre: `https://cyf-gaming.benedetta-davinci-mellum.workers.dev/pista-nera/?fonte=app` (il gioco riconosce l'app da `?fonte=app`).
-- Destinata ad Android 16 (API 36); funziona da Android 5 in su (serve Chrome o un browser compatibile).
+- Destinata ad Android 16 (API 36); funziona da Android 7 in su (lo chiede la libreria di Google che apre il sito; serve Chrome o un browser compatibile).
 - Schermo intero, notifiche spente, nessun permesso chiesto dall'app (il microfono lo chiede il browser, solo quando si preme il pulsante dei vocali).
 
 ## Firma
