@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- versione della pagina: deve essere uguale a public/config.js (R-011, controllata da tools/verifica/controlli.mjs C4) -->
-<meta name="cyf-versione" content="0.41.0">
+<meta name="cyf-versione" content="0.42.0">
 <title>Pista Nera · C-Y-F Gaming</title>
 <meta name="description" content="Sfida i tuoi amici in una discesa in 3D, in snowboard sulla neve o in skateboard per 12 città: stessa pista, stesso via, vince il tempo migliore.">
 <!-- sito installabile (R-548): manifest, icone, colore della barra del telefono -->
@@ -212,6 +212,8 @@
   .dayboard li span { float: right; font-weight: 700; }
   .dayboard li.me { color: var(--flare); font-weight: 700; }
   .alt { font-weight: 700; font-size: 18px; letter-spacing: .04em; border: 0; border-radius: 10px; padding: 12px 16px; background: var(--ink); color: var(--snow); }
+  .corri { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; font-size: 24px; padding: 18px; }   /* R-552 */
+  .corri small { font-family: inherit; font-size: 13px; letter-spacing: 0; opacity: .92; }
   .ghost { font-weight: 700; font-size: 17px; border: 2px solid var(--snow-deep); border-radius: 10px; padding: 10px 14px; background: transparent; color: var(--ink); }
   button:focus-visible, input:focus-visible { outline: 3px solid var(--ice); outline-offset: 2px; }
   .err { font-size: 16px; color: #b3261e; }
@@ -424,6 +426,7 @@
           <button type="button" class="go" id="btnRivalGo" data-i18n="rivalAccept"></button>
           <button type="button" class="x" id="btnRivalX" data-i18n-aria="rivalClose" aria-label="Chiudi">✕</button>
         </div>
+        <button type="button" class="go corri" id="btnCorri" hidden><b data-i18n="corriOra"></b><small data-i18n="corriOraInfo"></small></button>
         <button type="button" class="daily" id="btnDaily"><b id="dailyName"></b><small id="dailyInfo"></small></button>
         <div class="gp" id="gpBox" hidden><b id="gpName"></b><small id="gpInfo"></small><button type="button" class="go" id="btnGp"></button></div>
         <div class="week" id="weekBox" hidden><b id="weekName"></b><small id="weekInfo"></small><button type="button" class="ghost" id="btnWeekGo"></button></div>
@@ -773,6 +776,7 @@
 <script src="moduli/polvere.js"></script>
 <script src="moduli/audio.js"></script>
 <script src="moduli/termini.js"></script>
+<script src="moduli/corri.js"></script>
 <script src="moduli/vocali.js"></script>
 <script src="moduli/profilo.js"></script>
 <script src="moduli/personaggio.js"></script>

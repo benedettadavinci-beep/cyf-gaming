@@ -1,11 +1,13 @@
 // Impostazioni di C-Y-F Gaming modificabili senza toccare il codice dei giochi.
 window.CYF = {
   // Versione pubblicata (la stessa dello storico in REQUISITI.md): serve a controllare che l'aggiornamento sia online
-  version: '0.41.0',
+  version: '0.42.0',
   // Chi risponde del gioco e a chi scrivere (R-549): compaiono nelle pagine /privacy/ e /termini/. Il contatto è
   // un indirizzo email pubblico; lo stesso va nella scheda di Google Play. Finché sono vuoti le pagine lo dicono.
   titolare: '',
   contatto: '',
+  // «Corri ora» per chi arriva la prima volta (R-552): false lo spegne per tutti senza toccare il codice.
+  corriOra: true,
   // Link per le donazioni (es. https://paypal.me/nome oppure https://ko-fi.com/nome).
   // Se è vuoto, i pulsanti "Sostieni" restano nascosti.
   donateUrl: 'https://paypal.me/Limper17',

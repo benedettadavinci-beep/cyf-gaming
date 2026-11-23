@@ -110,6 +110,7 @@ modo diverso, vanno in conflitto: meglio una alla volta.
 | le regole di fine gara (tempo minimo, tempo stimato degli avversari, classifica, punti del piazzamento, premi), uguali per server e gioco | `shared/gara.js` (lo importano `src/comune.mjs`, `src/avversari.mjs`, `src/stanza.mjs`) |
 | la sala online o del Gran Premio: posto prenotato da `/api/quick` e nuovi tentativi se è piena (B-04) | `moduli/sala.js` (il server in `src/sale.mjs`, funzioni pure, e `src/stanza.mjs`, `prenota`) |
 | il calendario delle settimane (numero, città, maglia) | `shared/calendario.js` |
+| «Corri ora» per chi arriva la prima volta (R-552) | `moduli/corri.js` |
 | schermate (menu, stanza, risultati), avvisi, HUD, classifica del menu | `moduli/schermate.js` |
 | generazione della pista con il seme, palazzi, lati della strada | `moduli/generazione.js` |
 | tastiera, rotellina, Salta | `moduli/comandi.js` |
